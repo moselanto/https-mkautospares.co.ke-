@@ -1,0 +1,408 @@
+/*
+ * MK Auto Core - branded sign-in screen.
+ * Desktop: brand panel fixed on the left, form column on the right.
+ * Mobile (< 960px): brand panel hidden, form full width.
+ * Variables --mkac-accent, --mkac-logo and --mkac-hero are printed inline.
+ */
+
+:root {
+	--mkac-ink: #111316;
+	--mkac-ink-2: #1b1e23;
+	--mkac-text: #1d2127;
+	--mkac-muted: #5f6670;
+	--mkac-line: #e3e6ea;
+	--mkac-bg: #f6f7f8;
+	--mkac-radius: 12px;
+	--mkac-panel: 46vw;
+}
+
+body.login {
+	background: var(--mkac-bg);
+	color: var(--mkac-text);
+	font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+}
+
+/* ---------------------------------------------------------- brand panel */
+
+.mkac-brand {
+	display: none;
+}
+
+@media (min-width: 960px) {
+	body.mkac-login {
+		padding-left: var(--mkac-panel);
+	}
+
+	.mkac-brand {
+		position: fixed;
+		inset: 0 auto 0 0;
+		width: var(--mkac-panel);
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		gap: 32px;
+		padding: 48px 56px;
+		box-sizing: border-box;
+		color: #fff;
+		background-color: var(--mkac-ink);
+		background-image:
+			linear-gradient(160deg, rgba(17, 19, 22, .92) 0%, rgba(17, 19, 22, .82) 55%, rgba(17, 19, 22, .96) 100%),
+			var(--mkac-hero, linear-gradient(135deg, var(--mkac-ink) 0%, var(--mkac-ink-2) 100%));
+		background-size: cover;
+		background-position: center;
+		overflow: hidden;
+	}
+
+	/* Accent stripe on the panel edge. */
+	.mkac-brand::after {
+		content: "";
+		position: absolute;
+		top: 0;
+		right: 0;
+		width: 4px;
+		height: 100%;
+		background: var(--mkac-accent);
+	}
+}
+
+.mkac-brand__top {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.mkac-wordmark {
+	font-family: "Sora", "Inter", sans-serif;
+	font-weight: 700;
+	font-size: 22px;
+	letter-spacing: .06em;
+	text-transform: uppercase;
+}
+
+.mkac-wordmark__mk {
+	color: var(--mkac-accent);
+}
+
+.mkac-eyebrow {
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: .18em;
+	text-transform: uppercase;
+	color: rgba(255, 255, 255, .62);
+}
+
+.mkac-brand__body {
+	max-width: 520px;
+}
+
+.mkac-brand__title {
+	font-family: "Sora", "Inter", sans-serif;
+	font-size: clamp(30px, 3.1vw, 46px);
+	line-height: 1.12;
+	font-weight: 700;
+	letter-spacing: -.01em;
+	margin: 0 0 18px;
+	color: #fff;
+}
+
+.mkac-brand__lead {
+	font-size: 16px;
+	line-height: 1.6;
+	color: rgba(255, 255, 255, .78);
+	margin: 0 0 28px;
+}
+
+.mkac-brand__points {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 14px;
+}
+
+.mkac-brand__points li {
+	position: relative;
+	padding-left: 30px;
+	font-size: 15px;
+	line-height: 1.5;
+	color: rgba(255, 255, 255, .9);
+}
+
+.mkac-brand__points li::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 3px;
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	background: var(--mkac-accent);
+	box-shadow: inset 0 0 0 5px var(--mkac-accent), inset 0 0 0 9px #fff;
+}
+
+.mkac-brand__foot {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 22px;
+	font-size: 13px;
+	color: rgba(255, 255, 255, .6);
+}
+
+.mkac-brand__foot a {
+	color: rgba(255, 255, 255, .85);
+	text-decoration: none;
+}
+
+.mkac-brand__foot a:hover,
+.mkac-brand__foot a:focus {
+	color: #fff;
+	text-decoration: underline;
+}
+
+/* ---------------------------------------------------------- form column */
+
+#login {
+	width: 100%;
+	max-width: 400px;
+	padding: 48px 24px 16px;
+	margin: 0 auto;
+	box-sizing: content-box;
+}
+
+.login h1 a {
+	background-image: var(--mkac-logo);
+	background-size: contain;
+	background-position: left center;
+	width: 220px;
+	height: 52px;
+	margin: 0 0 28px;
+}
+
+.mkac-heading h2 {
+	font-family: "Sora", "Inter", sans-serif;
+	font-size: 28px;
+	line-height: 1.2;
+	font-weight: 700;
+	color: var(--mkac-ink);
+	margin: 0 0 6px;
+}
+
+.mkac-heading p {
+	font-size: 15px;
+	color: var(--mkac-muted);
+	margin: 0 0 22px;
+}
+
+.login form {
+	margin-top: 0;
+	padding: 26px 24px;
+	background: #fff;
+	border: 1px solid var(--mkac-line);
+	border-radius: var(--mkac-radius);
+	box-shadow: 0 10px 30px rgba(17, 19, 22, .06);
+}
+
+.login label {
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--mkac-text);
+}
+
+.login form .input,
+.login input[type="text"],
+.login input[type="password"],
+.login input[type="email"] {
+	font-size: 16px;
+	min-height: 46px;
+	padding: 8px 12px;
+	border: 1px solid #cfd4da;
+	border-radius: 10px;
+	background: #fff;
+	box-shadow: none;
+	margin-top: 6px;
+}
+
+.login form .input:focus,
+.login input[type="text"]:focus,
+.login input[type="password"]:focus {
+	border-color: var(--mkac-accent);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--mkac-accent) 22%, transparent);
+	outline: 0;
+}
+
+.login .button.wp-hide-pw {
+	min-height: 46px;
+	margin-top: 6px;
+	color: var(--mkac-muted);
+}
+
+.login .button.wp-hide-pw:focus {
+	border-color: var(--mkac-accent);
+	box-shadow: 0 0 0 2px var(--mkac-accent);
+}
+
+.login input[type="checkbox"]:checked::before {
+	filter: grayscale(1) brightness(0);
+}
+
+.login input[type="checkbox"]:focus {
+	border-color: var(--mkac-accent);
+	box-shadow: 0 0 0 2px var(--mkac-accent);
+}
+
+.login .forgetmenot {
+	margin: 4px 0 0;
+}
+
+.wp-core-ui .button-primary,
+.login .button-primary {
+	float: none;
+	width: 100%;
+	min-height: 48px;
+	margin-top: 18px;
+	font-size: 15px;
+	font-weight: 700;
+	letter-spacing: .06em;
+	text-transform: uppercase;
+	background: var(--mkac-ink);
+	border: 0;
+	border-radius: 10px;
+	box-shadow: none;
+	text-shadow: none;
+	transition: background-color .15s ease;
+}
+
+.login .forgetmenot + .submit {
+	clear: both;
+}
+
+.login p.submit {
+	display: block;
+}
+
+.wp-core-ui .button-primary:hover,
+.wp-core-ui .button-primary:focus {
+	background: var(--mkac-accent);
+}
+
+.wp-core-ui .button-primary:focus {
+	box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--mkac-accent);
+}
+
+/* Notices */
+.login #login_error,
+.login .message,
+.login .success,
+.login .notice {
+	border-radius: 10px;
+	border-left-width: 4px;
+	box-shadow: none;
+	border-top: 1px solid var(--mkac-line);
+	border-right: 1px solid var(--mkac-line);
+	border-bottom: 1px solid var(--mkac-line);
+}
+
+.login #login_error,
+.login .notice-error {
+	border-left-color: var(--mkac-accent);
+}
+
+/* Links under the form */
+.login #nav,
+.login #backtoblog {
+	padding: 0;
+	margin: 14px 0 0;
+	font-size: 14px;
+}
+
+.login #nav a,
+.login #backtoblog a,
+.login .privacy-policy-page-link a,
+.mkac-help a {
+	color: var(--mkac-ink);
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.login #nav a:hover,
+.login #backtoblog a:hover,
+.login .privacy-policy-page-link a:hover,
+.mkac-help a:hover,
+.login #nav a:focus,
+.login #backtoblog a:focus,
+.mkac-help a:focus {
+	color: var(--mkac-accent);
+	text-decoration: underline;
+}
+
+.login .privacy-policy-page-link {
+	text-align: left;
+	max-width: 400px;
+	margin: 18px auto 0;
+	padding: 0 24px;
+	box-sizing: content-box;
+	font-size: 13px;
+}
+
+.mkac-help {
+	max-width: 400px;
+	margin: 0 auto;
+	padding: 0 24px;
+	box-sizing: content-box;
+	font-size: 14px;
+	color: var(--mkac-muted);
+}
+
+.mkac-help p {
+	margin: 10px 0 0;
+}
+
+.mkac-secure {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 13px;
+}
+
+.mkac-secure__dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: #1f9d55;
+	box-shadow: 0 0 0 3px rgba(31, 157, 85, .18);
+}
+
+.language-switcher {
+	padding-bottom: 32px;
+}
+
+/* Re-authentication pop-up inside wp-admin: keep it compact. */
+body.mkac-interim {
+	padding-left: 0;
+}
+
+@media (max-width: 959px) {
+	#login {
+		padding-top: 32px;
+	}
+
+	.login h1 a {
+		margin-left: auto;
+		margin-right: auto;
+		background-position: center;
+	}
+
+	.mkac-heading {
+		text-align: center;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.wp-core-ui .button-primary {
+		transition: none;
+	}
+}
