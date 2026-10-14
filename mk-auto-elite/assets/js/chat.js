@@ -1,0 +1,197 @@
+/**
+ * MK Auto Elite - AI chat assistant with WhatsApp hand-off.
+ * Talks to the mkae_chat AJAX endpoint (which proxies Google Gemini
+ * server-side). Falls back to a WhatsApp hand-off if AI is not configured.
+ * Dependency-free; reads window.MKAE (ajaxUrl, nonce) and window.MKAEChat.
+ */
+(function () {
+	'use strict';
+
+	var chatCfg = window.MKAEChat || {};
+	if (!chatCfg.enabled) {
+		return;
+	}
+	var base = window.MKAE || {};
+	var i18n = chatCfg.i18n || {};
+
+	var root, panel, log, input, form, waLink;
+	var messages = [];
+	var busy = false;
+	var opened = false;
+
+	function el(sel) {
+		return root ? root.querySelector(sel) : null;
+	}
+
+	function scrollDown() {
+		if (log) {
+			log.scrollTop = log.scrollHeight;
+		}
+	}
+
+	function addMessage(role, text, typing) {
+		var wrap = document.createElement('div');
+		wrap.className = 'mkae-chat__msg mkae-chat__msg--' + (role === 'user' ? 'user' : 'bot') + (typing ? ' is-typing' : '');
+		wrap.textContent = text;
+		log.appendChild(wrap);
+		scrollDown();
+		return wrap;
+	}
+
+	function buildWhatsappHref() {
+		var num = (chatCfg.whatsapp || '').replace(/[^0-9]/g, '');
+		var lines = ['Hi ' + (chatCfg.brand || 'MK Auto Spares') + ', I was chatting on your website:'];
+		for (var i = 0; i < messages.length; i++) {
+			var who = messages[i].role === 'user' ? 'Me' : 'Assistant';
+			lines.push(who + ': ' + messages[i].text);
+		}
+		var text = lines.join('\n');
+		if (text.length > 1200) {
+			text = text.slice(text.length - 1200);
+		}
+		return 'https://wa.me/' + num + '?text=' + encodeURIComponent(text);
+	}
+
+	function refreshWhatsapp() {
+		if (waLink) {
+			waLink.setAttribute('href', buildWhatsappHref());
+		}
+	}
+
+	function send(text) {
+		if (busy) {
+			return;
+		}
+		messages.push({ role: 'user', text: text });
+		addMessage('user', text);
+		refreshWhatsapp();
+
+		// No API key configured: steer to WhatsApp instead of calling the server.
+		if (!chatCfg.aiReady) {
+			addMessage('bot', i18n.error || 'Our AI assistant is being set up. Please continue on WhatsApp and we will help you right away.');
+			return;
+		}
+
+		busy = true;
+		var typing = addMessage('bot', i18n.thinking || 'Typing...', true);
+
+		var payload = new FormData();
+		payload.append('action', 'mkae_chat');
+		payload.append('nonce', base.nonce || '');
+		payload.append('messages', JSON.stringify(messages.slice(-14)));
+
+		fetch(base.ajaxUrl, {
+			method: 'POST',
+			credentials: 'same-origin',
+			body: payload
+		})
+			.then(function (r) {
+				return r.json();
+			})
+			.then(function (res) {
+				if (typing && typing.parentNode) {
+					typing.parentNode.removeChild(typing);
+				}
+				if (res && res.success && res.data && res.data.reply) {
+					messages.push({ role: 'model', text: res.data.reply });
+					addMessage('bot', res.data.reply);
+				} else {
+					addMessage('bot', (res && res.data && res.data.message) || i18n.error || 'Sorry, I could not respond just now. Please continue on WhatsApp.');
+				}
+				refreshWhatsapp();
+			})
+			.catch(function () {
+				if (typing && typing.parentNode) {
+					typing.parentNode.removeChild(typing);
+				}
+				addMessage('bot', i18n.error || 'Sorry, I could not respond just now. Please continue on WhatsApp.');
+			})
+			.then(function () {
+				busy = false;
+			});
+	}
+
+	function openPanel() {
+		if (!panel) {
+			return;
+		}
+		panel.hidden = false;
+		root.classList.add('is-open');
+		var toggles = root.querySelectorAll('[data-mkae-chat-toggle]');
+		for (var i = 0; i < toggles.length; i++) {
+			toggles[i].setAttribute('aria-expanded', 'true');
+		}
+		if (!opened) {
+			opened = true;
+			if (chatCfg.intro) {
+				messages.push({ role: 'model', text: chatCfg.intro });
+				addMessage('bot', chatCfg.intro);
+			}
+			refreshWhatsapp();
+		}
+		if (input) {
+			input.focus();
+		}
+	}
+
+	function closePanel() {
+		if (!panel) {
+			return;
+		}
+		panel.hidden = true;
+		root.classList.remove('is-open');
+		var toggles = root.querySelectorAll('[data-mkae-chat-toggle]');
+		for (var i = 0; i < toggles.length; i++) {
+			toggles[i].setAttribute('aria-expanded', 'false');
+		}
+	}
+
+	function toggle() {
+		if (panel && panel.hidden) {
+			openPanel();
+		} else {
+			closePanel();
+		}
+	}
+
+	function init() {
+		root = document.querySelector('[data-mkae-chat]');
+		if (!root) {
+			return;
+		}
+		root.hidden = false;
+		panel = el('[data-mkae-chat-panel]');
+		log = el('[data-mkae-chat-log]');
+		input = el('[data-mkae-chat-input]');
+		form = el('[data-mkae-chat-form]');
+		waLink = el('[data-mkae-chat-whatsapp]');
+
+		var toggles = root.querySelectorAll('[data-mkae-chat-toggle]');
+		for (var i = 0; i < toggles.length; i++) {
+			toggles[i].addEventListener('click', function (e) {
+				e.preventDefault();
+				toggle();
+			});
+		}
+
+		if (form) {
+			form.addEventListener('submit', function (e) {
+				e.preventDefault();
+				var text = (input && input.value ? input.value : '').trim();
+				if (!text) {
+					return;
+				}
+				input.value = '';
+				send(text);
+			});
+		}
+
+		refreshWhatsapp();
+	}
+
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', init);
+	} else {
+		init();
+	}
+})();

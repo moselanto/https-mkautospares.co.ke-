@@ -1,0 +1,26 @@
+/*
+Theme Name: MK Auto Elite
+Theme URI: https://mkautospares.co.ke/
+Author: MK Auto Spares
+Author URI: https://mkautospares.co.ke/
+Description: MK Auto Elite is a premium, high-performance automotive WooCommerce theme built for car, truck and motorcycle spare-parts retailers. Features an intelligent vehicle-fitment finder, predictive search, WhatsApp ordering, and Core Web Vitals-first performance. Designed for the Kenyan and wider African market with global quality standards.
+Version: 2.18.0
+Requires at least: 6.4
+Tested up to: 6.6
+Requires PHP: 8.1
+License: GNU General Public License v2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: mk-auto-elite
+Domain Path: /languages
+Tags: e-commerce, custom-logo, custom-menu, featured-images, translation-ready, rtl-language-support, full-width-template, threaded-comments, block-styles
+WC requires at least: 8.0
+WC tested up to: 9.2
+
+MK Auto Elite is distributed under the terms of the GNU GPL v2 or later.
+*/
+
+/*
+ * The compiled design system lives in /assets/css/main.css and is enqueued by
+ * the MKAutoElite\Assets module. This file exists to satisfy the WordPress
+ * theme header requirement and to carry licensing metadata.
+ */

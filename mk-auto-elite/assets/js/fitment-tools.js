@@ -1,0 +1,364 @@
+/**
+ * MK Auto Elite - fitment tools.
+ * Powers three features that all share the vehicle fitment data:
+ *   1. Guided Parts Finder  ([mk_parts_finder])
+ *   2. Symptom -> Part wizard ([mk_symptom_wizard])
+ *   3. Part Compatibility Checker (product page + [mk_fit_checker])
+ * Reuses the cascading mkae_get_terms endpoint. No template literals so the
+ * line-based minifier is safe. Depends on window.MKAE (ajaxUrl/nonce) and the
+ * localized window.MKAEF config.
+ */
+(function () {
+	'use strict';
+
+	var MKAE = window.MKAE || {};
+	var CFG = window.MKAEF || {};
+	var I = CFG.i18n || {};
+	var ORDER = CFG.order || ['mk_make', 'mk_model', 'mk_year', 'mk_engine'];
+	var COOKIE = 'mkae_vehicle';
+
+	// ---- tiny DOM helpers ----
+	function el(tag, cls, text) {
+		var e = document.createElement(tag);
+		if (cls) { e.className = cls; }
+		if (text !== undefined && text !== null) { e.textContent = text; }
+		return e;
+	}
+	function strong(text) { return el('strong', '', text); }
+	function hasOption(sel, val) {
+		if (!sel) { return false; }
+		for (var i = 0; i < sel.options.length; i++) {
+			if (sel.options[i].value === val) { return true; }
+		}
+		return false;
+	}
+	function setIfPresent(sel, val) { if (hasOption(sel, val)) { sel.value = val; } }
+	function selText(sel) {
+		if (!sel || sel.selectedIndex < 0) { return ''; }
+		return (sel.options[sel.selectedIndex].textContent || '').replace(/\s*\(\d+\)\s*$/, '');
+	}
+
+	// ---- AJAX ----
+	function post(action, params) {
+		var body = new URLSearchParams();
+		body.set('action', action);
+		body.set('nonce', MKAE.nonce || '');
+		Object.keys(params || {}).forEach(function (k) {
+			var v = params[k];
+			if (v && typeof v === 'object') {
+				Object.keys(v).forEach(function (kk) { if (v[kk]) { body.set(k + '[' + kk + ']', v[kk]); } });
+			} else if (v !== undefined && v !== null && v !== '') {
+				body.set(k, v);
+			}
+		});
+		return fetch(MKAE.ajaxUrl, { method: 'POST', body: body, credentials: 'same-origin' })
+			.then(function (r) { return r.json(); })
+			.then(function (j) { return (j && j.success) ? j.data : null; })
+			.catch(function () { return null; });
+	}
+	function fetchTerms(taxonomy, parents) {
+		return post('mkae_get_terms', { taxonomy: taxonomy, parents: parents })
+			.then(function (d) { return (d && d.options) ? d.options : []; });
+	}
+
+	// ---- shared vehicle helpers ----
+	function readActiveVehicle() {
+		try {
+			var m = document.cookie.match(/(?:^|;\s*)mkae_vehicle=([^;]+)/);
+			if (m) { return JSON.parse(decodeURIComponent(m[1])); }
+		} catch (e) {}
+		return {};
+	}
+	function appendQuery(url, params) {
+		if (!url) { return url; }
+		var keys = Object.keys(params || {}).filter(function (k) { return params[k]; });
+		if (!keys.length) { return url; }
+		var qs = keys.map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); }).join('&');
+		return url + (url.indexOf('?') === -1 ? '?' : '&') + qs;
+	}
+	function appendVehicle(url, av) {
+		var p = {};
+		['mk_make', 'mk_model'].forEach(function (k) { if (av && av[k]) { p[k] = av[k]; } });
+		return appendQuery(url, p);
+	}
+	function waUrl() { return 'https://wa.me/' + (CFG.whatsapp || ''); }
+	function waLink(label, cls) {
+		var a = el('a', cls || 'mkae-btn mkae-btn--whatsapp', label || 'WhatsApp');
+		a.href = waUrl();
+		a.target = '_blank';
+		a.rel = 'nofollow noopener';
+		return a;
+	}
+
+	// ---- cascade (shared by finder + checker) ----
+	function fill(select, options, placeholder) {
+		select.innerHTML = '';
+		var first = el('option', '', placeholder || '');
+		first.value = '';
+		select.appendChild(first);
+		(options || []).forEach(function (opt) {
+			var o = el('option', '', opt.count ? (opt.label + ' (' + opt.count + ')') : opt.label);
+			o.value = opt.value;
+			select.appendChild(o);
+		});
+	}
+	function parentsUpTo(selects, idx) {
+		var p = {};
+		for (var i = 0; i <= idx; i++) {
+			if (selects[i] && selects[i].value) { p[ORDER[i]] = selects[i].value; }
+		}
+		return p;
+	}
+	function collectVehicle(root) {
+		var v = {};
+		ORDER.forEach(function (t) {
+			var s = root.querySelector('[data-tax="' + t + '"]');
+			if (s && s.value) { v[t] = s.value; }
+		});
+		return v;
+	}
+	function vehicleLabel(root) {
+		var parts = [];
+		ORDER.forEach(function (t) {
+			var s = root.querySelector('[data-tax="' + t + '"]');
+			if (s && s.value) { parts.push(selText(s)); }
+		});
+		return parts.join(' ');
+	}
+	function persistVehicle(root) {
+		var data = { label: vehicleLabel(root) };
+		ORDER.forEach(function (t) {
+			var s = root.querySelector('[data-tax="' + t + '"]');
+			if (s && s.value) { data[t] = s.value; }
+		});
+		try { window.localStorage.setItem(COOKIE, JSON.stringify(data)); } catch (e) {}
+		document.cookie = COOKIE + '=' + encodeURIComponent(JSON.stringify(data)) + '; path=/; max-age=' + (60 * 60 * 24 * 30);
+	}
+	function setupCascade(root, onChange, onReady) {
+		var selects = ORDER.map(function (t) { return root.querySelector('[data-tax="' + t + '"]'); });
+		var makeSel = selects[0];
+		if (makeSel) {
+			fetchTerms('mk_make').then(function (opts) {
+				fill(makeSel, opts, I.selectMake || 'Select make');
+				if (onReady) { onReady(); }
+			});
+		}
+		selects.forEach(function (sel, idx) {
+			if (!sel) { return; }
+			sel.addEventListener('change', function () {
+				for (var j = idx + 1; j < selects.length; j++) {
+					if (selects[j]) {
+						selects[j].innerHTML = '<option value="">' + (I.loading || '...') + '</option>';
+						selects[j].disabled = true;
+					}
+				}
+				var next = selects[idx + 1];
+				if (next && sel.value) {
+					fetchTerms(ORDER[idx + 1], parentsUpTo(selects, idx)).then(function (opts) {
+						fill(next, opts, '');
+						next.disabled = false;
+					});
+				}
+				if (onChange) { onChange(); }
+			});
+		});
+		return selects;
+	}
+
+	// ---- 1. Parts Finder ----
+	function initPartsFinder(root) {
+		var goBtn = root.querySelector('[data-mkae-pf-go]');
+		var resultsEl = root.querySelector('[data-mkae-pf-results]');
+		setupCascade(root, function () {
+			var makeSel = root.querySelector('[data-tax="mk_make"]');
+			if (goBtn) { goBtn.disabled = !(makeSel && makeSel.value); }
+		});
+		if (!goBtn) { return; }
+		goBtn.addEventListener('click', function () {
+			var vehicle = collectVehicle(root);
+			if (!vehicle.mk_make) { return; }
+			persistVehicle(root);
+			var prev = goBtn.textContent;
+			goBtn.disabled = true;
+			goBtn.textContent = I.searching || 'Searching...';
+			post('mkae_vehicle_parts', { vehicle: vehicle }).then(function (data) {
+				goBtn.disabled = false;
+				goBtn.textContent = prev;
+				renderPartsResults(resultsEl, data, vehicle, root);
+			});
+		});
+	}
+	function renderPartsResults(box, data, vehicle, root) {
+		if (!box) { return; }
+		box.innerHTML = '';
+		box.hidden = false;
+		var label = vehicleLabel(root);
+		if (!data || !data.total) {
+			box.appendChild(el('p', 'mkae-pf__none', I.noParts || 'No parts found.'));
+			box.appendChild(waLink(I.askExpert || 'Ask on WhatsApp'));
+			return;
+		}
+		var hd = el('p', 'mkae-pf__count');
+		hd.appendChild(strong(String(data.total)));
+		hd.appendChild(document.createTextNode(' ' + (I.partsFound || 'parts found for your') + ' '));
+		hd.appendChild(strong(label));
+		box.appendChild(hd);
+		if (data.relaxed && data.relaxed.indexOf('mk_year') !== -1) {
+			box.appendChild(el('p', 'mkae-pf__note', I.relaxedYear || ''));
+		}
+		var q = data.shopQuery || vehicle;
+		var grid = el('div', 'mkae-pf__tiles');
+		(data.categories || []).forEach(function (c) {
+			var a = el('a', 'mkae-pf__tile');
+			a.href = appendQuery(c.url, q);
+			a.appendChild(el('span', 'mkae-pf__tilename', c.name));
+			a.appendChild(el('span', 'mkae-pf__tilecount', String(c.count)));
+			grid.appendChild(a);
+		});
+		box.appendChild(grid);
+		var all = el('a', 'mkae-btn mkae-btn--primary mkae-pf__all', I.browseAll || 'Browse all parts for this car');
+		all.href = appendQuery(CFG.shopUrl || '/', q);
+		box.appendChild(all);
+	}
+
+	// ---- 2. Symptom wizard ----
+	function initSymptomWizard(root) {
+		var stage = root.querySelector('[data-mkae-sw-stage]');
+		var groups = CFG.symptoms || [];
+		if (!stage) { return; }
+
+		function bar(onBack, crumb) {
+			var b = el('div', 'mkae-sw__bar');
+			var back = el('button', 'mkae-sw__back', I.back || 'Back');
+			back.type = 'button';
+			back.addEventListener('click', onBack);
+			b.appendChild(back);
+			if (crumb) { b.appendChild(el('span', 'mkae-sw__crumb', crumb)); }
+			return b;
+		}
+		function choices(items, onPick) {
+			var grid = el('div', 'mkae-sw__grid');
+			items.forEach(function (it) {
+				var c = el('button', 'mkae-sw__choice', it.label);
+				c.type = 'button';
+				c.addEventListener('click', function () { onPick(it); });
+				grid.appendChild(c);
+			});
+			return grid;
+		}
+		function showGroups() {
+			stage.innerHTML = '';
+			stage.appendChild(choices(groups, showOptions));
+		}
+		function showOptions(g) {
+			stage.innerHTML = '';
+			stage.appendChild(bar(showGroups, g.label));
+			stage.appendChild(choices(g.options || [], function (o) { showResult(g, o); }));
+		}
+		function showResult(g, o) {
+			stage.innerHTML = '';
+			stage.appendChild(bar(function () { showOptions(g); }, o.label));
+			stage.appendChild(el('p', 'mkae-sw__resulthd', I.likely || 'Likely parts to check'));
+			var av = readActiveVehicle();
+			(o.causes || []).forEach(function (c) {
+				var card = el('a', 'mkae-sw__cause');
+				card.href = appendVehicle(c.url, av);
+				card.appendChild(el('span', 'mkae-sw__causepart', c.part));
+				card.appendChild(el('span', 'mkae-sw__causewhy', c.why));
+				stage.appendChild(card);
+			});
+			stage.appendChild(waLink(I.askExpert || 'Ask our team on WhatsApp', 'mkae-btn mkae-btn--whatsapp mkae-sw__wa'));
+			var restart = el('button', 'mkae-sw__restart', I.startOver || 'Start over');
+			restart.type = 'button';
+			restart.addEventListener('click', showGroups);
+			stage.appendChild(restart);
+		}
+		showGroups();
+	}
+
+	// ---- 3. Fit checker ----
+	function initFitChecker(root) {
+		var pid = root.getAttribute('data-product-id');
+		var goBtn = root.querySelector('[data-mkae-fit-go]');
+		var resultEl = root.querySelector('[data-mkae-fit-result]');
+
+		function run() {
+			var makeSel = root.querySelector('[data-tax="mk_make"]');
+			var modelSel = root.querySelector('[data-tax="mk_model"]');
+			var yearSel = root.querySelector('[data-tax="mk_year"]');
+			if (!makeSel || !makeSel.value) { return; }
+			var prev = goBtn ? goBtn.textContent : '';
+			if (goBtn) { goBtn.disabled = true; goBtn.textContent = I.checking || 'Checking...'; }
+			post('mkae_check_fit', {
+				product_id: pid,
+				make: makeSel.value,
+				make_label: selText(makeSel),
+				model: modelSel ? modelSel.value : '',
+				model_label: modelSel ? selText(modelSel) : '',
+				year: yearSel ? (yearSel.value || selText(yearSel)) : ''
+			}).then(function (data) {
+				if (goBtn) { goBtn.disabled = false; goBtn.textContent = prev; }
+				renderVerdict(resultEl, data);
+			});
+		}
+
+		setupCascade(root, function () {
+			var makeSel = root.querySelector('[data-tax="mk_make"]');
+			if (goBtn) { goBtn.disabled = !(makeSel && makeSel.value); }
+		}, function afterMake() {
+			var av = readActiveVehicle();
+			var makeSel = root.querySelector('[data-tax="mk_make"]');
+			if (!av || !av.mk_make || !hasOption(makeSel, av.mk_make)) { return; }
+			makeSel.value = av.mk_make;
+			if (goBtn) { goBtn.disabled = false; }
+			var modelSel = root.querySelector('[data-tax="mk_model"]');
+			if (!(av.mk_model && modelSel)) { run(); return; }
+			fetchTerms('mk_model', { mk_make: av.mk_make }).then(function (opts) {
+				fill(modelSel, opts, '');
+				modelSel.disabled = false;
+				setIfPresent(modelSel, av.mk_model);
+				var yearSel = root.querySelector('[data-tax="mk_year"]');
+				if (av.mk_year && yearSel) {
+					fetchTerms('mk_year', { mk_make: av.mk_make, mk_model: av.mk_model }).then(function (yopts) {
+						fill(yearSel, yopts, '');
+						yearSel.disabled = false;
+						setIfPresent(yearSel, av.mk_year);
+						run();
+					});
+				} else {
+					run();
+				}
+			});
+		});
+
+		if (goBtn) { goBtn.addEventListener('click', run); }
+	}
+	function renderVerdict(box, data) {
+		if (!box) { return; }
+		box.innerHTML = '';
+		if (!data) { box.hidden = true; return; }
+		box.hidden = false;
+		box.className = 'mkae-fit__result mkae-fit__result--' + (data.status || 'universal');
+		box.appendChild(el('span', 'mkae-fit__verdict', data.title || ''));
+		if (data.detail) { box.appendChild(el('span', 'mkae-fit__detail', data.detail)); }
+		if (data.whatsapp) {
+			var a = el('a', 'mkae-btn mkae-btn--whatsapp mkae-fit__wa', I.askExpert || 'Ask on WhatsApp');
+			a.href = data.whatsapp;
+			a.target = '_blank';
+			a.rel = 'nofollow noopener';
+			box.appendChild(a);
+		}
+	}
+
+	function init() {
+		document.querySelectorAll('[data-mkae-parts-finder]').forEach(initPartsFinder);
+		document.querySelectorAll('[data-mkae-symptom-wizard]').forEach(initSymptomWizard);
+		document.querySelectorAll('[data-mkae-fit-checker]').forEach(initFitChecker);
+	}
+
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', init);
+	} else {
+		init();
+	}
+})();
