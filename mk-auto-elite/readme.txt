@@ -3,7 +3,7 @@ Contributors: mkautospares
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 2.18.0
+Stable tag: 2.19.0
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -33,6 +33,12 @@ ships with:
 5. Set your contact details and WhatsApp number in Appearance > Customize > MK Auto Elite.
 
 == Changelog ==
+
+= 2.19.0 =
+* SEO: structured data no longer duplicates Rank Math. Schema.php now enriches Rank Math's Organization (AutoPartsStore, full address, hours, geo, map, socials) and Product (correct part brand instead of vehicle make, OEM number as MPN, condition, compatible vehicles, category, shipping and 7-day return policy) and prints only what Rank Math does not (FAQ, Knowledge Centre Article, fallback graph).
+* SEO: price-on-request products no longer output an Offer without a price.
+* SEO: new Seo\Meta module - keyword-led titles and descriptions for shop, product categories, vehicle make/model archives, Knowledge Centre and guides when no Rank Math override is set; empty /fitment/ and /locations/ archives noindexed; default share image when a page has none.
+* Customizer: new "SEO & Local Business" section (short brand, street, city, county, schema hours, latitude/longitude, return days, default share image).
 
 = 2.18.0 =
 * Current live release. Staff sign-in screen and login hardening now ship in the separate MK Auto Core plugin (mk-auto-core/).

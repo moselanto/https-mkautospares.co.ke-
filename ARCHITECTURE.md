@@ -46,7 +46,7 @@ functions.php
   ├─ inc/autoload.php        (PSR-4 MKAutoElite\ -> inc/src/)
   └─ Theme::instance()
        ├─ Setup, Assets, Customizer
-       ├─ Vehicle\Finder, Ajax\Handlers, Woo\WooCommerce, Seo\Schema
+       ├─ Vehicle\Finder, Ajax\Handlers, Woo\WooCommerce, Seo\Schema, Seo\Meta
        ├─ Security, Content, Landing, Analytics
        ├─ Fitment\Tools, Booking\Module, Chat\Module
        └─ is_admin(): Admin\PluginActivation, Admin\Tools, Admin\SetupWizard
@@ -70,7 +70,8 @@ instantiation has no side effects. `Theme::module( $key )` returns a module.
 | Landing | `inc/src/Landing.php` | CPT `mkae_landing` (`/fitment/`), meta box (make, model, part, symptoms, OEM, price guide, FAQ), draft generator (max 120) |
 | Booking | `inc/src/Booking/Module.php` | CPT `mkae_booking`, `[mk_booking_form]`, admin columns and details box |
 | Chat | `inc/src/Chat/Module.php` | Floating chat widget, Gemini key setting, WhatsApp hand-off |
-| Schema | `inc/src/Seo/Schema.php` | JSON-LD `@graph`: Organization + Store with address, WebSite + SearchAction, Product + Offer + AggregateRating + Review, Breadcrumb, FAQ |
+| Schema | `inc/src/Seo/Schema.php` | JSON-LD. With Rank Math (live): enriches Rank Math's Organization (AutoPartsStore, address, hours, geo, sameAs) and Product (part brand, MPN, condition, isAccessoryOrSparePartFor, category, shipping, return policy; strips Offer on unpriced items) via `rank_math/json_ld` at 999, then prints only types Rank Math did not (FAQPage, Article). Without Rank Math: full graph |
+| Meta | `inc/src/Seo/Meta.php` | Title/description fallbacks for shop, `product_cat`, `mk_make`, `mk_model`, guides, landing and location pages when no Rank Math override; noindex on empty fitment/location archives; default og:image. Uses Rank Math filters, or core filters when Rank Math is absent |
 | Analytics | `inc/src/Analytics.php` | GA4 gtag + Meta Pixel in head when IDs set; `window.MKAEA` event config |
 | Security | `inc/src/Security.php` | Front-end hardening (see SECURITY-AUDIT.md) and robots.txt |
 | Admin | `inc/src/Admin/*` | Plugin nudges, setup wizard page, tools: fitment sync, create pages (About, Contact, Shipping & Delivery, Returns & Refund, Terms, Privacy, Payment Methods, Track Your Order), import 15 Knowledge Centre articles, build menus |
@@ -175,7 +176,11 @@ search lookups. The sign-in stylesheet loads only on `wp-login.php`.
 4. `grep -rn '\\!'` on changed PHP.
 5. Zip and upload the changed folder; clear caches; check versions; smoke test.
 
-## 10. Known debt
+## 10. SEO stack
+
+Rank Math (installed on the live site, not in this repo) owns titles, meta, canonicals, sitemaps and the base schema. The theme adds automotive detail and fills gaps; it must never print a second Organization, WebSite, Product or BreadcrumbList. Each entity type appears once per page. Business values used in schema come from *Customize > MK Auto Elite > SEO & Local Business* and *Contact & Utility Bar*.
+
+## 11. Known debt
 
 - Business logic (CPTs, taxonomies, booking, chat, schema) lives in the theme.
 - Paybill numbers hard-coded in the checkout notice.

@@ -44,6 +44,16 @@ class Customizer {
 		'x_twitter'     => '',
 		'tiktok'        => '',
 		'youtube'       => '',
+		// SEO / structured data (Customizer > MK Auto Elite > SEO & Local Business).
+		'brand_short'    => 'MK Auto Spares',
+		'street_address' => 'Kirinyaga Road',
+		'city'           => 'Nairobi',
+		'region'         => 'Nairobi County',
+		'opening_hours'  => 'Mo-Sa 08:00-18:00',
+		'geo_lat'        => '',
+		'geo_lng'        => '',
+		'return_days'    => '7',
+		'og_image'       => '',
 	);
 
 	/**
@@ -311,6 +321,46 @@ class Customizer {
 				'type'        => 'url',
 			)
 		);
+
+		// SEO & local business. Feeds Seo\Schema and Seo\Meta so structured
+		// data and meta fallbacks never hard-code business details.
+		$wp_customize->add_section(
+			'mkae_seo',
+			array(
+				'title'       => __( 'SEO & Local Business', 'mk-auto-elite' ),
+				'description' => __( 'Used in Google structured data (store address, hours, map pin, returns) and in fallback page titles and descriptions. Titles or descriptions typed into Rank Math on a page always win.', 'mk-auto-elite' ),
+				'panel'       => 'mkae_panel',
+			)
+		);
+		$seo_fields = array(
+			'brand_short'    => array( __( 'Short brand name (used in page titles)', 'mk-auto-elite' ), 'sanitize_text_field', 'text' ),
+			'street_address' => array( __( 'Street address (schema)', 'mk-auto-elite' ), 'sanitize_text_field', 'text' ),
+			'city'           => array( __( 'Town / city (schema)', 'mk-auto-elite' ), 'sanitize_text_field', 'text' ),
+			'region'         => array( __( 'County (schema)', 'mk-auto-elite' ), 'sanitize_text_field', 'text' ),
+			'opening_hours'  => array( __( 'Opening hours in schema format, e.g. Mo-Sa 08:00-18:00', 'mk-auto-elite' ), 'sanitize_text_field', 'text' ),
+			'geo_lat'        => array( __( 'Shop latitude (e.g. -1.2833). Leave blank if unsure.', 'mk-auto-elite' ), 'sanitize_text_field', 'text' ),
+			'geo_lng'        => array( __( 'Shop longitude (e.g. 36.8285). Leave blank if unsure.', 'mk-auto-elite' ), 'sanitize_text_field', 'text' ),
+			'return_days'    => array( __( 'Return window in days (must match the Returns & Refund page)', 'mk-auto-elite' ), 'absint', 'number' ),
+			'og_image'       => array( __( 'Default social share image URL (1200x630). Blank uses the homepage hero.', 'mk-auto-elite' ), 'esc_url_raw', 'url' ),
+		);
+		foreach ( $seo_fields as $key => $meta ) {
+			$wp_customize->add_setting(
+				'mkae_' . $key,
+				array(
+					'default'           => self::$defaults[ $key ] ?? '',
+					'sanitize_callback' => $meta[1],
+					'transport'         => 'refresh',
+				)
+			);
+			$wp_customize->add_control(
+				'mkae_' . $key,
+				array(
+					'label'   => $meta[0],
+					'section' => 'mkae_seo',
+					'type'    => $meta[2],
+				)
+			);
+		}
 
 		// Footer & Social.
 		$wp_customize->add_section(

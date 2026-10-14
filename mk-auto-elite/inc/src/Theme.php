@@ -52,6 +52,7 @@ final class Theme {
 		$this->modules['ajax']       = new Ajax\Handlers();
 		$this->modules['woo']        = new Woo\WooCommerce();
 		$this->modules['schema']     = new Seo\Schema();
+		$this->modules['meta']       = new Seo\Meta();
 		$this->modules['security']   = new Security();
 		$this->modules['content']    = new Content();
 		$this->modules['landing']    = new Landing();

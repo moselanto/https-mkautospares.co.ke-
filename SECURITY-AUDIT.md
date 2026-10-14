@@ -2,7 +2,7 @@
 
 | | |
 | --- | --- |
-| **Scope** | `mk-auto-elite` theme 2.18.0, `mk-auto-core` plugin 1.0.0 |
+| **Scope** | `mk-auto-elite` theme 2.19.0, `mk-auto-core` plugin 1.0.0 |
 | **Date** | 14 Oct 2026 |
 | **Method** | Manual code review of every PHP file and front-end script in this repository |
 | **Out of scope** | WordPress core, WooCommerce, third-party plugins, hosting and server configuration |
@@ -70,6 +70,7 @@ no security headers on `wp-login.php` / `wp-admin`. MK Auto Core 1.0.0 closes it
 | F9 | Low | No Content-Security-Policy | Open - needs an inventory of GA4, Pixel, Maps and Gemini origins first |
 | F10 | Low | Paybill numbers hard-coded in the checkout notice | Open - integrity rather than security; move to Customizer |
 | F11 | Info | No automated tests, lint or CI | Open |
+| F12 | Info | 2.19.0 SEO changes: schema outputs only public business data from the Customizer (no order or customer data); JSON-LD encoded with `JSON_HEX_TAG`; meta output escaped with `esc_attr` | Reviewed |
 
 ## 4. Configuration checklist (hosting)
 

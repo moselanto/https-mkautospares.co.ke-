@@ -45,6 +45,9 @@ the way Kenyans prefer: WhatsApp, phone or M-Pesa.
 | R15 | Branded staff sign-in screen in MK colours with logo, WhatsApp help, secure note | Done - MK Auto Core 1.0.0 |
 | R16 | Login lockout, bot traps, password policy, staff session expiry | Done - MK Auto Core 1.0.0 |
 | R17 | Documentation set (README, AGENTS, architecture, PRD, security audit) | Done |
+| R18 | One schema entity per type per page (no Rank Math duplicates); automotive Product data (part brand, MPN, condition, compatible vehicles, shipping, returns) | Done - theme 2.19.0, verify live |
+| R19 | Meaningful titles/descriptions on shop, categories, vehicle archives and guides; thin archives noindexed | Done - theme 2.19.0, verify live |
+| R20 | Product categories in the XML sitemap | Open - Rank Math setting |
 
 ## 5. Non-functional requirements
 

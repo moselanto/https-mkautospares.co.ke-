@@ -6,7 +6,7 @@ One-page summary. Full detail in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 | Package | Type | Version | Owns |
 | --- | --- | :---: | --- |
-| `mk-auto-elite/` | Theme (active) | 2.18.0 | Storefront, design system, fitment engine and tools, WooCommerce integration, Knowledge Centre, locations, fitment landing pages, booking, chat, schema, analytics, front-end hardening, setup wizard |
+| `mk-auto-elite/` | Theme (active) | 2.19.0 | Storefront, design system, fitment engine and tools, WooCommerce integration, Knowledge Centre, locations, fitment landing pages, booking, chat, schema, analytics, front-end hardening, setup wizard |
 | `mk-auto-core/` | Plugin | 1.0.0 | Branded staff sign-in screen, login guard |
 
 ## Boot
@@ -33,6 +33,10 @@ One-page summary. Full detail in [ARCHITECTURE.md](ARCHITECTURE.md).
 - AJAX (`admin-ajax.php`, nonce `mkae_nonce`): `mkae_get_terms`, `mkae_search_suggest`, `mkae_vehicle_parts`, `mkae_check_fit`, `mkae_submit_booking`, `mkae_chat`.
 - Admin posts: setup wizard tools and `mkae_generate_landings` (capability + nonce).
 - External: Google Gemini (server-side), WhatsApp links, GA4 / Meta Pixel (only when IDs set), Google Maps embed.
+
+## SEO
+
+Rank Math (live, outside this repo) owns titles, meta, canonicals, sitemaps and base schema. `Seo\Schema` enriches Rank Math's entities and prints only missing types (FAQ, Article); `Seo\Meta` supplies title/description fallbacks and noindexes empty fitment/location archives. One entity of each type per page.
 
 ## Security layers
 

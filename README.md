@@ -10,7 +10,7 @@ Custom WordPress + WooCommerce storefront for **[mkautospares.co.ke](https://mka
 
 <br>
 
-[![Theme](https://img.shields.io/badge/MK%20Auto%20Elite-v2.18.0-111316?style=for-the-badge)](mk-auto-elite)
+[![Theme](https://img.shields.io/badge/MK%20Auto%20Elite-v2.19.0-111316?style=for-the-badge)](mk-auto-elite)
 [![Plugin](https://img.shields.io/badge/MK%20Auto%20Core-v1.0.0-CA1D24?style=for-the-badge)](mk-auto-core)
 [![Status](https://img.shields.io/badge/Status-Live-25D366?style=for-the-badge)](https://mkautospares.co.ke/)
 
@@ -65,7 +65,7 @@ Custom WordPress + WooCommerce storefront for **[mkautospares.co.ke](https://mka
 | [PRD.md](PRD.md) | Product requirements and status |
 | [SECURITY-AUDIT.md](SECURITY-AUDIT.md) | Security review, fixes and maintenance checklist |
 
-## Security (theme 2.18.0 / plugin 1.0.0)
+## Security (theme 2.19.0 / plugin 1.0.0)
 
 - Login lockout after repeated failures (5 per IP in 15 minutes, 10 per username in an hour, 30-minute lockout) and bot traps on login, registration and password reset
 - Limits: 3 registrations and 5 password resets per IP per hour; 8 bookings per IP per hour; chat throttled per IP
@@ -79,7 +79,7 @@ Full details: [SECURITY-AUDIT.md](SECURITY-AUDIT.md).
 
 | Package | Folder | Version | Role |
 | --- | --- | :---: | --- |
-| **MK Auto Elite** | [`mk-auto-elite/`](mk-auto-elite) | `2.18.0` | **Active theme.** Storefront, design system, vehicle-fitment engine, fitment tools, WooCommerce integration, Knowledge Centre, booking, chat, SEO schema, setup wizard |
+| **MK Auto Elite** | [`mk-auto-elite/`](mk-auto-elite) | `2.19.0` | **Active theme.** Storefront, design system, vehicle-fitment engine, fitment tools, WooCommerce integration, Knowledge Centre, booking, chat, SEO schema, setup wizard |
 | **MK Auto Core** | [`mk-auto-core/`](mk-auto-core) | `1.0.0` | Plugin: branded staff sign-in screen and login guard. Survives a theme change |
 
 > [!NOTE]
@@ -133,7 +133,8 @@ Designed around how Kenyan drivers and mechanics actually buy parts: on a phone,
 - WooCommerce: HPOS compatible, trust badges, WhatsApp button, price-on-request, compatibility tab
 - Knowledge Centre (`/knowledge/`) with 15 starter guides (buying guides, common problems, maintenance)
 - Location pages (`/spare-parts/...`) and fitment landing pages (`/fitment/...`)
-- JSON-LD: Organization + Store, WebSite search, Product with Offer and reviews, Breadcrumb, FAQ
+- JSON-LD that works with Rank Math instead of duplicating it: AutoPartsStore with full address and hours, Product with real part brand, OEM number, condition, compatible vehicles, shipping and returns; FAQ; Knowledge Centre Article
+- SEO fallbacks (Seo\Meta): keyword-led titles and descriptions for shop, categories, vehicle make/model archives and guides when Rank Math has no override; empty fitment/location archives noindexed; default share image
 - GA4 and Meta Pixel with store events (add to cart, WhatsApp click, finder, search, checkout) - off until IDs are entered
 - Theme-served `robots.txt` that blocks AI scrapers and faceted URLs
 - One-click setup wizard: plugins, fitment sync, pages, articles, menus
@@ -350,6 +351,7 @@ flowchart LR
 | **Customize > MK Auto Elite > Shop** | "Request price" for unpriced products, Google Maps embed |
 | **Customize > MK Auto Elite > Hero / Footer** | Hero motion, video and image; newsletter form action, social links |
 | **Customize > MK Auto Elite > Analytics & Tracking** | GA4 ID, Meta Pixel ID, store events on/off |
+| **Customize > MK Auto Elite > SEO & Local Business** | Short brand for titles, street, city, county, schema hours, map pin (lat/long), return days, default share image |
 | **Customize > MK Auto Elite > AI Chat** | Gemini API key (blank = WhatsApp hand-off only) |
 | **Customize > Site Identity > Logo** | Site logo (also used on the sign-in screen) |
 | **wp-config.php** | `MKAC_TRUSTED_PROXY_HEADER` when behind Cloudflare |
@@ -371,6 +373,7 @@ AJAX actions (all nonce-checked with `mkae_nonce`): `mkae_get_terms`, `mkae_sear
 
 | Theme | Plugin | Highlights |
 | :---: | :---: | --- |
+| `2.19.0` | - | SEO: schema de-duplicated against Rank Math and enriched (AutoPartsStore, part brand, MPN, condition, compatible vehicles, shipping, 7-day returns); no Offer on price-on-request items; Knowledge Centre Article schema; new Seo\Meta titles/descriptions fallbacks; empty /fitment/ and /locations/ noindexed; Customizer SEO & Local Business section |
 | - | `1.0.0` | New MK Auto Core plugin: branded split-screen staff sign-in (logo, Welcome back, WhatsApp help, secure note) and login guard (lockout, bot traps, rate limits, 10-character passwords, 8-hour staff sessions, login/admin headers). Full documentation set added |
 | `2.18.0` | - | Current live theme: vehicle finder, fitment tools, fitment landing pages, Knowledge Centre, booking, Gemini chat, GA4/Meta Pixel, security hardening, setup wizard |
 

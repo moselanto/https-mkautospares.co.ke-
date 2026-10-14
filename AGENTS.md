@@ -83,7 +83,8 @@ WordPress core, WooCommerce, third-party plugins, uploads and the database are
 | Fitment landing pages | `inc/src/Landing.php`, `single-mkae_landing.php` |
 | Service bookings | `inc/src/Booking/Module.php`, `assets/js/booking.js` |
 | AI chat | `inc/src/Chat/Module.php` (UI), `Ajax/Handlers.php` (model call) |
-| Structured data | `inc/src/Seo/Schema.php` |
+| Structured data | `inc/src/Seo/Schema.php` - enrich Rank Math's entities via `rank_math/json_ld`; never print a second Organization, WebSite, Product or BreadcrumbList |
+| Title / description / robots fallbacks | `inc/src/Seo/Meta.php` - respect any Rank Math override set on the page or term |
 | GA4 / Meta Pixel | `inc/src/Analytics.php` |
 | Front-end hardening, robots.txt | `inc/src/Security.php` |
 | Setup wizard, starter pages / articles / menus | `inc/src/Admin/*.php`, `inc/content/` |
