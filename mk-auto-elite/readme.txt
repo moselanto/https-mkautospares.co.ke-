@@ -1,7 +1,7 @@
 === MK Auto Elite ===
 Contributors: mkautospares
 Requires at least: 6.4
-Tested up to: 6.6
+Tested up to: 6.7
 Requires PHP: 8.1
 Stable tag: 2.22.1
 License: GNU General Public License v2 or later
@@ -18,7 +18,11 @@ ships with:
 
 * A cascading "Find Parts for Your Vehicle" finder (Make > Model > Year > Engine > Fuel > Transmission)
 * Predictive AJAX search across product name, SKU, OEM and vehicle
-* WhatsApp ordering + "Request price" flow for unpriced products
+* WhatsApp order form with live total, saved leads and a business-hours chat widget
+* Lipa na M-Pesa (Paybill) payment method for classic and block checkout
+* Shop filters (part type, car make, price, stock) and vehicle-aware related products
+* Mobile tab bar and slide-in navigation drawer
+* Designed Contact page with WhatsApp enquiry form, and an SEO Knowledge Centre with FAQ schema
 * HPOS-compatible WooCommerce integration
 * A performance-first, Core Web Vitals-oriented front end
 * Full Customizer-based Theme Options (contact, WhatsApp, brand accent, map)
@@ -35,7 +39,54 @@ ships with:
 == Changelog ==
 
 = 2.22.1 =
-* New: WhatsApp order form. Every Order on WhatsApp / Ask price button opens a checkout-style form (quantity, vehicle and chassis, delivery method with KSh 500 fee and free delivery from KSh 10,000, payment choice, live total) and sends a formatted order with reference MK-YYMMDD-XXXX to WhatsApp. Requests are saved under WooCommerce > WhatsApp Orders.
+* WhatsApp order form: removed the Bank transfer option (no bank details published); customers choose M-Pesa or Cash on delivery, matching checkout.
+* WhatsApp order form: confirmation screen is business-hours aware (Mon-Sat 8am-6pm, Nairobi time) - "open now, reply within minutes" or "closed, we reply first thing".
+
+= 2.22.0 =
+* Knowledge Centre (/knowledge/) redesigned: breadcrumb, hero with live-filter guide search, stats, topic chips (mkae_guide_topic), featured latest guide, card grid with topic tag, reading time and icon covers for guides without images, styled pagination.
+* Knowledge Centre SEO content (page 1): "Common warning signs" grid linking to part categories, Kenyan-roads maintenance schedule table, Genuine vs OEM vs aftermarket vs ex-Japan explainer, parts-by-make links, 8-question FAQ, WhatsApp / Find parts call to action.
+* Knowledge Centre structured data: CollectionPage with ItemList of guides, BreadcrumbList and FAQPage.
+* WhatsApp order message now includes the M-Pesa Paybill line when M-Pesa is chosen.
+
+= 2.21.0 =
+* New Contact page template (page-contact.php, used automatically for the /contact/ page): hero with live open/closed status (Nairobi time), WhatsApp / Call / Email / Visit cards, map with Get directions, shop and service-centre details, How ordering works steps, help links.
+* Contact enquiry form that opens WhatsApp with a formatted message: topic chips, name, validated Kenyan phone, vehicle make/model/year, chassis/VIN, order number for order and return enquiries, message, reference MK-C-YYMMDD-XXXX; email fallback; honeypot and fill-time spam check; GA4 generate_lead and Facebook Contact events.
+* Removes the empty "M-Pesa:" line that the old page text showed.
+
+= 2.20.4 =
+* Product page: WooCommerce's floated 48% summary and gallery widths overridden; the theme grid now controls the two columns.
+* Product page: full product title (no clipping), black price, brand-red Add to cart with matching quantity box, full-width Order on WhatsApp, 4:3 gallery frame, square thumbnails, sticky gallery on desktop, empty fit-check result hidden.
+
+= 2.20.3 =
+* Product cards: titles clamp to exactly two full lines (the link clamps, the heading reserves space) - fixes titles being cut by the price row.
+
+= 2.20.2 =
+* Hero vehicle finder "Find Parts" button no longer clipped; booking steps wrap on small screens. (Card-title fix superseded by 2.20.3.)
+
+= 2.20.1 =
+* Cart: only one empty-cart message, and it no longer appears on a cart that has items.
+* Category filter bar shows sibling categories as part-type chips when a category has no sub-categories.
+
+= 2.20.0 =
+* Checkout: new "M-Pesa (Paybill 529914)" payment method for classic and block checkout. Orders go On hold; thank-you page and customer email show Paybill steps with the exact amount and a WhatsApp confirmation button. Settings under WooCommerce > Settings > Payments.
+* Checkout: phone number required (classic and block); Terms page found by slug when not set in WooCommerce; footer Privacy link uses the WordPress privacy page.
+* Cart: sticky bar with subtotal and Proceed to checkout; empty cart shows Find parts for my car, Continue shopping and Ask on WhatsApp.
+* Mini cart: prices no longer show "&nbsp;".
+* Shop, category, search and make/model pages: part-type chips and a Filter results panel (car make, price range, in stock only) with removable active-filter pills.
+* Related products prefer the same vehicle model, then make, within the same part category.
+* Price-on-request products show a quote checklist (vehicle, chassis, photo of old part, reply hours).
+* My Account: benefits panel (guest checkout reassurance, order tracking) and restyled login/register forms.
+* Book a Service: 3-step "request > we confirm > visit" explainer and request note; visible honeypot label removed.
+* New 404 page: "We couldn't find that page" with Shop parts, Find by car, WhatsApp and popular categories.
+* Guides show updated date, reading time and author line.
+* Footer emoji icons replaced with SVG icons; duplicate "M-Pesa:" label removed; duplicate home-page newsletter removed; tablet header tidied; horizontal overflow clipped.
+
+= 2.19.9 =
+* Mobile navigation: labelled "Menu" button in the header; bottom tab bar Home, Shop, Search, Cart (with count), Menu with active-page highlight; Search tab jumps to the header search.
+* New slide-in mobile drawer: logo and Close, sign-in / account strip, quick links (Home, All parts, Find by car, My orders), expandable categories with icons and counts, popular car makes, Explore links, help card with WhatsApp, Call, hours, location and M-Pesa. Swipe or Esc to close, focus trap, scroll lock, GA4 mobile_nav events.
+
+= 2.19.8 =
+* New: WhatsApp order form. Every Order on WhatsApp / Ask price button opens a form (quantity, vehicle and chassis, delivery with KSh 500 fee and free delivery from KSh 10,000, payment choice, live total) and sends a formatted order with reference MK-YYMMDD-XXXX to WhatsApp. Requests are saved under WooCommerce > WhatsApp Orders.
 * New: redesigned WhatsApp chat widget with business-hours status, teaser, quick topics, product context and AI hand-off. Replaces the old floating WhatsApp button.
 
 = 2.19.7 =
