@@ -1294,3 +1294,20 @@ ul.products li.product .mkae-product__title,
 .mkae-finder__submit, .mkae-finder button[type="submit"] { min-height: 48px; height: auto; padding: 12px 20px; line-height: 1.2; overflow: visible; }
 /* Booking steps never clip */
 .mkae-steps li { min-width: 0; overflow-wrap: anywhere; }
+
+/* v2.20.3: titles clamp to exactly 2 full lines. The link does the clamping;
+   the heading only reserves two lines of space and never clips or shrinks. */
+ul.products li.product.mkae-product .mkae-product__title,
+.mkae-product .mkae-product__title {
+	display: block; flex: 0 0 auto; font-size: .95rem; line-height: 1.4;
+	min-height: 2.8em; max-height: none; height: auto; overflow: visible; margin: 0;
+	-webkit-line-clamp: unset; line-clamp: none;
+}
+ul.products li.product.mkae-product .mkae-product__title a,
+.mkae-product .mkae-product__title a {
+	display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
+	overflow: hidden; font-size: inherit; line-height: 1.4; max-height: none; min-height: 0; height: auto;
+	padding: 0; margin: 0; word-break: break-word;
+}
+ul.products li.product.mkae-product .mkae-product__price,
+.mkae-product .mkae-product__price { flex: 0 0 auto; margin-top: auto; padding-top: 8px; background: none; position: static; }
