@@ -22,7 +22,7 @@ if ( version_compare( PHP_VERSION, '8.1', '<' ) ) {
 	return;
 }
 
-define( 'MK_AUTO_ELITE_VERSION', '2.20.4' );
+define( 'MK_AUTO_ELITE_VERSION', '2.21.0' );
 define( 'MK_AUTO_ELITE_DIR', get_template_directory() );
 define( 'MK_AUTO_ELITE_URI', get_template_directory_uri() );
 
