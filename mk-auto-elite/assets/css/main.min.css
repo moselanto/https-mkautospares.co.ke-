@@ -728,3 +728,80 @@ ul.products li.product.mkae-product .mkae-product__price,
 	.mkae-hero__title, .mkae-hero__sub { overflow-wrap: anywhere; }
 }
 .mkscroll { width: 100%; overflow: hidden; }
+
+/* ==== v2.26.0 Responsive pass: every screen from 10" laptops to 27"+ monitors ==== */
+/* 1. Nothing may push the page wider than the screen. Grid/flex children can shrink;
+      media, maps and tables never exceed their box. */
+img, video, iframe, canvas, svg { max-width: 100%; }
+table { max-width: 100%; }
+.mkae-container { width: 100%; max-width: var(--mk-container); padding-inline: clamp(16px, 3vw, 32px); box-sizing: border-box; }
+.mkae-hero__inner > *, .mkk-hero__inner > *, .mkk-grid > *, .mkk-types > *, .mkk-signs__grid > *, .mkk-sched > *,
+.mkc-cards > *, .mkc-grid > *, .mkc-help > *, .mkc-row > *, .mka-story > *, .mka-areas > *, .mka-pillars > *, .mka-cats > *,
+.mkae-ps__top > *, .mkae-footer__cols > *, .mkae-trust__grid > *, .mkae-cat-grid > *, ul.products > li, .mkacc > *, .mkacc__list > *,
+.mkcb__inner > *, .mkf__form > *, .mkae-steps > *, .mkae-layout > *, .mkae-article__container > *, .mkae-section__head > *,
+.mkae-header__inner > *, .mkae-nav__inner > *, .mkae-topbar__inner > *, .mkae-footer__bar-inner > * { min-width: 0; }
+.mkk-table-wrap, .mkae-compat-table { overflow-x: auto; }
+.mkc-map iframe, .mkae-footer__map iframe { width: 100%; }
+
+/* 2. Small laptops and 10"-11" screens (1024-1279px): calmer header, two-column hero only when it fits. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+	.mkae-header__inner { gap: 16px; }
+	.mkae-header__tools { gap: 14px; }
+	.mkae-tool { font-size: .85rem; }
+	.mkae-nav__menu { gap: 18px; }
+	.mkae-nav__menu > li > a { font-size: .92rem; }
+	.mkae-hero__inner { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; }
+	.mkae-hero__title { font-size: clamp(2rem, 3.4vw, 2.6rem); }
+	.mkk-hero__inner { grid-template-columns: minmax(0, 1fr); }
+	.mkk-stats { max-width: 560px; }
+	.mkc-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+	.mkc-grid { grid-template-columns: minmax(0, 1fr); }
+	.mkc-side { position: static; }
+	.mkk-types { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+	.mkk-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+	.mkae-ps__top { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; }
+	.mkae-ps__summary { padding: 24px; }
+	.mkae-footer__cols { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+	.mkae-footer__col--about { grid-column: 1 / -1; }
+}
+@media (min-width: 1024px) and (max-width: 1099px) {
+	.mkae-hero__inner { grid-template-columns: minmax(0, 1fr); max-width: 760px; }
+	.mkae-header__search .mkae-search__input { font-size: .92rem; }
+}
+
+/* 3. 13"-14" laptops (1280-1439px): standard desktop. */
+@media (min-width: 1280px) {
+	.mkae-hero__inner { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+	.mkc-grid { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); }
+	.mkk-hero__inner { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+}
+
+/* 4. 15"-16" laptops and desktops (1440px+): a little more room. */
+@media (min-width: 1440px) {
+	:root { --mk-container: 1360px; }
+	ul.products { gap: 24px; }
+	.mkae-hero { min-height: clamp(520px, 60vh, 680px); }
+}
+
+/* 5. 17" and full-HD monitors (1680px+): wider layout, 5-up product grids, slightly larger type. */
+@media (min-width: 1680px) {
+	:root { --mk-container: 1480px; }
+	html { font-size: 106.25%; }
+	ul.products { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+	.mkk-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+	.mkk-card--feat { grid-column: 1 / -1; }
+	.mkae-cat-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+/* 6. QHD / 27"+ (2200px+): keep line lengths readable, do not stretch edge to edge. */
+@media (min-width: 2200px) {
+	:root { --mk-container: 1640px; }
+	html { font-size: 112.5%; }
+	ul.products { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+/* 7. Short laptop screens (768px tall or less): fixed bars take less space. */
+@media (min-width: 1024px) and (max-height: 760px) {
+	.mkae-hero { min-height: 0; padding: 40px 0; }
+	.mkae-ps__summary, .mkae-ps__gallery, .mkc-side { top: 80px; }
+}

@@ -3,7 +3,7 @@ Contributors: mkautospares
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 2.25.2
+Stable tag: 2.26.0
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -37,6 +37,15 @@ ships with:
 5. Set your contact details and WhatsApp number in Appearance > Customize > MK Auto Elite.
 
 == Changelog ==
+
+= 2.26.0 =
+* Responsive pass for every screen size: layout grids, maps, tables and media can no longer push pages wider than the screen (fixes right-edge overflow on Knowledge Centre, Contact, About and product pages).
+* 10"-11" laptops (1024-1279px): tighter header and menu, single-column hero below 1100px, two-column contact cards, single-column contact form, 3-column footer.
+* 13"-14" laptops (1280px+): standard two-column layouts.
+* 15"-16" laptops (1440px+): wider container (1360px).
+* 17" / full-HD (1680px+): 1480px container, 5 products per row, 4 guides per row, slightly larger text.
+* 27" / QHD (2200px+): 1640px container, 6 products per row, readable line lengths.
+* Short laptop screens: smaller hero and lower sticky offsets.
 
 = 2.25.2 =
 * Mobile home hero: the scrollable make-button row (added in 2.24.1) was widening the whole hero, pushing the headline and the finder card off the right edge. The hero column and the row are now locked to the screen width.
