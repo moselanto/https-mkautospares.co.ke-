@@ -54,6 +54,7 @@ final class Theme {
 		$this->modules['wa_order']   = new Woo\WaOrder();
 		$this->modules['mobile_nav'] = new MobileNav();
 		$this->modules['storefront'] = new Woo\Storefront();
+		$this->modules['reminders']  = new Woo\Reminders();
 		$this->modules['schema']     = new Seo\Schema();
 		$this->modules['meta']       = new Seo\Meta();
 		$this->modules['brands']     = new Seo\Brands();

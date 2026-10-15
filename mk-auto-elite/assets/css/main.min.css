@@ -805,3 +805,8 @@ table { max-width: 100%; }
 	.mkae-hero { min-height: 0; padding: 40px 0; }
 	.mkae-ps__summary, .mkae-ps__gallery, .mkc-side { top: 80px; }
 }
+
+/* ==== v2.27.0 Checkout reminder consent ==== */
+.mkrm { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--mk-line); border-radius: 12px; background: #F6F7F9; font-size: .9rem; }
+.mkrm__label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; line-height: 1.45; }
+.mkrm__label input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--mk-red); flex: 0 0 18px; }

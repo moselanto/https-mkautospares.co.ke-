@@ -3,7 +3,7 @@ Contributors: mkautospares
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 2.26.0
+Stable tag: 2.27.0
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -37,6 +37,11 @@ ships with:
 5. Set your contact details and WhatsApp number in Appearance > Customize > MK Auto Elite.
 
 == Changelog ==
+
+= 2.27.0 =
+* New: abandoned cart and browse reminders. Logged-in shoppers' viewed products and carts are remembered; guests are included only when they tick "Email me a reminder of my cart" at checkout. An hourly job sends branded emails: cart reminder after 1 hour and 24 hours, viewed-parts reminder after 24 hours (at most one browse email every 3 days), each with the parts, price, similar parts for the same vehicle, a red action button and a WhatsApp button. Stops automatically when the shopper orders.
+* New: WooCommerce > Cart Reminders list (shopper, parts, phone, status, last activity) with a one-tap "Send on WhatsApp" button that opens a ready-written follow-up message to the shopper.
+* Privacy: one-click unsubscribe link and List-Unsubscribe header in every email; opt-out tick box in My Account > Account details; staff/admin activity is never tracked.
 
 = 2.26.0 =
 * Responsive pass for every screen size: layout grids, maps, tables and media can no longer push pages wider than the screen (fixes right-edge overflow on Knowledge Centre, Contact, About and product pages).
