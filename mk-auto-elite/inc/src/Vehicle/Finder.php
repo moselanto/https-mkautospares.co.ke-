@@ -26,16 +26,33 @@ class Finder {
 	private array $taxonomies = array();
 
 	/**
+	 * Translated labels. Built on demand (after init) so the text domain is
+	 * not loaded too early (WordPress 6.7 notice).
+	 *
+	 * @return array<string,string>
+	 */
+	private function taxonomies_labels(): array {
+		return array(
+			'mk_make' => __( 'Make', 'mk-auto-elite' ),
+			'mk_model' => __( 'Model', 'mk-auto-elite' ),
+			'mk_year' => __( 'Year', 'mk-auto-elite' ),
+			'mk_engine' => __( 'Engine', 'mk-auto-elite' ),
+			'mk_fuel' => __( 'Fuel Type', 'mk-auto-elite' ),
+			'mk_transmission' => __( 'Transmission', 'mk-auto-elite' ),
+		);
+	}
+
+	/**
 	 * Hook in.
 	 */
 	public function __construct() {
 		$this->taxonomies = array(
-			'mk_make'         => __( 'Make', 'mk-auto-elite' ),
-			'mk_model'        => __( 'Model', 'mk-auto-elite' ),
-			'mk_year'         => __( 'Year', 'mk-auto-elite' ),
-			'mk_engine'       => __( 'Engine', 'mk-auto-elite' ),
-			'mk_fuel'         => __( 'Fuel Type', 'mk-auto-elite' ),
-			'mk_transmission' => __( 'Transmission', 'mk-auto-elite' ),
+			'mk_make'         => 'Make',
+			'mk_model'        => 'Model',
+			'mk_year'         => 'Year',
+			'mk_engine'       => 'Engine',
+			'mk_fuel'         => 'Fuel Type',
+			'mk_transmission' => 'Transmission',
 		);
 
 		add_action( 'init', array( $this, 'register_taxonomies' ) );
@@ -48,7 +65,7 @@ class Finder {
 	public function register_taxonomies(): void {
 		$object = post_type_exists( 'product' ) ? 'product' : 'post';
 
-		foreach ( $this->taxonomies as $slug => $label ) {
+		foreach ( $this->taxonomies_labels() as $slug => $label ) {
 			register_taxonomy(
 				$slug,
 				$object,

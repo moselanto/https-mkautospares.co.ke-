@@ -34,14 +34,29 @@ class Tools {
 	private array $steps = array();
 
 	/**
+	 * Translated labels. Built on demand (after init) so the text domain is
+	 * not loaded too early (WordPress 6.7 notice).
+	 *
+	 * @return array<string,string>
+	 */
+	private function steps_labels(): array {
+		return array(
+			'mk_make' => __( 'Make', 'mk-auto-elite' ),
+			'mk_model' => __( 'Model', 'mk-auto-elite' ),
+			'mk_year' => __( 'Year', 'mk-auto-elite' ),
+			'mk_engine' => __( 'Engine', 'mk-auto-elite' ),
+		);
+	}
+
+	/**
 	 * Hook in. Modules only register hooks in their constructor.
 	 */
 	public function __construct() {
 		$this->steps = array(
-			'mk_make'   => __( 'Make', 'mk-auto-elite' ),
-			'mk_model'  => __( 'Model', 'mk-auto-elite' ),
-			'mk_year'   => __( 'Year', 'mk-auto-elite' ),
-			'mk_engine' => __( 'Engine', 'mk-auto-elite' ),
+			'mk_make'   => 'Make',
+			'mk_model'  => 'Model',
+			'mk_year'   => 'Year',
+			'mk_engine' => 'Engine',
 		);
 
 		add_shortcode( 'mk_parts_finder', array( $this, 'parts_finder' ) );
@@ -64,7 +79,7 @@ class Tools {
 	 */
 	private function cascade_fields( string $context, array $only = array() ): string {
 		$out = '';
-		foreach ( $this->steps as $slug => $label ) {
+		foreach ( $this->steps_labels() as $slug => $label ) {
 			if ( ! empty( $only ) && ! in_array( $slug, $only, true ) ) {
 				continue;
 			}
