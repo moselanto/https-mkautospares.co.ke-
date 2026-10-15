@@ -20,7 +20,7 @@
 
 namespace MKAutoElite\Seo;
 
-if ( \! defined( 'ABSPATH' ) ) {
+if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
@@ -45,11 +45,11 @@ class Brands {
 	 * @return \WP_Term|null
 	 */
 	private static function matching_make(): ?\WP_Term {
-		if ( \! is_tax( 'product_brand' ) || \! taxonomy_exists( 'mk_make' ) ) {
+		if ( ! is_tax( 'product_brand' ) || ! taxonomy_exists( 'mk_make' ) ) {
 			return null;
 		}
 		$brand = get_queried_object();
-		if ( \! $brand instanceof \WP_Term ) {
+		if ( ! $brand instanceof \WP_Term ) {
 			return null;
 		}
 		$make = get_term_by( 'slug', $brand->slug, 'mk_make' );
@@ -75,7 +75,7 @@ class Brands {
 				$url = trailingslashit( $url ) . 'page/' . $paged . '/';
 			}
 			$query = isset( $_SERVER['QUERY_STRING'] ) ? (string) wp_unslash( $_SERVER['QUERY_STRING'] ) : '';
-			if ( '' \!== $query ) {
+			if ( '' !== $query ) {
 				$url .= '?' . $query;
 			}
 			wp_safe_redirect( $url, 301, 'MK Auto Elite' );
@@ -85,7 +85,7 @@ class Brands {
 		if ( is_404() ) {
 			$path = (string) wp_parse_url( isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '', PHP_URL_PATH );
 			$home = (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH );
-			if ( '' \!== $home && '/' \!== $home && 0 === strpos( $path, $home ) ) {
+			if ( '' !== $home && '/' !== $home && 0 === strpos( $path, $home ) ) {
 				$path = substr( $path, strlen( $home ) );
 			}
 			$path = trim( $path, '/' );
@@ -124,7 +124,7 @@ class Brands {
 	 */
 	public function core_robots( $robots ) {
 		$rank_math = defined( 'RANK_MATH_VERSION' ) || class_exists( '\RankMath' );
-		if ( \! $rank_math && self::unmatched_brand() ) {
+		if ( ! $rank_math && self::unmatched_brand() ) {
 			$robots['noindex'] = true;
 			unset( $robots['max-image-preview'] );
 		}
