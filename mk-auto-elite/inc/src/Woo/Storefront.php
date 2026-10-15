@@ -34,6 +34,7 @@ class Storefront {
 		// Cart.
 		add_action( 'wp_footer', array( $this, 'cart_bar' ), 4 );
 		add_action( 'woocommerce_cart_is_empty', array( $this, 'empty_cart' ), 5 );
+		remove_action( 'woocommerce_cart_is_empty', 'wc_empty_cart_message', 10 );
 		add_filter( 'render_block_woocommerce/empty-cart-block', array( $this, 'empty_cart_block' ) );
 
 		// Catalogue.
@@ -151,7 +152,13 @@ class Storefront {
 	 * @param string $html Block HTML.
 	 */
 	public function empty_cart_block( $html ): string {
-		return self::empty_html() . (string) $html;
+		$html = (string) $html;
+		$pos  = strpos( $html, '>' );
+		if ( false === $pos ) {
+			return $html;
+		}
+		// Inside the block wrapper, so it is hidden whenever the cart has items.
+		return substr( $html, 0, $pos + 1 ) . self::empty_html() . substr( $html, $pos + 1 );
 	}
 
 	/**
@@ -202,11 +209,12 @@ class Storefront {
 				'exclude'    => array( (int) get_option( 'default_product_cat', 0 ) ),
 			)
 		);
-		if ( $is_cat && ( is_wp_error( $chips ) || empty( $chips ) ) && $current->parent ) {
+		if ( $is_cat && ( is_wp_error( $chips ) || empty( $chips ) ) ) {
 			$chips = get_terms(
 				array(
 					'taxonomy'   => 'product_cat',
 					'parent'     => (int) $current->parent,
+					'exclude'    => array( (int) get_option( 'default_product_cat', 0 ) ),
 					'hide_empty' => true,
 					'number'     => 20,
 				)

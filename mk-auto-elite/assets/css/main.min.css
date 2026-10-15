@@ -341,3 +341,8 @@ div.mkae-hp[hidden] { display: none; }
 	.mkae-header__inner { gap: 16px; }
 	.mkae-nav__menu { gap: 18px; }
 }
+
+/* v2.20.1: one empty-cart message only */
+.wp-block-woocommerce-empty-cart-block > .wc-block-cart__empty-cart__title,
+.wp-block-woocommerce-empty-cart-block > h2.wp-block-heading:first-of-type { display: none; }
+.wp-block-woocommerce-empty-cart-block > .mkec + * { margin-top: 0; }
