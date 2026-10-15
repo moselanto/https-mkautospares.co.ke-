@@ -53,6 +53,7 @@ final class Theme {
 		$this->modules['woo']        = new Woo\WooCommerce();
 		$this->modules['schema']     = new Seo\Schema();
 		$this->modules['meta']       = new Seo\Meta();
+		$this->modules['brands']     = new Seo\Brands();
 		$this->modules['security']   = new Security();
 		$this->modules['content']    = new Content();
 		$this->modules['landing']    = new Landing();

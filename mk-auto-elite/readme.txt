@@ -3,7 +3,7 @@ Contributors: mkautospares
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 2.19.5
+Stable tag: 2.19.6
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -33,6 +33,9 @@ ships with:
 5. Set your contact details and WhatsApp number in Appearance > Customize > MK Auto Elite.
 
 == Changelog ==
+
+= 2.19.6 =
+* SEO: /brand/<slug>/ (WooCommerce Brands) now 301-redirects to the matching /brands/<slug>/ Make hub; part-brand archives without a Make are noindexed; bare /brands/ and /brand/ redirect to the home page make section; Make hubs requested in the Rank Math sitemap.
 
 = 2.19.5 =
 * Products: optional Condition field (New genuine/OEM, New aftermarket, Used/ex-Japan, Refurbished) on the product edit screen; unset products are detected from the name (used, ex-Japan, second-hand).

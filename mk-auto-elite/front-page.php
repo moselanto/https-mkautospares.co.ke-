@@ -124,7 +124,7 @@ $mkae_hero_static = ( 'yes' === $mkae_hero_motion ) ? '' : ' mkae-hero--static';
 	</div>
 </section>
 
-<section class="mkae-section mkae-brands">
+<section class="mkae-section mkae-brands" id="shop-by-make">
 	<div class="mkae-container">
 		<h2 class="mkae-section__title"><?php esc_html_e( 'Popular Vehicle Brands', 'mk-auto-elite' ); ?></h2>
 		<div class="mkae-brand-scroller" data-mkae-scroller>
