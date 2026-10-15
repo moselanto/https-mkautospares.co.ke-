@@ -720,3 +720,11 @@ ul.products li.product.mkae-product .mkae-product__price,
 	.mkscroll__btn--prev { left: 0; }
 	.mkscroll__btn--next { right: 0; }
 }
+
+/* v2.25.2: keep the whole home hero inside the phone screen (title and finder). */
+@media (max-width: 1023px) {
+	.mkae-hero__inner { grid-template-columns: minmax(0, 1fr); }
+	.mkae-hero__inner > * { min-width: 0; max-width: 100%; }
+	.mkae-hero__title, .mkae-hero__sub { overflow-wrap: anywhere; }
+}
+.mkscroll { width: 100%; overflow: hidden; }

@@ -3,7 +3,7 @@ Contributors: mkautospares
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 2.25.1
+Stable tag: 2.25.2
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -37,6 +37,9 @@ ships with:
 5. Set your contact details and WhatsApp number in Appearance > Customize > MK Auto Elite.
 
 == Changelog ==
+
+= 2.25.2 =
+* Mobile home hero: the scrollable make-button row (added in 2.24.1) was widening the whole hero, pushing the headline and the finder card off the right edge. The hero column and the row are now locked to the screen width.
 
 = 2.25.1 =
 * Mobile: vehicle finder no longer spills off the right edge - grid columns can shrink, so the scrollable make-chip row, selects and saved-car bar stay inside the card and centred.
