@@ -3,7 +3,7 @@ Contributors: mkautospares
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 2.19.0
+Stable tag: 2.19.1
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -33,6 +33,10 @@ ships with:
 5. Set your contact details and WhatsApp number in Appearance > Customize > MK Auto Elite.
 
 == Changelog ==
+
+= 2.19.1 =
+* SEO: Product brand in structured data is no longer the vehicle make. If Rank Math's brand matches the product's vehicle make (mk_make / _mk_make), it is replaced with the real part brand (product_brand, pa_brand or _mk_brand) or removed when none is recorded.
+* SEO: Offer seller now references the single site Organization by @id instead of a nested duplicate Organization.
 
 = 2.19.0 =
 * SEO: structured data no longer duplicates Rank Math. Schema.php now enriches Rank Math's Organization (AutoPartsStore, full address, hours, geo, map, socials) and Product (correct part brand instead of vehicle make, OEM number as MPN, condition, compatible vehicles, category, shipping and 7-day return policy) and prints only what Rank Math does not (FAQ, Knowledge Centre Article, fallback graph).

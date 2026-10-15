@@ -142,12 +142,19 @@ class Schema {
 		}
 		$ours = $this->product_facts( $product );
 
-		// Brand: replace Rank Math's when it is missing or is just the shop name.
+		// Brand: replace Rank Math's when it is missing, is just the shop name,
+		// or is actually the vehicle make (a Lexus tie rod end made by 555 is a
+		// 555 product, not a Lexus one). Never guess a brand we cannot prove.
 		$current_brand = is_array( $entity['brand'] ?? null ) ? (string) ( $entity['brand']['name'] ?? '' ) : '';
-		if ( isset( $ours['brand'] ) && ( '' === $current_brand || get_bloginfo( 'name' ) === $current_brand ) ) {
-			$entity['brand'] = $ours['brand'];
-		} elseif ( ! isset( $ours['brand'] ) && get_bloginfo( 'name' ) === $current_brand ) {
-			unset( $entity['brand'] );
+		$is_bad_brand  = '' === $current_brand
+			|| 0 === strcasecmp( (string) get_bloginfo( 'name' ), $current_brand )
+			|| $this->is_vehicle_make( $product, $current_brand );
+		if ( $is_bad_brand ) {
+			if ( isset( $ours['brand']['name'] ) && \! $this->is_vehicle_make( $product, (string) $ours['brand']['name'] ) ) {
+				$entity['brand'] = $ours['brand'];
+			} else {
+				unset( $entity['brand'] );
+			}
 		}
 		foreach ( array( 'mpn', 'itemCondition', 'isAccessoryOrSparePartFor', 'category' ) as $field ) {
 			if ( isset( $ours[ $field ] ) && empty( $entity[ $field ] ) ) {
@@ -168,7 +175,8 @@ class Schema {
 					continue;
 				}
 				foreach ( $this->offer_extras( $product ) as $field => $value ) {
-					if ( empty( $offer[ $field ] ) ) {
+					// Seller always points at the single site Organization by @id.
+					if ( 'seller' === $field || empty( $offer[ $field ] ) ) {
 						$offer[ $field ] = $value;
 					}
 				}
@@ -378,6 +386,38 @@ class Schema {
 		$price          = $product->get_price();
 		$facts['price'] = ( '' !== $price && null !== $price && (float) $price > 0 ) ? (string) $price : null;
 		return $facts;
+	}
+
+	/**
+	 * Is this name one of the product's vehicle makes (mk_make terms or
+	 * _mk_make meta)? Stops a vehicle make being published as the part brand.
+	 *
+	 * @param \WC_Product $product Product.
+	 * @param string      $name    Brand name to test.
+	 */
+	private function is_vehicle_make( \WC_Product $product, string $name ): bool {
+		$name = trim( $name );
+		if ( '' === $name ) {
+			return false;
+		}
+		$id    = $product->get_id();
+		$makes = array();
+		if ( taxonomy_exists( 'mk_make' ) ) {
+			$terms = wp_get_post_terms( $id, 'mk_make', array( 'fields' => 'names' ) );
+			if ( \! is_wp_error( $terms ) ) {
+				$makes = array_map( 'strval', (array) $terms );
+			}
+		}
+		$meta = trim( (string) get_post_meta( $id, '_mk_make', true ) );
+		if ( '' \!== $meta ) {
+			$makes = array_merge( $makes, array_map( 'trim', explode( ',', $meta ) ) );
+		}
+		foreach ( $makes as $make ) {
+			if ( '' \!== $make && 0 === strcasecmp( $make, $name ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
