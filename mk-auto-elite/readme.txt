@@ -3,7 +3,7 @@ Contributors: mkautospares
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 2.19.1
+Stable tag: 2.19.2
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -33,6 +33,9 @@ ships with:
 5. Set your contact details and WhatsApp number in Appearance > Customize > MK Auto Elite.
 
 == Changelog ==
+
+= 2.19.2 =
+* Fix: 2.19.1 shipped stray backslashes before "!" in Seo/Schema.php, a PHP parse error that took the whole site down (HTTP 500). Removed.
 
 = 2.19.1 =
 * SEO: Product brand in structured data is no longer the vehicle make. If Rank Math's brand matches the product's vehicle make (mk_make / _mk_make), it is replaced with the real part brand (product_brand, pa_brand or _mk_brand) or removed when none is recorded.

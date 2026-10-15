@@ -150,7 +150,7 @@ class Schema {
 			|| 0 === strcasecmp( (string) get_bloginfo( 'name' ), $current_brand )
 			|| $this->is_vehicle_make( $product, $current_brand );
 		if ( $is_bad_brand ) {
-			if ( isset( $ours['brand']['name'] ) && \! $this->is_vehicle_make( $product, (string) $ours['brand']['name'] ) ) {
+			if ( isset( $ours['brand']['name'] ) && ! $this->is_vehicle_make( $product, (string) $ours['brand']['name'] ) ) {
 				$entity['brand'] = $ours['brand'];
 			} else {
 				unset( $entity['brand'] );
@@ -404,16 +404,16 @@ class Schema {
 		$makes = array();
 		if ( taxonomy_exists( 'mk_make' ) ) {
 			$terms = wp_get_post_terms( $id, 'mk_make', array( 'fields' => 'names' ) );
-			if ( \! is_wp_error( $terms ) ) {
+			if ( ! is_wp_error( $terms ) ) {
 				$makes = array_map( 'strval', (array) $terms );
 			}
 		}
 		$meta = trim( (string) get_post_meta( $id, '_mk_make', true ) );
-		if ( '' \!== $meta ) {
+		if ( '' !== $meta ) {
 			$makes = array_merge( $makes, array_map( 'trim', explode( ',', $meta ) ) );
 		}
 		foreach ( $makes as $make ) {
-			if ( '' \!== $make && 0 === strcasecmp( $make, $name ) ) {
+			if ( '' !== $make && 0 === strcasecmp( $make, $name ) ) {
 				return true;
 			}
 		}
