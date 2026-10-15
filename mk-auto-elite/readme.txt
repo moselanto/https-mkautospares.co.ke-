@@ -3,7 +3,7 @@ Contributors: mkautospares
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 2.20.1
+Stable tag: 2.20.2
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,7 +34,7 @@ ships with:
 
 == Changelog ==
 
-= 2.20.1 =
+= 2.20.2 =
 * New: WhatsApp order form. Every Order on WhatsApp / Ask price button opens a checkout-style form (quantity, vehicle and chassis, delivery method with KSh 500 fee and free delivery from KSh 10,000, payment choice, live total) and sends a formatted order with reference MK-YYMMDD-XXXX to WhatsApp. Requests are saved under WooCommerce > WhatsApp Orders.
 * New: redesigned WhatsApp chat widget with business-hours status, teaser, quick topics, product context and AI hand-off. Replaces the old floating WhatsApp button.
 
