@@ -47,7 +47,7 @@
 		body.set('nonce', MKAE.nonce || '');
 		body.set('taxonomy', taxonomy);
 		Object.keys(parents || {}).forEach(function (k) { if (parents[k]) { body.set('parents[' + k + ']', parents[k]); } });
-		var ck = 'mkae_ft_' + body.toString();
+		var ck = 'mkae_ft2_' + (MKAE.finderV || '') + body.toString();
 		try { var hit = window.sessionStorage.getItem(ck); if (hit) { return Promise.resolve(JSON.parse(hit)); } } catch (e) {}
 		return fetch(ajaxUrl(), { method: 'POST', body: body, credentials: 'same-origin' })
 			.then(function (res) { return res.json(); })
@@ -147,7 +147,9 @@
 		if (!box) { return; }
 		var d = null;
 		try { d = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) {}
-		if (d && d.mk_make && d.label) {
+		var pm = form.getAttribute('data-preset-make');
+		var inUrl = new URLSearchParams(window.location.search).get('mk_make');
+		if (d && d.mk_make && d.label && (!pm || pm === d.mk_make) && !inUrl) {
 			box.hidden = false;
 			box.querySelector('[data-mkvf-saved-label]').textContent = d.label;
 			box.querySelector('[data-mkvf-saved-go]').setAttribute('href', shopUrl(form, d));
@@ -185,12 +187,21 @@
 		if (makeSelect) {
 			fetchTerms(form, 'mk_make', {}).then(function (opts) {
 				fillSelect(makeSelect, opts);
+				var qs = new URLSearchParams(window.location.search);
+				var want = {};
+				ORDER.forEach(function (t) { if (qs.get(t)) { want[t] = qs.get(t); } });
 				var preset = form.getAttribute('data-preset-make');
-				if (preset && makeSelect.querySelector('option[value="' + preset + '"]')) {
-					makeSelect.value = preset;
-					cascade(0).then(function () { updateCount(form); });
-				}
-				updateCount(form);
+				if (preset && !want.mk_make) { want.mk_make = preset; }
+				// Restore the chosen vehicle step by step (from the URL or the make page).
+				var step = function (i) {
+					var t = ORDER[i];
+					var sel = selects[i];
+					if (!sel || !want[t] || !sel.querySelector('option[value="' + want[t] + '"]')) { updateCount(form); return; }
+					sel.value = want[t];
+					if (i === 0) { chips.forEach(function (c) { c.classList.toggle('is-on', c.getAttribute('data-make') === sel.value); }); }
+					cascade(i).then(function () { step(i + 1); });
+				};
+				step(0);
 			});
 		}
 

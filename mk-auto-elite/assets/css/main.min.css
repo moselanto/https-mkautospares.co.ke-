@@ -700,3 +700,23 @@ ul.products li.product.mkae-product .mkae-product__price,
 .mka-towns { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .mka-towns li { padding: 6px 12px; border-radius: 999px; background: #F3F4F6; font-size: .82rem; font-weight: 600; color: var(--mk-ink-700); }
 .mka-story__copy h2 { margin-top: 0; }
+
+/* v2.25.1: mobile finder overflow. The finder is a grid; its scrollable make-chip
+   row was setting the column's minimum width to the full row, pushing the form
+   off the right edge. Columns may now shrink and everything stays inside. */
+.mkae-finder { grid-template-columns: minmax(0, 1fr); max-width: 100%; box-sizing: border-box; }
+.mkae-finder > *, .mkae-finder .mkae-finder__grid > *, .mkscroll, .mkae-finder__chips, .mkae-finder__field, .mkae-finder__control { min-width: 0; max-width: 100%; }
+.mkae-finder .mkae-finder__grid { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 560px) { .mkae-finder .mkae-finder__grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+@media (min-width: 560px) { .mkae-finder__grid--more { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; } }
+.mkae-hero__inner > *, .mkae-hero__finder, .mkae-hub__finder { min-width: 0; max-width: 100%; }
+.mkae-finder .mkae-finder__select { max-width: 100%; text-overflow: ellipsis; }
+.mkae-finder__head > div { min-width: 0; }
+.mkae-finder__saved { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 480px) {
+	.mkae-hero__finder { padding: 16px; }
+	.mkae-finder__head { gap: 10px; }
+	.mkae-finder__icon { flex-basis: 40px; height: 40px; }
+	.mkscroll__btn--prev { left: 0; }
+	.mkscroll__btn--next { right: 0; }
+}

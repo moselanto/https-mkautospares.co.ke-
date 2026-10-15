@@ -302,6 +302,7 @@ class Finder {
 		};
 		?>
 		<form class="mkae-finder" role="search" aria-label="<?php echo esc_attr( $title ); ?>" action="<?php echo esc_url( $shop ); ?>" method="get" data-map-v="<?php echo esc_attr( (string) get_option( 'mkae_finder_map_v', '1' ) ); ?>"<?php echo $preset ? ' data-preset-make="' . esc_attr( $preset ) . '"' : ''; ?>>
+			<script>window.MKAE=window.MKAE||{};window.MKAE.finderV=<?php echo wp_json_encode( (string) get_option( 'mkae_finder_map_v', '1' ) ); ?>;</script>
 			<div class="mkae-finder__head">
 				<span class="mkae-finder__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l2-5a2 2 0 0 1 1.9-1.3h10.2A2 2 0 0 1 19 8l2 5v4h-2.2M5.2 17H3v-4h18"/><circle cx="7.5" cy="17" r="1.8"/><circle cx="16.5" cy="17" r="1.8"/></svg></span>
 				<div>

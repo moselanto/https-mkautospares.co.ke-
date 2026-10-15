@@ -3,7 +3,7 @@ Contributors: mkautospares
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 2.25.0
+Stable tag: 2.25.1
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -37,6 +37,13 @@ ships with:
 5. Set your contact details and WhatsApp number in Appearance > Customize > MK Auto Elite.
 
 == Changelog ==
+
+= 2.25.1 =
+* Mobile: vehicle finder no longer spills off the right edge - grid columns can shrink, so the scrollable make-chip row, selects and saved-car bar stay inside the card and centred.
+* Vehicle finder: browser cache of year/engine/fuel/gearbox lists renewed (old cached counts were still showing catalogue-wide numbers) and keyed to the catalogue version.
+* Vehicle finder on the shop/results page now restores the full chosen vehicle (make, model, year...) from the URL, so the finder, button count and results agree.
+* "Your car" bar hidden on a make page for a different make, and on results pages, to avoid two vehicles showing at once.
+* Make pages: "Popular models" now lists that make's own models with the most parts, instead of an alphabetical slice of all models.
 
 = 2.25.0 =
 * About Us page: photo hero, trust strip (genuine and OEM, fitment checked, M-Pesa, countrywide delivery, 7-day returns), workshop photo with caption, "Car spare parts delivered across Kenya" section with towns served, keyword-led SEO title and meta description for this page (overrides Rank Math defaults here only), descriptive image alt text.

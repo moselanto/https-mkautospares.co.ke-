@@ -84,15 +84,25 @@ $mkae_heading  = $mkae_is_model
 					echo '</ul>';
 				}
 			} else {
-				$mkae_models = get_terms(
-					array(
-						'taxonomy'   => 'mk_model',
-						'hide_empty' => false,
-						'number'     => 24,
-					)
-				);
+				// Models actually stocked for this make, most parts first.
+				$mkae_models = array();
+				if ( $mkae_term instanceof WP_Term && class_exists( '\\MKAutoElite\\Vehicle\\Finder' ) ) {
+					$mkae_map = \MKAutoElite\Vehicle\Finder::build_map();
+					foreach ( $mkae_map['makes'] as $mkae_mk ) {
+						if ( $mkae_mk['s'] === $mkae_term->slug ) {
+							$mkae_list = $mkae_mk['m'];
+							usort( $mkae_list, static fn( $a, $b ) => $b[2] <=> $a[2] );
+							foreach ( array_slice( $mkae_list, 0, 24 ) as $mkae_row ) {
+								$mkae_t = get_term_by( 'slug', $mkae_row[0], 'mk_model' );
+								if ( $mkae_t ) {
+									$mkae_models[] = $mkae_t;
+								}
+							}
+						}
+					}
+				}
 				if ( ! is_wp_error( $mkae_models ) && ! empty( $mkae_models ) ) {
-					echo '<h2>' . esc_html__( 'Popular models', 'mk-auto-elite' ) . '</h2><ul class="mkae-hub__chips">';
+					echo '<h2>' . esc_html( sprintf( __( 'Popular %s models', 'mk-auto-elite' ), $mkae_name ) ) . '</h2><ul class="mkae-hub__chips">';
 					foreach ( $mkae_models as $mkae_model ) {
 						printf( '<li><a href="%s">%s</a></li>', esc_url( get_term_link( $mkae_model ) ), esc_html( $mkae_model->name ) );
 					}
