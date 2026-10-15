@@ -3,7 +3,7 @@ Contributors: mkautospares
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 2.22.1
+Stable tag: 2.23.0
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -37,6 +37,11 @@ ships with:
 5. Set your contact details and WhatsApp number in Appearance > Customize > MK Auto Elite.
 
 == Changelog ==
+
+= 2.23.0 =
+* Vehicle finder rebuilt: Make, Model and Year up front with engine, fuel and gearbox under "More options"; quick-pick buttons for the 8 most-stocked makes; live "Show N parts" count; saved "Your car" bar with one-tap Shop parts; make preselected on make pages; empty fields left out of the search URL.
+* Vehicle finder speed: makes and models now come from one cached map (two database queries, cached 12 hours, cleared when products or make/model terms change, stored in the browser), so the first two steps fill instantly; other steps are cached per session.
+* Vehicle finder accessibility: real labels, focus states, loading spinner, required-make prompt, GA4 vehicle_finder event.
 
 = 2.22.1 =
 * WhatsApp order form: removed the Bank transfer option (no bank details published); customers choose M-Pesa or Cash on delivery, matching checkout.
