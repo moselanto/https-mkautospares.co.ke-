@@ -135,6 +135,7 @@
 		L.push(deliveryLabel(t.delivery));
 		if (t.delivery !== 'pickup' && val('area')) { L.push('Location: ' + val('area')); }
 		L.push('Payment: ' + val('payment'));
+		if (val('payment') === 'M-Pesa' && C.mpesa) { L.push(C.mpesa + ' (I will pay once you confirm availability)'); }
 		if (val('notes')) { L.push('Notes: ' + val('notes')); }
 		L.push('');
 		L.push('Product link: ' + item.url);

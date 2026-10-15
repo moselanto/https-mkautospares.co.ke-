@@ -129,6 +129,7 @@ class WaOrder {
 				'currency' => 'KSh',
 				'fee'      => (float) $d['fee'],
 				'freeOver' => (float) $d['freeOver'],
+				'mpesa'    => (string) \MKAutoElite\Customizer::get( 'mpesa' ),
 				'pickup'   => (string) Customizer::get( 'location', 'Kirinyaga Road, Nairobi' ),
 				'mpesa'    => 'Paybill 529914, Account 4268',
 			)
