@@ -3,7 +3,7 @@ Contributors: mkautospares
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 2.23.0
+Stable tag: 2.23.1
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -37,6 +37,10 @@ ships with:
 5. Set your contact details and WhatsApp number in Appearance > Customize > MK Auto Elite.
 
 == Changelog ==
+
+= 2.23.1 =
+* Vehicle finder: year, engine, fuel and gearbox counts now include only products matching every earlier choice, so "Show N parts" matches the results page.
+* Make and model pages (/brands/..., /models/...) use the hub template again: intro, vehicle finder with the make preselected, filters and model links (WooCommerce's template loader had replaced it).
 
 = 2.23.0 =
 * Vehicle finder rebuilt: Make, Model and Year up front with engine, fuel and gearbox under "More options"; quick-pick buttons for the 8 most-stocked makes; live "Show N parts" count; saved "Your car" bar with one-tap Shop parts; make preselected on make pages; empty fields left out of the search URL.

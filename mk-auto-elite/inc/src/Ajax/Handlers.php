@@ -361,7 +361,7 @@ class Handlers {
 
 		// Serve from cache when we can. Key includes the cache namespace so a
 		// catalogue change invalidates every stored combination at once.
-		$cache_key = 'mkae_terms_' . md5( $this->ns() . '|' . $taxonomy . '|' . wp_json_encode( $parents ) );
+		$cache_key = 'mkae_terms2_' . md5( $this->ns() . '|' . $taxonomy . '|' . wp_json_encode( $parents ) );
 		$cached    = get_transient( $cache_key );
 		if ( is_array( $cached ) ) {
 			wp_send_json_success( array( 'options' => $cached, 'cached' => true ) );
@@ -403,13 +403,24 @@ class Handlers {
 
 		$terms = get_terms( $args );
 
+		// v2.23.1: when earlier steps are chosen, count only products matching every selection.
+		$scoped = array();
+		if ( ! empty( $args['object_ids'] ) ) {
+			$rel = wp_get_object_terms( $args['object_ids'], $taxonomy, array( 'fields' => 'all_with_object_id' ) );
+			if ( ! is_wp_error( $rel ) ) {
+				foreach ( $rel as $r ) {
+					$scoped[ (int) $r->term_id ][ (int) $r->object_id ] = true;
+				}
+			}
+		}
+
 		$options = array();
 		if ( ! is_wp_error( $terms ) ) {
 			foreach ( $terms as $term ) {
 				$options[] = array(
 					'value' => $term->slug,
 					'label' => $term->name,
-					'count' => (int) $term->count,
+					'count' => $scoped ? count( $scoped[ (int) $term->term_id ] ?? array() ) : (int) $term->count,
 				);
 			}
 		}

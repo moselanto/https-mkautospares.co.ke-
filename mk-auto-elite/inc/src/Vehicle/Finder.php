@@ -59,6 +59,7 @@ class Finder {
 		add_shortcode( 'mk_vehicle_finder', array( $this, 'shortcode' ) );
 
 		// v2.23.0: one cached make -> model map so the first two steps fill instantly.
+		add_filter( 'template_include', array( $this, 'hub_template' ), 50 );
 		add_action( 'wp_ajax_mkae_finder_map', array( $this, 'ajax_map' ) );
 		add_action( 'wp_ajax_nopriv_mkae_finder_map', array( $this, 'ajax_map' ) );
 		add_action( 'save_post_product', array( __CLASS__, 'flush_map' ) );
@@ -139,6 +140,22 @@ class Finder {
 		ob_start();
 		$this->render( (string) $atts['title'] );
 		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Use the theme hub template for vehicle make and model archives
+	 * (WooCommerce's template loader otherwise takes them over).
+	 *
+	 * @param string $template Template path.
+	 */
+	public function hub_template( $template ) {
+		if ( is_tax( array( 'mk_make', 'mk_model' ) ) ) {
+			$hub = locate_template( array( 'template-parts/hub.php' ) );
+			if ( $hub ) {
+				return $hub;
+			}
+		}
+		return $template;
 	}
 
 	/**
