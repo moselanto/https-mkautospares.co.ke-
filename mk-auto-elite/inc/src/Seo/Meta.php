@@ -45,6 +45,7 @@ class Meta {
 		add_filter( 'rank_math/frontend/description', array( $this, 'filter_description' ), 20 );
 		add_filter( 'rank_math/frontend/robots', array( $this, 'filter_rank_math_robots' ), 20 );
 		add_action( 'rank_math/opengraph/facebook/add_additional_images', array( $this, 'default_og_image' ) );
+		add_filter( 'woocommerce_page_title', array( $this, 'vehicle_heading' ), 20 );
 
 		// Fallbacks when Rank Math is not active.
 		add_filter( 'pre_get_document_title', array( $this, 'core_title' ), 20 );
@@ -318,6 +319,30 @@ class Meta {
 			}
 		}
 		return $name;
+	}
+
+	/**
+	 * Keyword-led H1 on vehicle make and model archives: "Toyota Spare Parts
+	 * in Kenya" instead of just "Toyota". Visible heading only; the term name
+	 * and URL are unchanged.
+	 *
+	 * @param string $title WooCommerce page title.
+	 * @return string
+	 */
+	public function vehicle_heading( $title ) {
+		if ( ! is_tax( array( 'mk_make', 'mk_model' ) ) ) {
+			return $title;
+		}
+		$term = get_queried_object();
+		if ( ! $term instanceof \WP_Term ) {
+			return $title;
+		}
+		if ( 'mk_make' === $term->taxonomy ) {
+			/* translators: %s: vehicle make. */
+			return sprintf( __( '%s Spare Parts in Kenya', 'mk-auto-elite' ), $term->name );
+		}
+		/* translators: %s: vehicle make and model. */
+		return sprintf( __( '%s Spare Parts', 'mk-auto-elite' ), self::vehicle_name( $term ) );
 	}
 
 	/** Has the editor set this Rank Math field on the post? */
