@@ -845,7 +845,7 @@ class Handlers {
 				'qty'   => (int) $item['quantity'],
 				'url'   => get_permalink( $product->get_id() ),
 				'thumb' => $thumb_id ? wp_get_attachment_image_url( $thumb_id, 'thumbnail' ) : wc_placeholder_img_src( 'thumbnail' ),
-				'line'  => wp_strip_all_tags( wc_price( (float) $item['line_total'] + (float) $item['line_tax'] ) ),
+				'line'  => html_entity_decode( wp_strip_all_tags( wc_price( (float) $item['line_total'] + (float) $item['line_tax'] ) ), ENT_QUOTES, 'UTF-8' ),
 			);
 		}
 		return array(

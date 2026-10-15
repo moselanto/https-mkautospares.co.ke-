@@ -40,6 +40,7 @@ $mkae_heading  = $mkae_is_model
 
 		<section class="mkae-hub__products">
 			<?php
+			\MKAutoElite\Woo\Storefront::filter_bar();
 			if ( have_posts() && function_exists( 'woocommerce_product_loop_start' ) ) {
 				woocommerce_product_loop_start();
 				while ( have_posts() ) {

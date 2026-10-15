@@ -117,6 +117,12 @@ class Module {
 		ob_start();
 		?>
 		<div class="mkae-booking">
+			<ol class="mkae-steps" aria-label="<?php esc_attr_e( 'How booking works', 'mk-auto-elite' ); ?>">
+				<li><strong><?php esc_html_e( 'Send a request', 'mk-auto-elite' ); ?></strong><span><?php esc_html_e( 'Tell us your car, the service and a preferred time.', 'mk-auto-elite' ); ?></span></li>
+				<li><strong><?php esc_html_e( 'We confirm', 'mk-auto-elite' ); ?></strong><span><?php esc_html_e( 'Our team calls or WhatsApps you to confirm the slot and any parts needed.', 'mk-auto-elite' ); ?></span></li>
+				<li><strong><?php esc_html_e( 'Visit the workshop', 'mk-auto-elite' ); ?></strong><span><?php echo esc_html( \MKAutoElite\Customizer::get( 'location' ) . ' - ' . \MKAutoElite\Customizer::get( 'hours' ) ); ?></span></li>
+			</ol>
+			<p class="mkae-booking__note"><?php esc_html_e( 'This is a booking request. Your appointment is confirmed once we contact you.', 'mk-auto-elite' ); ?></p>
 			<form class="mkae-booking__form" data-mkae-booking novalidate>
 				<div class="mkae-booking__row">
 					<label class="mkae-field">
@@ -168,10 +174,8 @@ class Module {
 					<textarea name="mkae_message" rows="4"></textarea>
 				</label>
 
-				<div class="mkae-hp" aria-hidden="true">
-					<label><?php esc_html_e( 'Leave this field empty', 'mk-auto-elite' ); ?>
-						<input type="text" name="mkae_hp" tabindex="-1" autocomplete="off" value="">
-					</label>
+				<div class="mkae-hp" aria-hidden="true" hidden>
+					<input type="text" name="mkae_hp" tabindex="-1" autocomplete="off" value="" aria-hidden="true">
 				</div>
 				<input type="hidden" name="mkae_ts" value="<?php echo esc_attr( (string) time() ); ?>">
 

@@ -77,18 +77,18 @@ $mkae_labels  = array(
 				$mkae_addr     = Customizer::get( 'address' ) ? Customizer::get( 'address' ) : Customizer::get( 'location' );
 				$mkae_map_link = Customizer::get( 'map_link' );
 				?>
-				<li><span aria-hidden="true">&#128205;</span>
+				<li><?php echo \MKAutoElite\MobileNav::icon( 'pin' ); // phpcs:ignore ?>
 					<?php if ( $mkae_map_link ) : ?>
 						<a href="<?php echo esc_url( $mkae_map_link ); ?>" target="_blank" rel="noopener"><?php echo nl2br( esc_html( $mkae_addr ) ); ?></a>
 					<?php else : ?>
 						<?php echo nl2br( esc_html( $mkae_addr ) ); ?>
 					<?php endif; ?>
 				</li>
-				<li><span aria-hidden="true">&#128336;</span> <?php echo esc_html( Customizer::get( 'hours' ) ); ?></li>
-				<li><span aria-hidden="true">&#128222;</span> <a href="tel:<?php echo esc_attr( preg_replace( '/\s+/', '', Customizer::get( 'phone' ) ) ); ?>"><?php echo esc_html( Customizer::get( 'phone' ) ); ?></a></li>
-				<li><span aria-hidden="true">&#9993;</span> <a href="mailto:<?php echo esc_attr( Customizer::get( 'email' ) ); ?>"><?php echo esc_html( Customizer::get( 'email' ) ); ?></a></li>
+				<li><?php echo \MKAutoElite\MobileNav::icon( 'clock' ); // phpcs:ignore ?> <?php echo esc_html( Customizer::get( 'hours' ) ); ?></li>
+				<li><?php echo \MKAutoElite\MobileNav::icon( 'phone' ); // phpcs:ignore ?> <a href="tel:<?php echo esc_attr( preg_replace( '/\s+/', '', Customizer::get( 'phone' ) ) ); ?>"><?php echo esc_html( Customizer::get( 'phone' ) ); ?></a></li>
+				<li><?php echo \MKAutoElite\MobileNav::icon( 'mail' ); // phpcs:ignore ?> <a href="mailto:<?php echo esc_attr( Customizer::get( 'email' ) ); ?>"><?php echo esc_html( Customizer::get( 'email' ) ); ?></a></li>
 				<?php if ( Customizer::get( 'mpesa' ) ) : ?>
-					<li><span aria-hidden="true">&#128176;</span> <?php esc_html_e( 'M-Pesa:', 'mk-auto-elite' ); ?> <?php echo esc_html( Customizer::get( 'mpesa' ) ); ?></li>
+					<li><?php echo \MKAutoElite\MobileNav::icon( 'wallet' ); // phpcs:ignore ?> <span><?php echo esc_html( Customizer::get( 'mpesa' ) ); ?></span></li>
 				<?php endif; ?>
 			</ul>
 			<?php if ( ! empty( $mkae_socials ) ) : ?>
@@ -119,7 +119,7 @@ $mkae_labels  = array(
 				<li><a href="<?php echo esc_url( mkae_page_url( 'about-us' ) ); ?>"><?php esc_html_e( 'About Us', 'mk-auto-elite' ); ?></a></li>
 				<li><a href="<?php echo esc_url( mkae_page_url( 'payment-methods' ) ); ?>"><?php esc_html_e( 'Payment Methods', 'mk-auto-elite' ); ?></a></li>
 				<li><a href="<?php echo esc_url( mkae_page_url( 'terms' ) ); ?>"><?php esc_html_e( 'Terms & Conditions', 'mk-auto-elite' ); ?></a></li>
-				<li><a href="<?php echo esc_url( mkae_page_url( 'privacy' ) ); ?>"><?php esc_html_e( 'Privacy Policy', 'mk-auto-elite' ); ?></a></li>
+				<li><a href="<?php echo esc_url( get_privacy_policy_url() ? get_privacy_policy_url() : mkae_page_url( 'privacy' ) ); ?>"><?php esc_html_e( 'Privacy Policy', 'mk-auto-elite' ); ?></a></li>
 			</ul>
 		</div>
 
@@ -234,7 +234,7 @@ $mkae_labels  = array(
 <?php endif; ?>
 
 <a class="mkae-wa-float" href="https://wa.me/<?php echo esc_attr( preg_replace( '/\D+/', '', Customizer::get( 'whatsapp' ) ) ); ?>" target="_blank" rel="nofollow noopener" aria-label="<?php esc_attr_e( 'Chat on WhatsApp', 'mk-auto-elite' ); ?>">
-	<span aria-hidden="true">&#128172;</span>
+	<?php echo \MKAutoElite\Woo\WaOrder::icon( 26 ); // phpcs:ignore ?>
 </a>
 
 <?php if ( function_exists( 'wc_get_cart_url' ) ) : ?>

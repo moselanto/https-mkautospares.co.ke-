@@ -235,17 +235,5 @@ if ( taxonomy_exists( 'product_cat' ) ) {
 	</div>
 </section>
 
-<section class="mkae-section mkae-newsletter">
-	<div class="mkae-container mkae-newsletter__inner">
-		<h2 class="mkae-section__title"><?php esc_html_e( 'Get deals & new stock alerts', 'mk-auto-elite' ); ?></h2>
-		<?php $mkae_nl = \MKAutoElite\Customizer::get( 'newsletter_action' ); ?>
-		<form class="mkae-newsletter__form" action="<?php echo $mkae_nl ? esc_url( $mkae_nl ) : '#'; ?>" method="post"<?php echo $mkae_nl ? ' target="_blank" rel="noopener"' : ' onsubmit="return false;"'; ?>>
-			<label class="screen-reader-text" for="mkae-nl-email"><?php esc_html_e( 'Email address', 'mk-auto-elite' ); ?></label>
-			<input id="mkae-nl-email" type="email" name="<?php echo $mkae_nl ? 'EMAIL' : 'email'; ?>" placeholder="<?php esc_attr_e( 'you@example.com', 'mk-auto-elite' ); ?>" required>
-			<button type="submit" class="mkae-btn mkae-btn--primary"><?php esc_html_e( 'Subscribe', 'mk-auto-elite' ); ?></button>
-		</form>
-	</div>
-</section>
-
 <?php
 get_footer();
