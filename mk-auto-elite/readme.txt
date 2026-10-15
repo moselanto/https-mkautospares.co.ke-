@@ -3,7 +3,7 @@ Contributors: mkautospares
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 2.24.1
+Stable tag: 2.25.0
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -37,6 +37,9 @@ ships with:
 5. Set your contact details and WhatsApp number in Appearance > Customize > MK Auto Elite.
 
 == Changelog ==
+
+= 2.25.0 =
+* About Us page: photo hero, trust strip (genuine and OEM, fitment checked, M-Pesa, countrywide delivery, 7-day returns), workshop photo with caption, "Car spare parts delivered across Kenya" section with towns served, keyword-led SEO title and meta description for this page (overrides Rank Math defaults here only), descriptive image alt text.
 
 = 2.24.1 =
 * Mobile: the vehicle finder's popular-make row and the shop's part-type chip rows now show that they scroll - fade at the cut-off edge, round arrow buttons, a red scroll progress bar, snap-to-chip scrolling and a one-time gentle nudge the first time the row is seen on a phone (skipped for reduced-motion users).

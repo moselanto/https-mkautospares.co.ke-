@@ -24,6 +24,18 @@ $mka_makes = is_wp_error( $mka_makes ) ? array() : $mka_makes;
 $mka_cats  = class_exists( '\MKAutoElite\Woo\WooCommerce' ) ? \MKAutoElite\Woo\WooCommerce::top_categories( 12 ) : array();
 $mka_url   = get_permalink();
 
+$mka_title = 'About MK Auto Spares | Genuine Car Spare Parts Shop in Nairobi, Kenya';
+$mka_desc  = 'MK Auto Spares is a car spare parts shop on Kirinyaga Road, Nairobi: genuine, OEM and ex-Japan parts for Toyota, Land Rover, Mercedes, BMW, Nissan and more. Countrywide delivery, M-Pesa.';
+add_filter( 'rank_math/frontend/title', static function () use ( $mka_title ) { return $mka_title; }, 99 );
+add_filter( 'rank_math/frontend/description', static function () use ( $mka_desc ) { return $mka_desc; }, 99 );
+add_filter( 'rank_math/opengraph/facebook/og_title', static function () use ( $mka_title ) { return $mka_title; }, 99 );
+add_filter( 'rank_math/opengraph/facebook/og_description', static function () use ( $mka_desc ) { return $mka_desc; }, 99 );
+add_filter( 'pre_get_document_title', static function () use ( $mka_title ) { return $mka_title; }, 99 );
+$mka_img_hero = MK_AUTO_ELITE_URI . '/assets/images/knowledge/parts-counter.jpg';
+$mka_img_shop = MK_AUTO_ELITE_URI . '/assets/images/knowledge/workshop.jpg';
+$mka_img_gen  = MK_AUTO_ELITE_URI . '/assets/images/knowledge/inspect-genuine.jpg';
+$mka_towns    = array( 'Nairobi', 'Mombasa', 'Kisumu', 'Nakuru', 'Eldoret', 'Thika', 'Machakos', 'Kiambu', 'Nyeri', 'Meru', 'Naivasha', 'Kitale', 'Kakamega', 'Kericho', 'Malindi', 'Garissa' );
+
 $mka_faq = array(
 	array( __( 'Where is MK Auto Spares located?', 'mk-auto-elite' ), sprintf( __( 'Our shop and service centre is on Kirinyaga Road, Nairobi: %s. We are open %s.', 'mk-auto-elite' ), $mka_addr, $mka_hours ) ),
 	array( __( 'Do you sell genuine car parts in Kenya?', 'mk-auto-elite' ), __( 'Yes. We stock genuine (car-maker boxed) parts, OEM parts from the factories that supply the car makers, quality aftermarket brands and inspected ex-Japan / ex-UK used parts. Every listing shows its condition so you know exactly what you are buying.', 'mk-auto-elite' ) ),
@@ -43,7 +55,7 @@ get_header();
 		<span aria-current="page"><?php esc_html_e( 'About us', 'mk-auto-elite' ); ?></span>
 	</nav>
 
-	<section class="mkk-hero mka-hero">
+	<section class="mkk-hero mka-hero" style="--mka-hero:url('<?php echo esc_url( $mka_img_hero ); ?>');">
 		<div class="mkae-container mkk-hero__inner">
 			<div>
 				<p class="mkc-eyebrow"><?php esc_html_e( 'About MK Auto Spares', 'mk-auto-elite' ); ?></p>
@@ -62,6 +74,16 @@ get_header();
 		</div>
 	</section>
 
+	<div class="mka-trust">
+		<ul class="mkae-container mka-trust__list">
+			<li><?php echo MobileNav::icon( 'star' ); // phpcs:ignore ?><span><strong><?php esc_html_e( 'Genuine & OEM', 'mk-auto-elite' ); ?></strong><?php esc_html_e( 'condition on every part', 'mk-auto-elite' ); ?></span></li>
+			<li><?php echo MobileNav::icon( 'car' ); // phpcs:ignore ?><span><strong><?php esc_html_e( 'Fitment checked', 'mk-auto-elite' ); ?></strong><?php esc_html_e( 'by chassis number', 'mk-auto-elite' ); ?></span></li>
+			<li><?php echo MobileNav::icon( 'wallet' ); // phpcs:ignore ?><span><strong><?php esc_html_e( 'M-Pesa', 'mk-auto-elite' ); ?></strong><?php esc_html_e( 'or cash on delivery', 'mk-auto-elite' ); ?></span></li>
+			<li><?php echo MobileNav::icon( 'truck' ); // phpcs:ignore ?><span><strong><?php esc_html_e( 'Countrywide', 'mk-auto-elite' ); ?></strong><?php esc_html_e( 'delivery across Kenya', 'mk-auto-elite' ); ?></span></li>
+			<li><?php echo MobileNav::icon( 'return' ); // phpcs:ignore ?><span><strong><?php esc_html_e( '7-day returns', 'mk-auto-elite' ); ?></strong><?php esc_html_e( 'on eligible parts', 'mk-auto-elite' ); ?></span></li>
+		</ul>
+	</div>
+
 	<div class="mkae-container">
 		<section class="mkk-sec mka-story">
 			<div class="mka-story__copy">
@@ -70,12 +92,15 @@ get_header();
 				<p><?php esc_html_e( 'From brake pads, filters and suspension to engine, gearbox, electrical and body parts, we stock the parts Kenyan drivers need most for Toyota, Land Rover, Range Rover, Mercedes-Benz, BMW, Nissan, Mazda, Subaru, Volkswagen and more, and we source what is not on the shelf.', 'mk-auto-elite' ); ?></p>
 				<p><?php esc_html_e( 'Whether you are a private motorist, a fleet manager or a mechanic, you get the same promise: the right part, a fair price, and people who answer the phone.', 'mk-auto-elite' ); ?></p>
 			</div>
+			<div class="mka-story__side">
+			<figure class="mka-photo"><img src="<?php echo esc_url( $mka_img_shop ); ?>" alt="<?php esc_attr_e( 'MK Auto Spares workshop and spare parts service centre in Nairobi', 'mk-auto-elite' ); ?>" loading="lazy" decoding="async" width="800" height="533"><figcaption><?php esc_html_e( 'Parts counter and in-house workshop, Kirinyaga Road, Nairobi', 'mk-auto-elite' ); ?></figcaption></figure>
 			<ul class="mka-pillars">
 				<li><span class="mka-pillars__ico"><?php echo MobileNav::icon( 'car' ); // phpcs:ignore ?></span><strong><?php esc_html_e( 'Fitment first', 'mk-auto-elite' ); ?></strong><span><?php esc_html_e( 'Parts checked against your make, model, year and chassis number.', 'mk-auto-elite' ); ?></span></li>
 				<li><span class="mka-pillars__ico"><?php echo MobileNav::icon( 'star' ); // phpcs:ignore ?></span><strong><?php esc_html_e( 'Honest condition', 'mk-auto-elite' ); ?></strong><span><?php esc_html_e( 'Genuine, OEM, aftermarket or ex-Japan, clearly labelled on every part.', 'mk-auto-elite' ); ?></span></li>
 				<li><span class="mka-pillars__ico"><?php echo MobileNav::icon( 'truck' ); // phpcs:ignore ?></span><strong><?php esc_html_e( 'Countrywide delivery', 'mk-auto-elite' ); ?></strong><span><?php esc_html_e( 'Nairobi and all of Kenya, or collect from Kirinyaga Road.', 'mk-auto-elite' ); ?></span></li>
 				<li><span class="mka-pillars__ico"><?php echo MobileNav::icon( 'wrench' ); // phpcs:ignore ?></span><strong><?php esc_html_e( 'In-house workshop', 'mk-auto-elite' ); ?></strong><span><?php esc_html_e( 'Fitting, servicing and diagnostics by our own technicians.', 'mk-auto-elite' ); ?></span></li>
 			</ul>
+			</div>
 		</section>
 
 		<section class="mkk-sec" aria-labelledby="mka-types">
@@ -122,6 +147,17 @@ get_header();
 				<li><strong><?php esc_html_e( 'Pay your way', 'mk-auto-elite' ); ?></strong><span><?php esc_html_e( 'Lipa na M-Pesa or cash on delivery.', 'mk-auto-elite' ); ?></span></li>
 				<li><strong><?php esc_html_e( 'Delivered or fitted', 'mk-auto-elite' ); ?></strong><span><?php esc_html_e( 'Countrywide courier, shop pickup or fitting in our workshop.', 'mk-auto-elite' ); ?></span></li>
 			</ol>
+		</section>
+
+		<section class="mkk-sec mka-areas" aria-labelledby="mka-areas">
+			<div class="mka-areas__copy">
+				<h2 id="mka-areas" class="mkk-h2"><?php esc_html_e( 'Car spare parts delivered across Kenya', 'mk-auto-elite' ); ?></h2>
+				<p class="mkk-lead"><?php esc_html_e( 'Order online or on WhatsApp from anywhere in Kenya. We dispatch from our Nairobi shop through trusted couriers to every county, or you can collect in person on Kirinyaga Road.', 'mk-auto-elite' ); ?></p>
+				<ul class="mka-towns">
+					<?php foreach ( $mka_towns as $mka_t ) : ?><li><?php echo esc_html( sprintf( __( 'Spare parts %s', 'mk-auto-elite' ), $mka_t ) ); ?></li><?php endforeach; ?>
+				</ul>
+			</div>
+			<figure class="mka-photo"><img src="<?php echo esc_url( $mka_img_gen ); ?>" alt="<?php esc_attr_e( 'Inspecting a genuine car part before dispatch in Kenya', 'mk-auto-elite' ); ?>" loading="lazy" decoding="async" width="800" height="533"></figure>
 		</section>
 
 		<section class="mkk-sec mka-visit" aria-labelledby="mka-visit">
