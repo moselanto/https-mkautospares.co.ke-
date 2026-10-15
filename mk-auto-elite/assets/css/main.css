@@ -936,3 +936,6 @@ body.mkae-menu-open .mkae-nav { padding-bottom: calc(64px + env(safe-area-inset-
 
 /* v2.18.0 — honeypot field: off-screen for humans, filled by naive bots */
 .mkae-hp { position: absolute !important; left: -9999px !important; top: auto; width: 1px; height: 1px; overflow: hidden; }
+
+.mkae-ps-condition { margin: var(--mk-space-2, 8px) 0 0; font-size: 0.95rem; }
+.mkae-ps-condition--used, .mkae-ps-condition--refurbished { color: #8a5a00; }

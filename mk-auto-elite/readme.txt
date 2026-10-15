@@ -3,7 +3,7 @@ Contributors: mkautospares
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 2.19.4
+Stable tag: 2.19.5
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -33,6 +33,11 @@ ships with:
 5. Set your contact details and WhatsApp number in Appearance > Customize > MK Auto Elite.
 
 == Changelog ==
+
+= 2.19.5 =
+* Products: optional Condition field (New genuine/OEM, New aftermarket, Used/ex-Japan, Refurbished) on the product edit screen; unset products are detected from the name (used, ex-Japan, second-hand).
+* Products: visible "Condition:" line under the price when known; used and refurbished parts no longer show the "Genuine & quality-checked" badge.
+* SEO: Offer itemCondition now matches the Product condition (Rank Math defaulted offers to NewCondition). Return-policy link in schema now finds the /return-refund/ page.
 
 = 2.19.4 =
 * SEO: vehicle make and model archives now show a keyword-led H1 ("Toyota Spare Parts in Kenya", "Toyota Fielder Spare Parts") instead of just the term name.

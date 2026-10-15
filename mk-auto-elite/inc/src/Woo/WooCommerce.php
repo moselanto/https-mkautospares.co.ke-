@@ -49,6 +49,11 @@ class WooCommerce {
 		//  - one WhatsApp button that works even when unpriced at 35
 		//  - fitment / reference panel via product-meta hook.
 		add_action( 'woocommerce_single_product_summary', array( $this, 'trust_badges' ), 29 );
+		add_action( 'woocommerce_single_product_summary', array( $this, 'condition_label' ), 11 );
+
+		// Product condition: optional admin field, falls back to the product name.
+		add_action( 'woocommerce_product_options_general_product_data', array( $this, 'condition_field' ) );
+		add_action( 'woocommerce_admin_process_product_object', array( $this, 'save_condition_field' ) );
 		add_action( 'woocommerce_single_product_summary', array( $this, 'single_whatsapp_button' ), 35 );
 		add_action( 'woocommerce_product_meta_end', array( $this, 'fitment_panel' ) );
 
@@ -224,9 +229,17 @@ class WooCommerce {
 			return;
 		}
 		$delivery = Customizer::get( 'delivery_note', 'Fast countrywide delivery across Kenya' );
+		$condition = self::condition( $product );
+		if ( 'used' === $condition ) {
+			$quality = array( '&#128737;', __( 'Used original part', 'mk-auto-elite' ), __( 'Inspected before dispatch', 'mk-auto-elite' ) );
+		} elseif ( 'refurbished' === $condition ) {
+			$quality = array( '&#128737;', __( 'Refurbished part', 'mk-auto-elite' ), __( 'Inspected before dispatch', 'mk-auto-elite' ) );
+		} else {
+			$quality = array( '&#128737;', __( 'Genuine & quality-checked', 'mk-auto-elite' ), __( 'Sourced and inspected before dispatch', 'mk-auto-elite' ) );
+		}
 		$badges   = array(
 			array( '&#128666;', __( 'Delivery', 'mk-auto-elite' ), $delivery ),
-			array( '&#128737;', __( 'Genuine & quality-checked', 'mk-auto-elite' ), __( 'Sourced and inspected before dispatch', 'mk-auto-elite' ) ),
+			$quality,
 			array( '&#128179;', __( 'Flexible payment', 'mk-auto-elite' ), __( 'M-Pesa or cash on delivery', 'mk-auto-elite' ) ),
 			array( '&#128172;', __( 'Talk to a person', 'mk-auto-elite' ), __( 'Confirm fitment on WhatsApp before you buy', 'mk-auto-elite' ) ),
 		);
@@ -478,5 +491,100 @@ class WooCommerce {
 			}
 		}
 		return array();
+	}
+
+	/**
+	 * Allowed values for the _mk_condition product field.
+	 *
+	 * @return array<string,string>
+	 */
+	public static function condition_options(): array {
+		return array(
+			'new-genuine'     => __( 'New (genuine / OEM)', 'mk-auto-elite' ),
+			'new-aftermarket' => __( 'New (aftermarket)', 'mk-auto-elite' ),
+			'used'            => __( 'Used / ex-Japan', 'mk-auto-elite' ),
+			'refurbished'     => __( 'Refurbished', 'mk-auto-elite' ),
+		);
+	}
+
+	/**
+	 * Product condition key. The admin field wins; otherwise a product name
+	 * that says used / ex-Japan / second-hand marks it used. '' when unknown.
+	 *
+	 * @param \WC_Product $product Product.
+	 */
+	public static function condition( \WC_Product $product ): string {
+		$set     = (string) $product->get_meta( '_mk_condition', true );
+		$options = self::condition_options();
+		if ( isset( $options[ $set ] ) ) {
+			return $set;
+		}
+		if ( preg_match( '/\b(used|ex[\s-]?japan|second[\s-]?hand|pre[\s-]?owned)\b/i', $product->get_name() ) ) {
+			return 'used';
+		}
+		return '';
+	}
+
+	/**
+	 * Visible condition line under the price (only when the condition is known).
+	 */
+	public function condition_label(): void {
+		global $product;
+		if ( ! $product instanceof \WC_Product ) {
+			return;
+		}
+		$key = self::condition( $product );
+		if ( '' === $key ) {
+			return;
+		}
+		$labels = array(
+			'new-genuine'     => __( 'New (genuine / OEM)', 'mk-auto-elite' ),
+			'new-aftermarket' => __( 'New (aftermarket)', 'mk-auto-elite' ),
+			'used'            => preg_match( '/ex[\s-]?japan/i', $product->get_name() ) ? __( 'Used (ex-Japan)', 'mk-auto-elite' ) : __( 'Used', 'mk-auto-elite' ),
+			'refurbished'     => __( 'Refurbished', 'mk-auto-elite' ),
+		);
+		printf(
+			'<p class="mkae-ps-condition mkae-ps-condition--%1$s"><strong>%2$s</strong> %3$s</p>',
+			esc_attr( $key ),
+			esc_html__( 'Condition:', 'mk-auto-elite' ),
+			esc_html( $labels[ $key ] )
+		);
+	}
+
+	/**
+	 * Condition dropdown in the product edit screen (General tab).
+	 */
+	public function condition_field(): void {
+		if ( ! function_exists( 'woocommerce_wp_select' ) ) {
+			return;
+		}
+		woocommerce_wp_select(
+			array(
+				'id'          => '_mk_condition',
+				'label'       => __( 'Condition', 'mk-auto-elite' ),
+				'options'     => array( '' => __( 'Not set (detect from product name)', 'mk-auto-elite' ) ) + self::condition_options(),
+				'desc_tip'    => true,
+				'description' => __( 'Shown on the product page and sent to Google. Leave unset to detect used or ex-Japan from the product name.', 'mk-auto-elite' ),
+			)
+		);
+	}
+
+	/**
+	 * Save the condition field. WooCommerce has already verified the nonce.
+	 *
+	 * @param \WC_Product $product Product being saved.
+	 */
+	public function save_condition_field( $product ): void {
+		if ( ! $product instanceof \WC_Product || ! current_user_can( 'edit_product', $product->get_id() ) ) {
+			return;
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified by WooCommerce.
+		$value   = isset( $_POST['_mk_condition'] ) ? sanitize_key( wp_unslash( $_POST['_mk_condition'] ) ) : '';
+		$options = self::condition_options();
+		if ( isset( $options[ $value ] ) ) {
+			$product->update_meta_data( '_mk_condition', $value );
+		} else {
+			$product->delete_meta_data( '_mk_condition' );
+		}
 	}
 }

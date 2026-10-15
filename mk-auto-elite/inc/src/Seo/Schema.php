@@ -176,7 +176,9 @@ class Schema {
 				}
 				foreach ( $this->offer_extras( $product ) as $field => $value ) {
 					// Seller always points at the single site Organization by @id.
-					if ( 'seller' === $field || empty( $offer[ $field ] ) ) {
+					// Seller and condition always come from us so the Offer agrees
+					// with the Product (Rank Math defaults offers to NewCondition).
+					if ( 'seller' === $field || 'itemCondition' === $field || empty( $offer[ $field ] ) ) {
 						$offer[ $field ] = $value;
 					}
 				}
@@ -562,10 +564,14 @@ class Schema {
 				'merchantReturnDays'   => $days,
 				'returnMethod'         => 'https://schema.org/ReturnInStore',
 			);
-			$policy = get_page_by_path( 'returns-refund' );
+			$policy = get_page_by_path( 'return-refund' ) ? get_page_by_path( 'return-refund' ) : get_page_by_path( 'returns-refund' );
 			if ( $policy ) {
 				$extras['hasMerchantReturnPolicy']['merchantReturnLink'] = get_permalink( $policy );
 			}
+		}
+		$condition = $this->condition( $product );
+		if ( '' !== $condition ) {
+			$extras['itemCondition'] = $condition;
 		}
 		return (array) apply_filters( 'mkae_schema_offer_extras', $extras, $product );
 	}
