@@ -638,3 +638,23 @@ ul.products li.product.mkae-product .mkae-product__price,
 .mkae-finder__hint { margin: -4px 0 0; text-align: center; font-size: .78rem; color: var(--mk-ink-500); }
 .mkae-hero__finder .mkae-finder { box-shadow: none; padding: 0; }
 @media (prefers-reduced-motion: reduce) { .mkae-finder__field.is-loading .mkae-finder__control::after { animation: none; } }
+
+/* ==== v2.24.0 About page ==== */
+.mka-hero__cta { display: flex; flex-wrap: wrap; gap: 10px; }
+.mka-hero__cta svg { width: 18px; height: 18px; }
+.mka-story { display: grid; gap: 28px; }
+@media (min-width: 1024px) { .mka-story { grid-template-columns: 1.3fr 1fr; align-items: start; } }
+.mka-story__copy p { color: var(--mk-ink-700); font-size: 1.04rem; line-height: 1.75; margin: 0 0 14px; }
+.mka-pillars { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: 1fr; }
+@media (min-width: 560px) { .mka-pillars { grid-template-columns: 1fr 1fr; } }
+.mka-pillars li { display: flex; flex-direction: column; gap: 6px; padding: 18px; border: 1px solid var(--mk-line); border-radius: 16px; background: #fff; }
+.mka-pillars span:not(.mka-pillars__ico) { font-size: .88rem; color: var(--mk-ink-500); line-height: 1.5; }
+.mka-pillars__ico { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: var(--mk-red-50); color: var(--mk-red); margin-bottom: 4px; }
+.mka-pillars__ico svg { width: 22px; height: 22px; }
+.mka-cats { display: grid; gap: 12px; grid-template-columns: 1fr; margin-top: 14px; }
+@media (min-width: 640px) { .mka-cats { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .mka-cats { grid-template-columns: repeat(4, 1fr); } }
+.mka-steps { margin: 0; }
+@media (min-width: 720px) { .mka-steps { grid-template-columns: repeat(2, 1fr); } }
+.mka-visit__panel { padding: 28px; border-radius: 20px; background: #fff; border: 1px solid var(--mk-line); max-width: 860px; }
+.mka-visit__cta { display: flex; flex-wrap: wrap; gap: 10px; }

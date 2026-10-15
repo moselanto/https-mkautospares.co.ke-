@@ -3,7 +3,7 @@ Contributors: mkautospares
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 2.23.1
+Stable tag: 2.24.0
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -37,6 +37,10 @@ ships with:
 5. Set your contact details and WhatsApp number in Appearance > Customize > MK Auto Elite.
 
 == Changelog ==
+
+= 2.24.0 =
+* New About Us page template (page-about-us.php, used automatically for /about-us/): breadcrumb, keyword-led hero ("Genuine car spare parts in Kenya"), live parts and makes stats, Who we are story, four pillars, Genuine / OEM / Aftermarket / Ex-Japan explainer, category and make links, How we work steps, visit-the-shop panel, 7-question FAQ and call to action.
+* About page structured data: AboutPage linked to the site Organization, BreadcrumbList and FAQPage.
 
 = 2.23.1 =
 * Vehicle finder: year, engine, fuel and gearbox counts now include only products matching every earlier choice, so "Show N parts" matches the results page.
