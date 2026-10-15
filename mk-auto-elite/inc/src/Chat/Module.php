@@ -139,6 +139,10 @@ class Module {
 			return;
 		}
 		$whatsapp = preg_replace( '/[^0-9]/', '', Customizer::get( 'whatsapp', '254702343302' ) );
+		$context  = '';
+		if ( function_exists( 'is_product' ) && is_product() ) {
+			$context = wp_strip_all_tags( get_the_title() );
+		}
 
 		wp_localize_script(
 			'mkae-chat',
@@ -148,54 +152,134 @@ class Module {
 				'aiReady'  => self::ai_ready(),
 				'whatsapp' => $whatsapp,
 				'intro'    => Customizer::get( 'chat_intro', __( 'Hi! I can help you find the right part, check fitment or get a price. What are you looking for?', 'mk-auto-elite' ) ),
-				'brand'    => get_bloginfo( 'name' ),
+				'brand'    => 'MK Auto Spares',
+				'context'  => $context,
+				'pageUrl'  => is_singular() ? get_permalink() : home_url( add_query_arg( array() ) ),
+				// Business hours in Africa/Nairobi: Monday (1) to Saturday (6), 08:00-18:00.
+				'schedule' => apply_filters(
+					'mkae_chat_schedule',
+					array(
+						'days'  => array( 1, 2, 3, 4, 5, 6 ),
+						'open'  => 8,
+						'close' => 18,
+						'tz'    => 'Africa/Nairobi',
+					)
+				),
 				'i18n'     => array(
-					'title'       => __( 'Chat with us', 'mk-auto-elite' ),
-					'open'        => __( 'Chat with us', 'mk-auto-elite' ),
-					'close'       => __( 'Close chat', 'mk-auto-elite' ),
-					'placeholder' => __( 'Type your message...', 'mk-auto-elite' ),
-					'send'        => __( 'Send', 'mk-auto-elite' ),
-					'whatsapp'    => __( 'Continue on WhatsApp', 'mk-auto-elite' ),
-					'thinking'    => __( 'Typing...', 'mk-auto-elite' ),
-					'error'       => __( 'Sorry, I could not respond just now. Please continue on WhatsApp.', 'mk-auto-elite' ),
+					'thinking' => __( 'Typing...', 'mk-auto-elite' ),
+					'error'    => __( 'Sorry, I could not respond just now. Please continue on WhatsApp.', 'mk-auto-elite' ),
 				),
 			)
 		);
 	}
 
 	/**
-	 * Render the floating widget shell. chat.js fills in the conversation.
+	 * Quick topics shown in the widget: label => message sent to WhatsApp.
+	 *
+	 * @return array<int,array{label:string,hint:string,msg:string}>
+	 */
+	private static function topics(): array {
+		return apply_filters(
+			'mkae_chat_topics',
+			array(
+				array(
+					'label' => __( 'Find a part for my car', 'mk-auto-elite' ),
+					'hint'  => __( 'Send make, model, year or chassis', 'mk-auto-elite' ),
+					'msg'   => 'Hello MK Auto Spares, I am looking for a part for my car. Vehicle (make, model, year): ',
+				),
+				array(
+					'label' => __( 'Price and availability', 'mk-auto-elite' ),
+					'hint'  => __( 'Get a quote in minutes', 'mk-auto-elite' ),
+					'msg'   => 'Hello MK Auto Spares, please send me the price and availability for: ',
+				),
+				array(
+					'label' => __( 'Check if a part fits', 'mk-auto-elite' ),
+					'hint'  => __( 'We confirm before you pay', 'mk-auto-elite' ),
+					'msg'   => 'Hello MK Auto Spares, can you confirm this part fits my vehicle? My chassis/VIN is: ',
+				),
+				array(
+					'label' => __( 'Track my order', 'mk-auto-elite' ),
+					'hint'  => __( 'Delivery updates', 'mk-auto-elite' ),
+					'msg'   => 'Hello MK Auto Spares, I would like an update on my order. Order ref / name: ',
+				),
+			)
+		);
+	}
+
+	/**
+	 * Render the floating widget shell. chat.js wires the behaviour.
 	 */
 	public function render_widget(): void {
 		if ( ! self::enabled() ) {
 			return;
 		}
+		$icon = class_exists( '\MKAutoElite\Woo\WaOrder' ) ? \MKAutoElite\Woo\WaOrder::icon( 30 ) : '';
+		$logo = get_site_icon_url( 96 );
 		?>
-		<div class="mkae-chat" data-mkae-chat hidden>
-			<button type="button" class="mkae-chat__launcher" data-mkae-chat-toggle aria-expanded="false" aria-label="<?php esc_attr_e( 'Chat with us', 'mk-auto-elite' ); ?>">
-				<span class="mkae-chat__launcher-icon" aria-hidden="true">
-					<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.9-.9L3 21l1.9-5.6A8.5 8.5 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5z"></path></svg>
-				</span>
-				<span class="mkae-chat__launcher-label"><?php esc_html_e( 'Chat', 'mk-auto-elite' ); ?></span>
+		<div class="mkw" data-mkae-chat hidden>
+			<div class="mkw__teaser" data-mkw-teaser hidden>
+				<button type="button" class="mkw__teaser-x" data-mkw-teaser-close aria-label="<?php esc_attr_e( 'Dismiss', 'mk-auto-elite' ); ?>">&times;</button>
+				<button type="button" class="mkw__teaser-body" data-mkae-chat-toggle>
+					<strong><?php esc_html_e( 'Need the right part?', 'mk-auto-elite' ); ?></strong>
+					<span><?php esc_html_e( 'Chat with a parts specialist on WhatsApp. We reply in minutes.', 'mk-auto-elite' ); ?></span>
+				</button>
+			</div>
+
+			<button type="button" class="mkw__launcher" data-mkae-chat-toggle aria-expanded="false" aria-controls="mkw-panel" aria-label="<?php esc_attr_e( 'Chat with us on WhatsApp', 'mk-auto-elite' ); ?>">
+				<span class="mkw__launcher-ico mkw__launcher-ico--wa"><?php echo $icon; // phpcs:ignore WordPress.Security.EscapeOutput ?></span>
+				<span class="mkw__launcher-ico mkw__launcher-ico--x" aria-hidden="true">&times;</span>
+				<span class="mkw__badge" data-mkw-badge aria-hidden="true">1</span>
 			</button>
 
-			<section class="mkae-chat__panel" data-mkae-chat-panel role="dialog" aria-label="<?php esc_attr_e( 'Chat with us', 'mk-auto-elite' ); ?>" hidden>
-				<header class="mkae-chat__head">
-					<span class="mkae-chat__head-title"><?php echo esc_html( get_bloginfo( 'name' ) ); ?></span>
-					<button type="button" class="mkae-chat__x" data-mkae-chat-toggle aria-label="<?php esc_attr_e( 'Close chat', 'mk-auto-elite' ); ?>">&times;</button>
+			<section class="mkw__panel" id="mkw-panel" data-mkae-chat-panel role="dialog" aria-modal="false" aria-labelledby="mkw-title" hidden>
+				<header class="mkw__head">
+					<span class="mkw__avatar">
+						<?php if ( $logo ) : ?>
+							<img src="<?php echo esc_url( $logo ); ?>" alt="" width="44" height="44">
+						<?php else : ?>
+							<span>MK</span>
+						<?php endif; ?>
+						<i class="mkw__dot" data-mkw-dot></i>
+					</span>
+					<span class="mkw__head-text">
+						<strong id="mkw-title">MK Auto Spares</strong>
+						<small data-mkw-status><?php esc_html_e( 'Parts specialists', 'mk-auto-elite' ); ?></small>
+					</span>
+					<button type="button" class="mkw__x" data-mkae-chat-toggle aria-label="<?php esc_attr_e( 'Close chat', 'mk-auto-elite' ); ?>">&times;</button>
 				</header>
-				<div class="mkae-chat__log" data-mkae-chat-log aria-live="polite"></div>
-				<div class="mkae-chat__handoff">
-					<a href="#" class="mkae-chat__wa" data-mkae-chat-whatsapp target="_blank" rel="noopener">
-						<?php esc_html_e( 'Continue on WhatsApp', 'mk-auto-elite' ); ?>
-					</a>
+
+				<div class="mkw__body" data-mkae-chat-log aria-live="polite">
+					<div class="mkw__msg mkw__msg--bot" data-mkw-intro>
+						<p data-mkw-intro-text></p>
+						<time data-mkw-time></time>
+					</div>
+					<div class="mkw__context" data-mkw-context hidden>
+						<small><?php esc_html_e( 'You are viewing', 'mk-auto-elite' ); ?></small>
+						<span data-mkw-context-name></span>
+					</div>
+					<div class="mkw__topics" data-mkw-topics>
+						<?php foreach ( self::topics() as $t ) : ?>
+							<a class="mkw__topic" href="#" data-mkw-topic="<?php echo esc_attr( $t['msg'] ); ?>" target="_blank" rel="nofollow noopener">
+								<span><strong><?php echo esc_html( $t['label'] ); ?></strong><small><?php echo esc_html( $t['hint'] ); ?></small></span>
+								<i aria-hidden="true">&rsaquo;</i>
+							</a>
+						<?php endforeach; ?>
+					</div>
 				</div>
-				<form class="mkae-chat__form" data-mkae-chat-form>
-					<input type="text" class="mkae-chat__input" data-mkae-chat-input placeholder="<?php esc_attr_e( 'Type your message...', 'mk-auto-elite' ); ?>" autocomplete="off">
-					<button type="submit" class="mkae-chat__send" aria-label="<?php esc_attr_e( 'Send', 'mk-auto-elite' ); ?>">
-						<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+
+				<a class="mkw__handoff" href="#" data-mkae-chat-whatsapp target="_blank" rel="nofollow noopener" hidden>
+					<?php echo class_exists( '\MKAutoElite\Woo\WaOrder' ) ? \MKAutoElite\Woo\WaOrder::icon( 16 ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput ?>
+					<?php esc_html_e( 'Continue this chat on WhatsApp', 'mk-auto-elite' ); ?>
+				</a>
+
+				<form class="mkw__form" data-mkae-chat-form>
+					<label class="screen-reader-text" for="mkw-input"><?php esc_html_e( 'Your message', 'mk-auto-elite' ); ?></label>
+					<input type="text" id="mkw-input" class="mkw__input" data-mkae-chat-input placeholder="<?php esc_attr_e( 'Type your message...', 'mk-auto-elite' ); ?>" autocomplete="off" maxlength="500">
+					<button type="submit" class="mkw__send" aria-label="<?php esc_attr_e( 'Send', 'mk-auto-elite' ); ?>">
+						<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg>
 					</button>
 				</form>
+				<p class="mkw__foot"><?php esc_html_e( 'Mon-Sat 8am-6pm EAT. Messages outside hours are answered next morning.', 'mk-auto-elite' ); ?></p>
 			</section>
 		</div>
 		<?php

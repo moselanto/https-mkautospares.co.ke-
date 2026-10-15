@@ -260,8 +260,10 @@ class WooCommerce {
 		}
 		$quote = self::needs_quote( $product );
 		printf(
-			'<a class="mkae-btn mkae-btn--whatsapp mkae-btn--block" href="%s" target="_blank" rel="nofollow noopener"><span class="mkae-btn__icon" aria-hidden="true">&#128172;</span> %s</a>',
+			'<a class="mkae-btn mkae-btn--whatsapp mkae-btn--block" href="%s" target="_blank" rel="nofollow noopener"%s>%s %s</a>',
 			esc_url( self::whatsapp_url( $product ) ),
+			WaOrder::attr( $product ), // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in attr().
+			WaOrder::icon( 20 ), // phpcs:ignore WordPress.Security.EscapeOutput
 			esc_html( $quote ? __( 'Request price on WhatsApp', 'mk-auto-elite' ) : __( 'Order on WhatsApp', 'mk-auto-elite' ) )
 		);
 	}
@@ -347,8 +349,9 @@ class WooCommerce {
 			esc_html__( 'Vehicle years and variants can differ. If you are not certain this part fits your car, send us your chassis or registration number on WhatsApp and we will confirm before you order.', 'mk-auto-elite' )
 		);
 		printf(
-			'<a class="mkae-btn mkae-btn--whatsapp" href="%s" target="_blank" rel="nofollow noopener"><span class="mkae-btn__icon" aria-hidden="true">&#128172;</span> %s</a>',
+			'<a class="mkae-btn mkae-btn--whatsapp" href="%s" target="_blank" rel="nofollow noopener">%s %s</a>',
 			esc_url( self::whatsapp_url( $product ) ),
+			WaOrder::icon( 18 ), // phpcs:ignore WordPress.Security.EscapeOutput
 			esc_html__( 'Confirm fitment on WhatsApp', 'mk-auto-elite' )
 		);
 	}

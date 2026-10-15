@@ -57,8 +57,8 @@ $mkae_price   = $product->get_price_html();
 					<?php esc_html_e( 'View details', 'mk-auto-elite' ); ?>
 				</a>
 			<?php endif; ?>
-			<a class="mkae-btn mkae-btn--whatsapp mkae-btn--sm" href="<?php echo esc_url( $mkae_wa ); ?>" target="_blank" rel="nofollow noopener">
-				<span aria-hidden="true">&#128172;</span>
+			<a class="mkae-btn mkae-btn--whatsapp mkae-btn--sm" href="<?php echo esc_url( $mkae_wa ); ?>" target="_blank" rel="nofollow noopener"<?php echo \MKAutoElite\Woo\WaOrder::attr( $product ); // phpcs:ignore WordPress.Security.EscapeOutput ?>>
+				<?php echo \MKAutoElite\Woo\WaOrder::icon( 16 ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
 				<?php echo esc_html( $mkae_quote ? __( 'Ask price', 'mk-auto-elite' ) : __( 'WhatsApp', 'mk-auto-elite' ) ); ?>
 			</a>
 		</div>
