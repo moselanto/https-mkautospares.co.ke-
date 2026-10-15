@@ -257,3 +257,74 @@
 
 	if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
 })();
+
+/* v2.24.1 - horizontal chip rows: fade edges, arrow buttons, progress bar and a
+   one-time nudge so shoppers can see the row scrolls (finder makes, shop chips). */
+(function () {
+	'use strict';
+	var SEL = '.mkae-finder__chips, .mkf__chips';
+	var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+	function enhance(row) {
+		if (row.getAttribute('data-mkscroll')) { return; }
+		row.setAttribute('data-mkscroll', '1');
+		var wrap = document.createElement('div');
+		wrap.className = 'mkscroll';
+		row.parentNode.insertBefore(wrap, row);
+		wrap.appendChild(row);
+		var mk = function (dir, label) {
+			var b = document.createElement('button');
+			b.type = 'button';
+			b.className = 'mkscroll__btn mkscroll__btn--' + dir;
+			b.setAttribute('aria-label', label);
+			b.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + (dir === 'prev' ? 'm15 6-6 6 6 6' : 'm9 6 6 6-6 6') + '"/></svg>';
+			b.addEventListener('click', function () {
+				row.scrollBy({ left: (dir === 'prev' ? -1 : 1) * Math.max(160, row.clientWidth * 0.7), behavior: reduce ? 'auto' : 'smooth' });
+			});
+			wrap.appendChild(b);
+			return b;
+		};
+		mk('prev', 'Scroll left');
+		mk('next', 'Scroll right');
+		var bar = document.createElement('span');
+		bar.className = 'mkscroll__bar';
+		bar.innerHTML = '<span class="mkscroll__thumb"></span>';
+		wrap.appendChild(bar);
+		var thumb = bar.firstChild;
+
+		function update() {
+			var max = row.scrollWidth - row.clientWidth;
+			var scrollable = max > 4;
+			wrap.classList.toggle('is-scrollable', scrollable);
+			wrap.classList.toggle('is-start', row.scrollLeft <= 2);
+			wrap.classList.toggle('is-end', row.scrollLeft >= max - 2);
+			if (scrollable) {
+				var vis = row.clientWidth / row.scrollWidth;
+				thumb.style.width = Math.max(18, vis * 100) + '%';
+				thumb.style.transform = 'translateX(' + ((row.scrollLeft / max) * (100 / Math.max(18, vis * 100) * 100 - 100)) + '%)';
+			}
+		}
+		row.addEventListener('scroll', update, { passive: true });
+		window.addEventListener('resize', update, { passive: true });
+		update();
+
+		// One gentle nudge the first time the row is seen on a touch screen.
+		if (!reduce && 'IntersectionObserver' in window && window.matchMedia('(pointer: coarse)').matches) {
+			var io = new IntersectionObserver(function (es) {
+				es.forEach(function (e) {
+					if (e.isIntersecting && wrap.classList.contains('is-scrollable') && row.scrollLeft < 2) {
+						io.disconnect();
+						setTimeout(function () {
+							row.scrollTo({ left: 56, behavior: 'smooth' });
+							setTimeout(function () { row.scrollTo({ left: 0, behavior: 'smooth' }); }, 650);
+						}, 500);
+					}
+				});
+			}, { threshold: 0.8 });
+			io.observe(row);
+		}
+	}
+
+	function init() { document.querySelectorAll(SEL).forEach(enhance); }
+	if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
+})();

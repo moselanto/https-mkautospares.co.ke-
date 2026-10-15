@@ -1596,3 +1596,24 @@ ul.products li.product.mkae-product .mkae-product__price,
 @media (min-width: 720px) { .mka-steps { grid-template-columns: repeat(2, 1fr); } }
 .mka-visit__panel { padding: 28px; border-radius: 20px; background: #fff; border: 1px solid var(--mk-line); max-width: 860px; }
 .mka-visit__cta { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* ==== v2.24.1 Scrollable chip rows: clear "there is more" cues ==== */
+.mkscroll { position: relative; }
+.mkscroll > .mkae-finder__chips, .mkscroll > .mkf__chips { scroll-snap-type: x proximity; scroll-padding-inline: 4px; padding-bottom: 10px; }
+.mkscroll > .mkae-finder__chips > *, .mkscroll > .mkf__chips > * { scroll-snap-align: start; }
+.mkscroll::before, .mkscroll::after { content: ""; position: absolute; top: 0; bottom: 10px; width: 56px; pointer-events: none; z-index: 1; opacity: 0; transition: opacity .2s; }
+.mkscroll::before { left: 0; background: linear-gradient(90deg, #fff 30%, rgba(255,255,255,0)); }
+.mkscroll::after { right: 0; background: linear-gradient(270deg, #fff 30%, rgba(255,255,255,0)); }
+.mkscroll.is-scrollable:not(.is-start)::before { opacity: 1; }
+.mkscroll.is-scrollable:not(.is-end)::after { opacity: 1; }
+.mkscroll__btn { position: absolute; top: calc(50% - 5px); z-index: 2; width: 34px; height: 34px; margin-top: -17px; display: none; align-items: center; justify-content: center; border: 1px solid var(--mk-line); border-radius: 50%; background: #fff; color: var(--mk-ink-900); box-shadow: 0 4px 12px rgba(11,11,11,.14); cursor: pointer; padding: 0; }
+.mkscroll__btn:hover { border-color: var(--mk-red); color: var(--mk-red); }
+.mkscroll__btn--prev { left: -4px; }
+.mkscroll__btn--next { right: -4px; }
+.mkscroll.is-scrollable:not(.is-start) .mkscroll__btn--prev, .mkscroll.is-scrollable:not(.is-end) .mkscroll__btn--next { display: inline-flex; }
+.mkscroll__bar { position: absolute; left: 25%; right: 25%; bottom: 0; height: 4px; border-radius: 4px; background: #ECEEF1; overflow: hidden; display: none; }
+.mkscroll.is-scrollable .mkscroll__bar { display: block; }
+.mkscroll__thumb { display: block; height: 100%; width: 30%; border-radius: 4px; background: var(--mk-red); transition: transform .08s linear; }
+.mkscroll.is-scrollable.is-start:not(.is-end) .mkscroll__btn--next { animation: mkscrollPulse 1.6s ease-in-out 2; }
+@keyframes mkscrollPulse { 0%,100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
+@media (prefers-reduced-motion: reduce) { .mkscroll__btn--next { animation: none !important; } .mkscroll__thumb { transition: none; } }
