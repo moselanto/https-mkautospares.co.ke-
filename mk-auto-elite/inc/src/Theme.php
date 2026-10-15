@@ -52,6 +52,7 @@ final class Theme {
 		$this->modules['ajax']       = new Ajax\Handlers();
 		$this->modules['woo']        = new Woo\WooCommerce();
 		$this->modules['wa_order']   = new Woo\WaOrder();
+		$this->modules['mobile_nav'] = new MobileNav();
 		$this->modules['schema']     = new Seo\Schema();
 		$this->modules['meta']       = new Seo\Meta();
 		$this->modules['brands']     = new Seo\Brands();

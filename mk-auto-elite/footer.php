@@ -205,26 +205,31 @@ $mkae_labels  = array(
 
 <?php if ( function_exists( 'wc_get_page_permalink' ) ) : ?>
 	<?php $mkae_cart_count = ( function_exists( 'WC' ) && WC()->cart ) ? WC()->cart->get_cart_contents_count() : 0; ?>
+<?php $mkae_tab = class_exists( '\\MKAutoElite\\MobileNav' ) ? \MKAutoElite\MobileNav::active_tab() : ''; ?>
 <nav class="mkae-tabbar" aria-label="<?php esc_attr_e( 'Quick navigation', 'mk-auto-elite' ); ?>">
-	<button type="button" class="mkae-tabbar__item mkae-tabbar__item--cart" data-mkae-cart aria-label="<?php esc_attr_e( 'Open cart', 'mk-auto-elite' ); ?>">
+	<a class="mkae-tabbar__item<?php echo 'home' === $mkae_tab ? ' is-active' : ''; ?>" href="<?php echo esc_url( home_url( '/' ) ); ?>"<?php echo 'home' === $mkae_tab ? ' aria-current="page"' : ''; ?>>
+		<span class="mkae-tabbar__ico"><?php echo \MKAutoElite\MobileNav::icon( 'home' ); // phpcs:ignore ?></span>
+		<span class="mkae-tabbar__label"><?php esc_html_e( 'Home', 'mk-auto-elite' ); ?></span>
+	</a>
+	<a class="mkae-tabbar__item<?php echo 'shop' === $mkae_tab ? ' is-active' : ''; ?>" href="<?php echo esc_url( wc_get_page_permalink( 'shop' ) ); ?>">
+		<span class="mkae-tabbar__ico"><?php echo \MKAutoElite\MobileNav::icon( 'shop' ); // phpcs:ignore ?></span>
+		<span class="mkae-tabbar__label"><?php esc_html_e( 'Shop', 'mk-auto-elite' ); ?></span>
+	</a>
+	<a class="mkae-tabbar__item" href="<?php echo esc_url( add_query_arg( array( 's' => '', 'post_type' => 'product' ), home_url( '/' ) ) ); ?>" data-mkd-search>
+		<span class="mkae-tabbar__ico"><?php echo \MKAutoElite\MobileNav::icon( 'search' ); // phpcs:ignore ?></span>
+		<span class="mkae-tabbar__label"><?php esc_html_e( 'Search', 'mk-auto-elite' ); ?></span>
+	</a>
+	<button type="button" class="mkae-tabbar__item mkae-tabbar__item--cart<?php echo 'cart' === $mkae_tab ? ' is-active' : ''; ?>" data-mkae-cart aria-label="<?php esc_attr_e( 'Open cart', 'mk-auto-elite' ); ?>">
 		<span class="mkae-tabbar__ico">
-			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/><path d="M2 3h3l2.3 12.1a1.5 1.5 0 0 0 1.5 1.2h8.1a1.5 1.5 0 0 0 1.5-1.2L21 7H6"/></svg>
+			<?php echo \MKAutoElite\MobileNav::icon( 'cart' ); // phpcs:ignore ?>
 			<span class="mkae-tool__count<?php echo $mkae_cart_count > 0 ? '' : ' is-empty'; ?>"><?php echo esc_html( (string) $mkae_cart_count ); ?></span>
 		</span>
 		<span class="mkae-tabbar__label"><?php esc_html_e( 'Cart', 'mk-auto-elite' ); ?></span>
 	</button>
-	<a class="mkae-tabbar__item" href="<?php echo esc_url( wc_get_page_permalink( 'myaccount' ) ); ?>">
-		<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
-		<span class="mkae-tabbar__label"><?php esc_html_e( 'My account', 'mk-auto-elite' ); ?></span>
-	</a>
-	<button type="button" class="mkae-tabbar__item" data-mkae-menu-toggle aria-expanded="false" aria-label="<?php esc_attr_e( 'Open menu', 'mk-auto-elite' ); ?>">
-		<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+	<button type="button" class="mkae-tabbar__item" aria-controls="mkd" aria-expanded="false" aria-label="<?php esc_attr_e( 'Open menu', 'mk-auto-elite' ); ?>" data-mkd-open>
+		<span class="mkae-tabbar__ico"><?php echo \MKAutoElite\MobileNav::icon( 'menu' ); // phpcs:ignore ?></span>
 		<span class="mkae-tabbar__label"><?php esc_html_e( 'Menu', 'mk-auto-elite' ); ?></span>
 	</button>
-	<a class="mkae-tabbar__item" href="<?php echo esc_url( wc_get_page_permalink( 'shop' ) ); ?>">
-		<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8h12l-1 11.2a1 1 0 0 1-1 .8H8a1 1 0 0 1-1-.8L6 8z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg>
-		<span class="mkae-tabbar__label"><?php esc_html_e( 'Shop', 'mk-auto-elite' ); ?></span>
-	</a>
 </nav>
 <?php endif; ?>
 

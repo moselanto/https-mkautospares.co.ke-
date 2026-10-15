@@ -43,8 +43,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 <header class="mkae-header" data-mkae-sticky>
 	<div class="mkae-container mkae-header__inner">
 		<div class="mkae-header__brand">
-			<button class="mkae-header__burger" aria-label="<?php esc_attr_e( 'Open menu', 'mk-auto-elite' ); ?>" aria-expanded="false" data-mkae-menu-toggle>
-				<span></span><span></span><span></span>
+			<button type="button" class="mkae-header__burger" aria-label="<?php esc_attr_e( 'Open menu', 'mk-auto-elite' ); ?>" aria-controls="mkd" aria-expanded="false" data-mkd-open>
+				<span class="mkae-header__burger-ico" aria-hidden="true"><span></span><span></span><span></span></span>
+				<span class="mkae-header__burger-label"><?php esc_html_e( 'Menu', 'mk-auto-elite' ); ?></span>
 			</button>
 			<?php if ( has_custom_logo() ) : ?>
 				<?php the_custom_logo(); ?>
