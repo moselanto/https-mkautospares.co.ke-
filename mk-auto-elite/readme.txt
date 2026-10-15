@@ -3,7 +3,7 @@ Contributors: mkautospares
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 2.19.2
+Stable tag: 2.19.3
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -33,6 +33,9 @@ ships with:
 5. Set your contact details and WhatsApp number in Appearance > Customize > MK Auto Elite.
 
 == Changelog ==
+
+= 2.19.3 =
+* SEO: product category titles no longer double the word "Parts" when the category name already ends in "Parts" (e.g. "Ex-Japan Spare Parts in Kenya").
 
 = 2.19.2 =
 * Fix: 2.19.1 shipped stray backslashes before "!" in Seo/Schema.php, a PHP parse error that took the whole site down (HTTP 500). Removed.

@@ -84,6 +84,10 @@ class Meta {
 			}
 			$paged = self::page_suffix();
 			if ( 'product_cat' === $term->taxonomy ) {
+				// Avoid "Spare Parts Parts" when the category name already ends in "Parts".
+				if ( preg_match( '/\bparts\s*$/i', $term->name ) ) {
+					return sprintf( __( '%1$s in Kenya%2$s | %3$s', 'mk-auto-elite' ), $term->name, $paged, $brand );
+				}
 				return sprintf( __( '%1$s Parts in Kenya%2$s | %3$s', 'mk-auto-elite' ), $term->name, $paged, $brand );
 			}
 			$name = self::vehicle_name( $term );
