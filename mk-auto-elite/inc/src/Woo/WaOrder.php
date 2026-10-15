@@ -228,7 +228,6 @@ class WaOrder {
 							<div class="mkwo__chips">
 								<label class="mkwo__chip"><input type="radio" name="payment" value="M-Pesa" checked><span><?php esc_html_e( 'M-Pesa', 'mk-auto-elite' ); ?></span></label>
 								<label class="mkwo__chip"><input type="radio" name="payment" value="Cash on delivery"><span><?php esc_html_e( 'Cash on delivery', 'mk-auto-elite' ); ?></span></label>
-								<label class="mkwo__chip"><input type="radio" name="payment" value="Bank transfer"><span><?php esc_html_e( 'Bank transfer', 'mk-auto-elite' ); ?></span></label>
 							</div>
 							<p class="mkwo__hint"><?php esc_html_e( 'Pay only after we confirm the part. M-Pesa Paybill 529914, Account 4268.', 'mk-auto-elite' ); ?></p>
 							<label class="mkwo__field mkwo__field--full"><span><?php esc_html_e( 'Notes (optional)', 'mk-auto-elite' ); ?></span>
@@ -260,7 +259,7 @@ class WaOrder {
 				<div class="mkwo__done" data-mkwo-done hidden>
 					<div class="mkwo__done-ico" aria-hidden="true">&#10003;</div>
 					<h3><?php esc_html_e( 'Your order is ready in WhatsApp', 'mk-auto-elite' ); ?></h3>
-					<p><?php esc_html_e( 'Tap Send in WhatsApp to place it. Our team replies within minutes during business hours.', 'mk-auto-elite' ); ?></p>
+					<p data-mkwo-done-text><?php esc_html_e( 'Tap Send in WhatsApp to place it. Our team replies within minutes during business hours.', 'mk-auto-elite' ); ?></p>
 					<p class="mkwo__ref" data-mkwo-ref></p>
 					<a class="mkwo__submit" data-mkwo-again href="#" target="_blank" rel="nofollow noopener"><?php echo self::icon( 20 ); // phpcs:ignore WordPress.Security.EscapeOutput ?><span><?php esc_html_e( 'Open WhatsApp again', 'mk-auto-elite' ); ?></span></a>
 					<button type="button" class="mkwo__link" data-mkwo-close><?php esc_html_e( 'Continue shopping', 'mk-auto-elite' ); ?></button>

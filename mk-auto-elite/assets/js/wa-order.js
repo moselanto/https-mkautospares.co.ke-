@@ -203,6 +203,19 @@
 		q('[data-mkwo-done]').hidden = false;
 		q('[data-mkwo-ref]').textContent = 'Order ref: ' + r + (t.unit > 0 ? ' \u00b7 Total ' + money(t.total) : '');
 		q('[data-mkwo-again]').setAttribute('href', url);
+		var dt = q('[data-mkwo-done-text]');
+		if (dt) {
+			var open = true;
+			try {
+				var parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Nairobi', weekday: 'short', hour: 'numeric', hour12: false }).formatToParts(new Date());
+				var o = {}; parts.forEach(function (x) { o[x.type] = x.value; });
+				var h = parseInt(o.hour, 10) % 24;
+				open = o.weekday !== 'Sun' && h >= 8 && h < 18;
+			} catch (er2) {}
+			dt.textContent = open
+				? 'Tap Send in WhatsApp to place it. We are open now and usually reply within minutes.'
+				: 'Tap Send in WhatsApp to place it. We are closed right now (open Mon-Sat, 8am-6pm) and will reply first thing when we open.';
+		}
 	}
 
 	function open(data) {
