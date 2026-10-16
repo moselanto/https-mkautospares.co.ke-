@@ -3,7 +3,7 @@ Contributors: mkautospares
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 2.27.0
+Stable tag: 2.27.1
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -37,6 +37,10 @@ ships with:
 5. Set your contact details and WhatsApp number in Appearance > Customize > MK Auto Elite.
 
 == Changelog ==
+
+= 2.27.1 =
+* Fix: self-healing scheduler. WP-Cron is disabled on the server and loopback requests are blocked, which left cart reminders and WooCommerce's scheduled actions (unpaid-order cancelling, cleanup, Action Scheduler migration) stuck since 25 July. A backup runner now runs anything overdue after a page has been sent to the visitor, at most once every 5 minutes, with a lock.
+* New: health panel on WooCommerce > Cart Reminders showing last and next reminder run, WP-Cron status and overdue scheduled actions, with a "Run reminders and queue now" button.
 
 = 2.27.0 =
 * New: abandoned cart and browse reminders. Logged-in shoppers' viewed products and carts are remembered; guests are included only when they tick "Email me a reminder of my cart" at checkout. An hourly job sends branded emails: cart reminder after 1 hour and 24 hours, viewed-parts reminder after 24 hours (at most one browse email every 3 days), each with the parts, price, similar parts for the same vehicle, a red action button and a WhatsApp button. Stops automatically when the shopper orders.

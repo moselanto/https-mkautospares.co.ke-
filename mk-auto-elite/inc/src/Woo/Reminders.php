@@ -1,6 +1,6 @@
 <?php
 /**
- * Abandoned cart & browse reminders (v2.27.0).
+ * Abandoned cart & browse reminders (v2.27.0, self-healing scheduler v2.27.1).
  *
  * - Logged-in shoppers: products they view and their cart are remembered.
  * - Guests: captured only when they tick "Email me a reminder" at checkout.
@@ -32,6 +32,9 @@ class Reminders {
 	private const CART_SECOND = DAY_IN_SECONDS;
 	private const BROWSE      = DAY_IN_SECONDS;
 	private const GAP         = 3 * DAY_IN_SECONDS;
+	private const LAST_RUN    = 'mkae_reminders_last_run';
+	private const LOCK        = 'mkae_fallback_lock';
+	private const AS_FLAG     = 'mkae_as_overdue';
 
 	/**
 	 * Hook in.
@@ -40,6 +43,9 @@ class Reminders {
 		add_action( 'init', array( $this, 'register' ) );
 		add_action( 'init', array( $this, 'schedule' ) );
 		add_action( self::HOOK, array( $this, 'run' ) );
+		add_action( 'shutdown', array( $this, 'fallback' ), 20 );
+		add_action( 'admin_notices', array( $this, 'health_notice' ) );
+		add_action( 'admin_post_mkae_reminders_run_now', array( $this, 'run_now' ) );
 		add_action( 'template_redirect', array( $this, 'track_view' ) );
 		add_action( 'template_redirect', array( $this, 'unsubscribe' ), 1 );
 		add_action( 'woocommerce_add_to_cart', array( $this, 'track_cart' ), 99 );
@@ -449,6 +455,7 @@ class Reminders {
 	 * Hourly run.
 	 */
 	public function run(): void {
+		update_option( self::LAST_RUN, time(), false );
 		$ids = get_posts(
 			array(
 				'post_type'      => self::CPT,
@@ -701,5 +708,134 @@ class Reminders {
 			return array_intersect_key( (array) $actions, array( 'trash' => 1 ) );
 		}
 		return (array) $actions;
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Self-healing scheduler (v2.27.1)                                    */
+	/* ------------------------------------------------------------------ */
+
+	/**
+	 * True when WooCommerce's Action Scheduler has pending actions more than
+	 * 10 minutes past due. Cached for 5 minutes so normal page views stay fast.
+	 */
+	private function queue_overdue(): bool {
+		if ( ! function_exists( 'as_get_scheduled_actions' ) ) {
+			return false;
+		}
+		$flag = get_transient( self::AS_FLAG );
+		if ( false === $flag ) {
+			$ids  = as_get_scheduled_actions(
+				array(
+					'status'       => 'pending',
+					'date'         => gmdate( 'Y-m-d H:i:s', time() - 10 * MINUTE_IN_SECONDS ),
+					'date_compare' => '<=',
+					'per_page'     => 1,
+				),
+				'ids'
+			);
+			$flag = $ids ? 1 : 0;
+			set_transient( self::AS_FLAG, $flag, 5 * MINUTE_IN_SECONDS );
+		}
+		return (bool) $flag;
+	}
+
+	/**
+	 * Run the WooCommerce queue (unpaid-order cancelling, emails, cleanup).
+	 */
+	private function run_queue(): void {
+		if ( class_exists( '\ActionScheduler_QueueRunner' ) ) {
+			\ActionScheduler_QueueRunner::instance()->run( 'MKAE fallback' );
+		}
+		delete_transient( self::AS_FLAG );
+	}
+
+	/**
+	 * Backup runner. WP-Cron is disabled on this server (DISABLE_WP_CRON) and
+	 * loopback requests are blocked, so if the server cron job is not firing,
+	 * reminders and WooCommerce's scheduled actions stall. After a page has
+	 * been sent to the visitor, run whatever is overdue - at most once every
+	 * 5 minutes, guarded by a lock.
+	 */
+	public function fallback(): void {
+		if ( wp_doing_cron() || wp_doing_ajax() || ( defined( 'WP_CLI' ) && WP_CLI ) || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+			return;
+		}
+		if ( get_transient( self::LOCK ) ) {
+			return;
+		}
+		$reminders_due = ( time() - (int) get_option( self::LAST_RUN, 0 ) ) >= HOUR_IN_SECONDS;
+		$queue_due     = $this->queue_overdue();
+		if ( ! $reminders_due && ! $queue_due ) {
+			return;
+		}
+		set_transient( self::LOCK, 1, 5 * MINUTE_IN_SECONDS );
+		if ( function_exists( 'fastcgi_finish_request' ) ) {
+			fastcgi_finish_request();
+		}
+		ignore_user_abort( true );
+		try {
+			if ( $reminders_due ) {
+				$this->run();
+			}
+			if ( $queue_due ) {
+				$this->run_queue();
+			}
+		} catch ( \Throwable $e ) {
+			error_log( 'MKAE fallback runner: ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions
+		}
+	}
+
+	/**
+	 * Health panel at the top of WooCommerce > Cart Reminders.
+	 */
+	public function health_notice(): void {
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || 'edit-' . self::CPT !== $screen->id || ! current_user_can( 'manage_woocommerce' ) ) {
+			return;
+		}
+		$fmt  = get_option( 'date_format' ) . ' ' . get_option( 'time_format' );
+		$last = (int) get_option( self::LAST_RUN, 0 );
+		$next = wp_next_scheduled( self::HOOK );
+		$late = 0;
+		if ( function_exists( 'as_get_scheduled_actions' ) ) {
+			$late = count(
+				as_get_scheduled_actions(
+					array(
+						'status'       => 'pending',
+						'date'         => gmdate( 'Y-m-d H:i:s', time() - 10 * MINUTE_IN_SECONDS ),
+						'date_compare' => '<=',
+						'per_page'     => 500,
+					),
+					'ids'
+				)
+			);
+		}
+		$ok    = $last && ( time() - $last ) < 2 * HOUR_IN_SECONDS && 0 === $late;
+		$class = $ok ? 'notice-success' : 'notice-warning';
+		$url   = wp_nonce_url( admin_url( 'admin-post.php?action=mkae_reminders_run_now' ), 'mkae_run_now' );
+		echo '<div class="notice ' . esc_attr( $class ) . '"><p><strong>' . esc_html__( 'Reminder scheduler', 'mk-auto-elite' ) . '</strong></p><ul style="list-style:disc;margin-left:20px">';
+		echo '<li>' . esc_html__( 'Last reminder run:', 'mk-auto-elite' ) . ' ' . esc_html( $last ? wp_date( $fmt, $last ) : __( 'never', 'mk-auto-elite' ) ) . '</li>';
+		echo '<li>' . esc_html__( 'Next scheduled run:', 'mk-auto-elite' ) . ' ' . esc_html( $next ? wp_date( $fmt, $next ) : __( 'not scheduled', 'mk-auto-elite' ) ) . '</li>';
+		echo '<li>' . esc_html__( 'WP-Cron:', 'mk-auto-elite' ) . ' ' . esc_html( ( defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON ) ? __( 'disabled - relies on the server cron job (backup runner active)', 'mk-auto-elite' ) : __( 'enabled', 'mk-auto-elite' ) ) . '</li>';
+		echo '<li>' . esc_html__( 'Overdue WooCommerce scheduled actions:', 'mk-auto-elite' ) . ' ' . esc_html( (string) $late ) . '</li>';
+		echo '</ul>';
+		if ( isset( $_GET['mkae_ran'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+			echo '<p>' . esc_html__( 'Done - reminders and the WooCommerce queue were run just now.', 'mk-auto-elite' ) . '</p>';
+		}
+		echo '<p><a class="button button-primary" href="' . esc_url( $url ) . '">' . esc_html__( 'Run reminders and queue now', 'mk-auto-elite' ) . '</a></p></div>';
+	}
+
+	/**
+	 * "Run now" button handler.
+	 */
+	public function run_now(): void {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_die( esc_html__( 'Not allowed.', 'mk-auto-elite' ) );
+		}
+		check_admin_referer( 'mkae_run_now' );
+		$this->run();
+		$this->run_queue();
+		wp_safe_redirect( admin_url( 'edit.php?post_type=' . self::CPT . '&mkae_ran=1' ) );
+		exit;
 	}
 }
