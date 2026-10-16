@@ -3,7 +3,7 @@ Contributors: pimofy
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 1.4.1
+Stable tag: 1.4.2
 License: GPLv2 or later
 
 The back office for MK Auto Spares, Kirinyaga Road, Nairobi.
@@ -27,6 +27,9 @@ One black and red desk under wp-admin > MKauto Desk:
 3. Add shop managers under Users > Add New (role Shop manager), then set their limits under MKauto Desk > Team.
 
 == Changelog ==
+
+= 1.4.2 =
+* Social page: removed the last wording from the original plugin ("wigs they looked at" and "NURA Retargeting"), the plan reminder sign-off and the follow-up consent note; saved message templates that still say NURA are corrected automatically.
 
 = 1.4.1 =
 * Marketing e-mails rebranded: MK Auto Spares header and tagline instead of NURA / Wear your crown, MK red accents, footer names the shop. Car-parts examples in the campaign form; Instagram caption no longer says DM CROWN; receipt label colour is MK red.

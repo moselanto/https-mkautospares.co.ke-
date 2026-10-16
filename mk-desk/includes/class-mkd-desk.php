@@ -258,7 +258,7 @@ class MKD_Desk {
 		// Message templates saved before the MK port may still mention wigs.
 		foreach ( $s as $k => $v ) {
 			if ( 0 === strpos( $k, 'tpl_' ) && is_string( $v ) ) {
-				$s[ $k ] = preg_replace( array( '/\\bwigs\\b/i', '/\\bwig\\b/i' ), array( 'parts', 'part' ), $v );
+				$s[ $k ] = preg_replace( array( '/\\bwigs\\b/i', '/\\bwig\\b/i', '/\\bNURA\\b/' ), array( 'parts', 'part', 'MK Auto Spares' ), $v );
 			}
 		}
 		return $s;

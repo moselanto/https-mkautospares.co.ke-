@@ -371,7 +371,7 @@ final class MKD_Followup {
 		<div class="wrap">
 			<h1><?php esc_html_e( 'MKauto post-purchase follow-ups', 'mk-desk' ); ?></h1>
 			<p class="description">
-				<?php esc_html_e( 'Automatic messages timed from when each order is paid: a thank-you with fitting and care tips, a review request, and a gentle reorder reminder. The thank-you is aftercare; the review and reorder messages are marketing and are only sent to shoppers who opted in (see NURA Consent).', 'mk-desk' ); ?>
+				<?php esc_html_e( 'Automatic messages timed from when each order is paid: a thank-you with fitting and care tips, a review request, and a gentle reorder reminder. The thank-you is aftercare; the review and reorder messages are marketing and are only sent to shoppers who opted in (see the consent settings).', 'mk-desk' ); ?>
 			</p>
 
 			<div class="notice notice-info inline" style="padding:10px 12px;">
