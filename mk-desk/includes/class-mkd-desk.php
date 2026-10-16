@@ -254,7 +254,14 @@ class MKD_Desk {
 
 	public static function settings() {
 		$o = get_option( self::OPT, array() );
-		return array_merge( self::defaults(), is_array( $o ) ? $o : array() );
+		$s = array_merge( self::defaults(), is_array( $o ) ? $o : array() );
+		// Message templates saved before the MK port may still mention wigs.
+		foreach ( $s as $k => $v ) {
+			if ( 0 === strpos( $k, 'tpl_' ) && is_string( $v ) ) {
+				$s[ $k ] = preg_replace( array( '/\\bwigs\\b/i', '/\\bwig\\b/i' ), array( 'parts', 'part' ), $v );
+			}
+		}
+		return $s;
 	}
 
 	/** Week options as integers, e.g. array( 2, 3, 4 ). */
@@ -363,6 +370,45 @@ class MKD_Desk {
 		return $prefix . '-' . current_time( 'ymdHis' );
 	}
 
+	/**
+	 * Is this payment reference (e.g. an M-Pesa code) already used anywhere?
+	 * Checks plan payments, till sales and WhatsApp orders. Returns a short
+	 * description of where it was used, or '' when it is free.
+	 */
+	public static function ref_used( $ref, $ex_order = 0, $ex_wa = 0, $ex_pay = 0 ) {
+		global $wpdb;
+		$ref = strtoupper( trim( (string) $ref ) );
+		if ( strlen( $ref ) < 4 ) {
+			return '';
+		}
+		$pid = $wpdb->get_var( $wpdb->prepare( 'SELECT plan_id FROM ' . self::t_pay() . ' WHERE voided = 0 AND UPPER(reference) = %s AND id <> %d LIMIT 1', $ref, (int) $ex_pay ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		if ( $pid ) {
+			$p = $wpdb->get_var( $wpdb->prepare( 'SELECT ref FROM ' . self::t_plans() . ' WHERE id = %d', (int) $pid ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			return 'payment plan ' . ( $p ? $p : '#' . $pid );
+		}
+		if ( function_exists( 'wc_get_orders' ) ) {
+			$ids = wc_get_orders( array( 'limit' => 2, 'return' => 'ids', 'type' => 'shop_order', 'status' => array_keys( wc_get_order_statuses() ), 'meta_key' => '_mkd_pay_ref', 'meta_value' => $ref ) ); // phpcs:ignore WordPress.DB.SlowDBQuery
+			foreach ( (array) $ids as $oid ) {
+				if ( (int) $oid !== (int) $ex_order ) {
+					$o = wc_get_order( $oid );
+					if ( $o && ! in_array( $o->get_status(), array( 'cancelled', 'failed', 'refunded' ), true ) ) {
+						return 'sale #' . $o->get_order_number();
+					}
+				}
+			}
+		}
+		$wa = $wpdb->get_var( $wpdb->prepare( "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_mkdwo_pay_ref' AND meta_value = %s AND post_id <> %d LIMIT 1", $ref, (int) $ex_wa ) );
+		if ( $wa && 'paid' === get_post_meta( (int) $wa, '_mkdwo_pay', true ) ) {
+			return 'WhatsApp order #' . (int) $wa;
+		}
+		return '';
+	}
+
+	/** M-Pesa transaction codes are 10 letters and digits, e.g. SGH4K2LMNP. */
+	public static function mpesa_code_ok( $ref ) {
+		return (bool) preg_match( '/^[A-Z0-9]{10}$/', strtoupper( str_replace( ' ', '', (string) $ref ) ) );
+	}
+
 	/** Append an activity line to a row's log column. */
 	public static function log( $table, $id, $msg ) {
 		global $wpdb;
@@ -425,6 +471,10 @@ class MKD_Desk {
 			'invalid'   => array( 'error', 'Please complete the required fields (name, a valid phone number, price, date).' ),
 			'lmm_min'   => array( 'error', 'Payment plans are only for items from ' . self::money( self::settings()['lmm_min'] ) . ' and above. Please choose another item.' ),
 			'full'      => array( 'warning', 'Saved, but this time slot is now over its capacity.' ),
+			'past'      => array( 'error', 'That date and time has already passed. Choose a future time, or set the status to Completed / No-show to record a past visit. Nothing was saved.' ),
+			'dupday'    => array( 'warning', 'Saved. Note: this phone number already has another open booking on the same day.' ),
+			'dup_init'  => array( 'warning', 'Plan saved, but the deposit was NOT recorded: that payment reference is already used on another payment. Check the code and record the deposit again.' ),
+			'badcode'   => array( 'error', 'That does not look like an M-Pesa code (10 letters and numbers, e.g. SGH4K2LMNP). Nothing was saved.' ),
 			'notfound'  => array( 'error', 'That record could not be found.' ),
 			'deleted'   => array( 'success', 'Deleted.' ),
 			'synced'    => array( 'success', 'Audience refreshed from the shop, accounts, WhatsApp orders, plans and appointments.' ),
@@ -556,7 +606,7 @@ class MKD_Desk {
 		$o   = MKD_Desk_Orders::kpis();
 		$act = self::btn( self::url( self::P_POS ), '+ New sale', 'nd-btn--primary' ) . self::btn( self::url( self::P_PLANS, array( 'action' => 'new' ) ), '+ New payment plan', 'nd-btn--ghost' ) .
 			self::btn( self::url( self::P_APPTS, array( 'action' => 'new' ) ), '+ New appointment', 'nd-btn--ghost' );
-		wp_localize_script( 'mkd-desk', 'MKD_POS', array( 'ajax' => admin_url( 'admin-ajax.php' ), 'nonce' => wp_create_nonce( 'mkd_pos' ), 'methods' => MKD_Desk_POS::methods() ) );
+		wp_localize_script( 'mkd-desk', 'MKD_POS', array( 'ajax' => admin_url( 'admin-ajax.php' ), 'nonce' => wp_create_nonce( 'mkd_pos' ), 'methods' => MKD_Desk_POS::methods(), 'canPrice' => MKD_Staff::can( 'edit_price' ) ? 1 : 0 ) );
 		self::header( self::MENU, 'Good ' . ( (int) current_time( 'G' ) < 12 ? 'morning' : ( (int) current_time( 'G' ) < 17 ? 'afternoon' : 'evening' ) ) . ' - ' . self::date_label( self::today(), 'l j F Y' ), $act );
 
 		$td = MKD_Desk_POS::today_total();
@@ -671,7 +721,7 @@ class MKD_Desk {
 		self::field_text( 'biz_phone', 'Phone on invoices', $s['biz_phone'], 'Leave empty to use the site phone number.' );
 		self::field_text( 'biz_email', 'E-mail on invoices', $s['biz_email'], '', 'email' );
 		self::logo_field( $s['invoice_logo'] );
-		echo '</div><label class="nd-field"><span class="nd-label">Footer note on invoices and receipts</span><textarea name="invoice_note" rows="2" placeholder="Thank you for choosing MK Auto Spares. Unworn wigs can be returned within 7 days with this receipt.">' . esc_textarea( $s['invoice_note'] ) . '</textarea></label></section>';
+		echo '</div><label class="nd-field"><span class="nd-label">Footer note on invoices and receipts</span><textarea name="invoice_note" rows="2" placeholder="Thank you for choosing MK Auto Spares. Unused parts in original packaging can be returned within 7 days with this receipt.">' . esc_textarea( $s['invoice_note'] ) . '</textarea></label></section>';
 
 		echo '<section class="nd-card"><header class="nd-card__h"><h2>Marketing</h2></header><div class="nd-fields nd-fields--2">';
 		self::field_text( 'mkt_from_name', 'E-mails come from (name)', $s['mkt_from_name'], '' );

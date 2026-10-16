@@ -282,7 +282,7 @@ class MKD_Desk_Social {
 
 		// 3. Post kit.
 		echo '<section class="nd-card"><header class="nd-card__h"><h2>Post kit - everything to post a part in 1 minute</h2></header>';
-		echo '<form method="get" class="nd-form nd-inrow"><input type="hidden" name="page" value="' . esc_attr( MKD_Desk::P_SOC ) . '"><select class="wc-product-search" name="product" data-placeholder="Pick a wig..." data-action="woocommerce_json_search_products" style="min-width:380px">';
+		echo '<form method="get" class="nd-form nd-inrow"><input type="hidden" name="page" value="' . esc_attr( MKD_Desk::P_SOC ) . '"><select class="wc-product-search" name="product" data-placeholder="Pick a part..." data-action="woocommerce_json_search_products" style="min-width:380px">';
 		if ( $pid && ( $pp = wc_get_product( $pid ) ) ) {
 			echo '<option value="' . (int) $pid . '" selected>' . esc_html( wp_strip_all_tags( $pp->get_formatted_name() ) ) . '</option>';
 		}

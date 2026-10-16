@@ -89,7 +89,7 @@ class MKD_Desk_Sub {
 				<button type="button" class="nhs__x" data-nhs-close aria-label="<?php esc_attr_e( 'Close', 'mk-desk' ); ?>"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
 				<div class="nhs__art"><img class="nhs__photo" src="<?php echo esc_url( $img ); ?>" alt="" loading="lazy" decoding="async">
 					<div class="nhs__brand"><span>MK AUTO</span><small>Genuine parts, honest prices</small></div>
-					<?php if ( $coupon > 0 ) : ?><div class="nhs__badge"><small><?php esc_html_e( 'Welcome gift', 'mk-desk' ); ?></small><strong><?php echo esc_html( MKD_Desk::money( $coupon ) ); ?></strong><small><?php esc_html_e( 'off your first wig', 'mk-desk' ); ?></small></div><?php endif; ?>
+					<?php if ( $coupon > 0 ) : ?><div class="nhs__badge"><small><?php esc_html_e( 'Welcome gift', 'mk-desk' ); ?></small><strong><?php echo esc_html( MKD_Desk::money( $coupon ) ); ?></strong><small><?php esc_html_e( 'off your first order', 'mk-desk' ); ?></small></div><?php endif; ?>
 					<ul class="nhs__trust"><li><?php esc_html_e( 'Same-day Nairobi delivery', 'mk-desk' ); ?></li><li><?php esc_html_e( 'Lipa Mdogo Mdogo', 'mk-desk' ); ?></li><li><?php esc_html_e( 'Quality-checked hair', 'mk-desk' ); ?></li></ul>
 				</div>
 				<div class="nhs__body">

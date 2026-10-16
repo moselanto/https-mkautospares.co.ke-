@@ -3,7 +3,7 @@ Contributors: pimofy
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 1.3.1
+Stable tag: 1.4.0
 License: GPLv2 or later
 
 The back office for MK Auto Spares, Kirinyaga Road, Nairobi.
@@ -27,6 +27,13 @@ One black and red desk under wp-admin > MKauto Desk:
 3. Add shop managers under Users > Add New (role Shop manager), then set their limits under MKauto Desk > Team.
 
 == Changelog ==
+
+= 1.4.0 =
+* Payments: a payment code (M-Pesa code) already used on a till sale, plan payment or WhatsApp order is refused everywhere; M-Pesa codes must be 10 letters/digits. Blocked attempts go to the Team log.
+* Bookings: one open booking per phone number per day on the website (staff get a warning); past or made-up times refused; dates limited to 60 days ahead; slots that have passed today shown as unavailable; a lock stops two people taking the last place at the same moment. Staff can no longer save an open booking in the past.
+* Till: price locked in Source this item and on catalogue lines for staff without price permission; closing the dialog clears it; selling price required; confirmations for below-cost, KSh 0 items and M-Pesa sales without a code.
+* Team log: bookings (created, edited, rescheduled, status, deleted, website), plan creation, plan payments and cancellations, and WhatsApp order status now logged under the right areas.
+* Removed leftover wig wording from templates, placeholders and the plans table.
 
 = 1.3.1 =
 * Garage & service terms and conditions: customers must tick to agree before booking (checked in the browser and on the server). Terms open in a pop-up from the form and are listed on the page. Editable in Desk > Settings (one term per line, Heading: text). Agreement and terms version are recorded in the booking history, the WhatsApp message and the shop e-mail.

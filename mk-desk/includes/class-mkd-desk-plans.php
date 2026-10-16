@@ -704,7 +704,7 @@ class MKD_Desk_Plans {
 		foreach ( $labels as $kk => $lbl ) {
 			echo '<a class="nd-pill' . ( $kk === $tab ? ' is-on' : '' ) . ( 'overdue' === $kk && $count[ $kk ] ? ' nd-pill--alert' : '' ) . '" href="' . esc_url( MKD_Desk::url( MKD_Desk::P_PLANS, array( 'tab' => $kk, 's' => $q ) ) ) . '">' . esc_html( $lbl ) . ' <span>' . (int) $count[ $kk ] . '</span></a>';
 		}
-		echo '</nav><form method="get" class="nd-search"><input type="hidden" name="page" value="' . esc_attr( MKD_Desk::P_PLANS ) . '"><input type="hidden" name="tab" value="' . esc_attr( $tab ) . '"><input type="search" name="s" value="' . esc_attr( $q ) . '" placeholder="Search name, phone, ref or wig"><button class="nd-btn nd-btn--ghost" type="submit">Search</button></form></div>';
+		echo '</nav><form method="get" class="nd-search"><input type="hidden" name="page" value="' . esc_attr( MKD_Desk::P_PLANS ) . '"><input type="hidden" name="tab" value="' . esc_attr( $tab ) . '"><input type="search" name="s" value="' . esc_attr( $q ) . '" placeholder="Search name, phone, ref or part"><button class="nd-btn nd-btn--ghost" type="submit">Search</button></form></div>';
 
 		if ( ! $rows ) {
 			echo '<div class="nd-empty"><strong>Nothing here yet.</strong><p>Plans requested on the website appear under "New requests". You can also add a plan yourself.</p>' . MKD_Desk::btn( MKD_Desk::url( MKD_Desk::P_PLANS, array( 'action' => 'new' ) ), '+ New payment plan', 'nd-btn--primary' ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
@@ -712,7 +712,7 @@ class MKD_Desk_Plans {
 			return;
 		}
 
-		echo '<div class="nd-table-wrap"><table class="nd-table" data-nd-type="plan"><thead><tr><th class="nd-col-chk"><input type="checkbox" data-nd-all aria-label="Select all"></th><th>Plan</th><th>Customer</th><th>Wig</th><th class="nd-col-prog">Progress</th><th>Balance</th><th>Next payment</th><th>Status</th><th class="nd-col-act"></th></tr></thead><tbody>';
+		echo '<div class="nd-table-wrap"><table class="nd-table" data-nd-type="plan"><thead><tr><th class="nd-col-chk"><input type="checkbox" data-nd-all aria-label="Select all"></th><th>Plan</th><th>Customer</th><th>Part</th><th class="nd-col-prog">Progress</th><th>Balance</th><th>Next payment</th><th>Status</th><th class="nd-col-act"></th></tr></thead><tbody>';
 		foreach ( $rows as $row ) {
 			list( $p, $m ) = $row;
 			$view = MKD_Desk::url( MKD_Desk::P_PLANS, array( 'plan' => $p->id ) );
@@ -978,7 +978,7 @@ class MKD_Desk_Plans {
 		echo '<section class="nd-card"><header class="nd-card__h"><h2>Item</h2></header><div class="nd-fields nd-fields--2">';
 		$min_l = MKD_Desk::money( MKD_Desk::settings()['lmm_min'] );
 		$elig  = self::eligible();
-		echo '<label class="nd-field nd-field--wide"><span class="nd-label">Product <em class="nd-mut">(' . esc_html( count( $elig ) ) . ' items from ' . esc_html( $min_l ) . ')</em></span><select class="wc-enhanced-select" name="product_id" data-placeholder="' . esc_attr( 'Choose a wig (' . $min_l . ' and above)' ) . '" data-allow_clear="true" style="width:100%" data-nd-product>';
+		echo '<label class="nd-field nd-field--wide"><span class="nd-label">Product <em class="nd-mut">(' . esc_html( count( $elig ) ) . ' items from ' . esc_html( $min_l ) . ')</em></span><select class="wc-enhanced-select" name="product_id" data-placeholder="' . esc_attr( 'Choose a part (' . $min_l . ' and above)' ) . '" data-allow_clear="true" style="width:100%" data-nd-product>';
 		echo '<option value=""></option>';
 		if ( $v['product_id'] && ! isset( $elig[ (int) $v['product_id'] ] ) ) {
 			echo '<option value="' . (int) $v['product_id'] . '" selected>' . esc_html( $prod_label ? $prod_label : $v['product_name'] ) . '</option>';
@@ -1109,8 +1109,17 @@ class MKD_Desk_Plans {
 			$amt = isset( $in['init_amount'] ) ? round( (float) $in['init_amount'], 2 ) : 0;
 			if ( $amt > 0 ) {
 				$amt = min( $amt, $price );
-				$m   = isset( $in['init_method'] ) && array_key_exists( $in['init_method'], self::methods() ) ? $in['init_method'] : 'mpesa';
-				self::insert_payment( $id, $amt, $m, isset( $in['init_reference'] ) ? $in['init_reference'] : '', current_time( 'mysql' ), 'Deposit' );
+				$m    = isset( $in['init_method'] ) && array_key_exists( $in['init_method'], self::methods() ) ? $in['init_method'] : 'mpesa';
+				$iref = self::clean_ref( isset( $in['init_reference'] ) ? $in['init_reference'] : '' );
+				if ( '' !== $iref && ( '' !== MKD_Desk::ref_used( $iref ) || ( 'mpesa' === $m && ! MKD_Desk::mpesa_code_ok( $iref ) ) ) ) {
+					self::sync( $id );
+					wp_safe_redirect( MKD_Desk::url( MKD_Desk::P_PLANS, array( 'plan' => $id, 'nd_msg' => 'dup_init' ) ) );
+					exit;
+				}
+				self::insert_payment( $id, $amt, $m, $iref, current_time( 'mysql' ), 'Deposit' );
+			}
+			if ( class_exists( 'MKD_Staff' ) ) {
+				MKD_Staff::log( 'plan', 'Payment plan ' . $data['ref'] . ' created', array( 'object' => 'plan', 'object_id' => $id, 'amount' => (float) $price ) );
 			}
 		}
 		self::sync( $id );
@@ -1135,6 +1144,9 @@ class MKD_Desk_Plans {
 			'created_at'  => current_time( 'mysql' ),
 		) );
 		$pid = (int) $wpdb->insert_id;
+		if ( class_exists( 'MKD_Staff' ) ) {
+			MKD_Staff::log( 'payment', 'Plan payment ' . MKD_Desk::money( $amount ) . ' (' . self::method_label( $method ) . ( $reference ? ' ' . self::clean_ref( $reference ) : '' ) . ')', array( 'object' => 'plan', 'object_id' => (int) $plan_id, 'amount' => (float) $amount ) );
+		}
 		MKD_Desk::log( MKD_Desk::t_plans(), $plan_id, 'Payment of ' . MKD_Desk::money( $amount ) . ' recorded (' . self::method_label( $method ) . ( $reference ? ' ' . self::clean_ref( $reference ) : '' ) . ').' );
 		return $pid;
 	}
@@ -1161,11 +1173,18 @@ class MKD_Desk_Plans {
 			exit;
 		}
 		$ref = self::clean_ref( isset( $in['reference'] ) ? $in['reference'] : '' );
-		if ( '' !== $ref && $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . MKD_Desk::t_pay() . ' WHERE voided = 0 AND reference = %s', $ref ) ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$method = isset( $in['method'] ) && array_key_exists( $in['method'], self::methods() ) ? $in['method'] : 'mpesa';
+		if ( 'mpesa' === $method && '' !== $ref && ! MKD_Desk::mpesa_code_ok( $ref ) ) {
+			wp_safe_redirect( add_query_arg( 'nd_msg', 'badcode', $view ) );
+			exit;
+		}
+		if ( '' !== $ref && '' !== MKD_Desk::ref_used( $ref ) ) {
+			if ( class_exists( 'MKD_Staff' ) ) {
+				MKD_Staff::log( 'blocked', 'Blocked: payment code ' . $ref . ' already used on ' . MKD_Desk::ref_used( $ref ) . ' (plan ' . $p->ref . ')', array( 'level' => 'warn' ) );
+			}
 			wp_safe_redirect( add_query_arg( 'nd_msg', 'dup', $view ) );
 			exit;
 		}
-		$method = isset( $in['method'] ) && array_key_exists( $in['method'], self::methods() ) ? $in['method'] : 'mpesa';
 		$day    = isset( $in['paid_on'] ) ? MKD_Desk::valid_date( $in['paid_on'] ) : '';
 		if ( '' === $day || $day > MKD_Desk::today() ) {
 			$day = MKD_Desk::today();

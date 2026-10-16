@@ -408,6 +408,8 @@ class MKD_Garage {
 			$err = 'Please tell us where the mobile mechanic should come.';
 		} elseif ( '' === $date || $date < current_time( 'Y-m-d' ) ) {
 			$err = 'Please choose a date from today onwards.';
+		} elseif ( $date > gmdate( 'Y-m-d', strtotime( current_time( 'Y-m-d' ) . ' +60 days' ) ) ) {
+			$err = 'Bookings open up to 60 days ahead. Please choose an earlier date.';
 		} elseif ( ! in_array( $time, MKD_Desk_Appts::slots( $date ), true ) ) {
 			$err = 'Please choose one of the available times.';
 		} elseif ( $date === current_time( 'Y-m-d' ) && $time <= current_time( 'H:i' ) ) {
@@ -420,6 +422,8 @@ class MKD_Garage {
 			$err = 'Please enter a valid phone number, e.g. 0712 345 678.';
 		} elseif ( '1' !== self::field( 'terms', 1 ) ) {
 			$err = 'Please tick the box to agree to the Garage & service terms.';
+		} elseif ( '' !== MKD_Desk_Appts::phone_booked( $phone, $date ) ) {
+			$err = 'You already have a booking on this day (ref ' . MKD_Desk_Appts::phone_booked( $phone, $date ) . '). To change it or add another vehicle, please message us on WhatsApp.';
 		}
 		if ( $err ) {
 			wp_send_json_error( array( 'message' => $err ), 400 );
@@ -427,6 +431,13 @@ class MKD_Garage {
 		set_transient( $key, $n + 1, HOUR_IN_SECONDS );
 
 		global $wpdb;
+		// Two people pressing Book at the same moment must not both get the last place.
+		$lock = 'mkd_appt_' . md5( $date . $time );
+		$wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $lock ) );
+		if ( MKD_Desk_Appts::is_full( $date, $time ) || '' !== MKD_Desk_Appts::phone_booked( $phone, $date ) ) {
+			$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
+			wp_send_json_error( array( 'message' => 'Sorry, that time has just been booked. Please choose another time.' ), 409 );
+		}
 		$t    = MKD_Desk::t_appts();
 		$s    = MKD_Desk::settings();
 		$ref  = MKD_Desk::new_ref( 'APT', $t );
@@ -457,9 +468,12 @@ class MKD_Garage {
 				'updated_at'    => $now,
 			)
 		);
+		$new_id = (int) $wpdb->insert_id;
+		$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
 		if ( ! $ok ) {
 			wp_send_json_error( array( 'message' => 'We could not save your booking. Please message us on WhatsApp.' ), 500 );
 		}
+		MKD_Desk_Appts::staff_log( $new_id, 'booked on the website' );
 		MKD_Desk::bust();
 
 		$when  = MKD_Desk::date_label( $date, 'l j F Y' ) . ' at ' . MKD_Desk::time_label( $time );

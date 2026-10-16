@@ -36,8 +36,8 @@ class MKD_Desk_Remind {
 			'tpl_plan_due'     => "Hi {first}, this is MK Auto Spares.\n\nA friendly reminder that your Lipa Mdogo Mdogo payment of *{amount}* for the *{product}* is due on *{due}*.\n\nPaid so far: {paid} of {price} ({progress}%)\nBalance: {balance}\n{pay_line}\nPlan ref: {ref}\nYour statement: {link}\n\nThank you for choosing NURA.",
 			'tpl_plan_late'    => "Hi {first}, this is MK Auto Spares.\n\nWe noticed your Lipa Mdogo Mdogo payment for the *{product}* was due on {due} and *{amount}* is still outstanding.\n\nWhen you are ready, please send it and share the M-Pesa code here.\n{pay_line}\nBalance: {balance}\nPlan ref: {ref}\nYour statement: {link}\n\nIf anything has changed, just reply and we will work it out together.",
 			'tpl_plan_firm'    => "Hi {first}, MK Auto Spares here.\n\nYour Lipa Mdogo Mdogo plan for the *{product}* is now *{days} days behind*, with *{amount}* outstanding.\n\nPlease make a payment today, or reply to agree a new date with us.\n{pay_line}\nBalance: {balance}\nPlan ref: {ref}\nYour statement: {link}",
-			'tpl_plan_final'   => "Hi {first}, MK Auto Spares here.\n\nWe have not received a payment on your plan for the *{product}* for {days} days. *{amount}* is outstanding.\n\nPlease contact us today so we can keep your wig reserved for you.\n{pay_line}\nBalance: {balance}\nPlan ref: {ref}\nYour statement: {link}",
-			'tpl_plan_deposit' => "Hi {first}, thank you for choosing Lipa Mdogo Mdogo with MK Auto Spares.\n\nTo reserve your *{product}*, the deposit is *{amount}*. After that you pay {weekly} a week for {weeks} weeks, no interest.\n{pay_line}\nPlan ref: {ref}\n\nSend the M-Pesa code here once paid and we will put your wig aside for you.",
+			'tpl_plan_final'   => "Hi {first}, MK Auto Spares here.\n\nWe have not received a payment on your plan for the *{product}* for {days} days. *{amount}* is outstanding.\n\nPlease contact us today so we can keep your part reserved for you.\n{pay_line}\nBalance: {balance}\nPlan ref: {ref}\nYour statement: {link}",
+			'tpl_plan_deposit' => "Hi {first}, thank you for choosing Lipa Mdogo Mdogo with MK Auto Spares.\n\nTo reserve your *{product}*, the deposit is *{amount}*. After that you pay {weekly} a week for {weeks} weeks, no interest.\n{pay_line}\nPlan ref: {ref}\n\nSend the M-Pesa code here once paid and we will put the part aside for you.",
 			'tpl_order_pay'    => "Hi {first}, this is MK Auto Spares.\n\nYour order *{ref}* ({items}) is confirmed and waiting for you. Total: *{amount}*.\n{pay_line}\nOnce paid, please share the M-Pesa code here and we will {next_step}.\n\nThank you!",
 			'tpl_order_follow' => "Hi {first}, this is MK Auto Spares.\n\nWe received your order *{ref}* for {items} ({amount}). Are you still interested? Reply here and we will confirm stock, delivery and payment for you right away.",
 			'tpl_appt'         => "Hi {first}, a friendly reminder from MK Auto Spares.\n\nYour *{service}* is {when} at *{time}*{where}.\nRef: {ref}\n\nPlease reply YES to confirm, or let us know if you need another time.",
@@ -351,6 +351,7 @@ class MKD_Desk_Remind {
 			}
 			$wpdb->update( MKD_Desk::t_appts(), array( 'status' => $to, 'updated_at' => $now ), array( 'id' => $id ) );
 			MKD_Desk::log( MKD_Desk::t_appts(), $id, 'Status changed to ' . MKD_Desk_Appts::status_label( $to ) . '.' );
+			MKD_Desk_Appts::staff_log( $id, 'Status changed to ' . MKD_Desk_Appts::status_label( $to ) );
 			return true;
 		}
 		if ( 'order' === $type ) {
@@ -359,6 +360,9 @@ class MKD_Desk_Remind {
 			}
 			update_post_meta( $id, MKD_Desk_Orders::STATUS, $to );
 			MKD_Desk_Orders::add_log( $id, 'Status changed to ' . MKD_Desk_Orders::status_label( $to ) . '.' );
+			if ( class_exists( 'MKD_Staff' ) ) {
+				MKD_Staff::log( 'order', 'WhatsApp order #' . (int) $id . ' - ' . MKD_Desk_Orders::status_label( $to ), array( 'object' => 'order', 'object_id' => (int) $id ) );
+			}
 			return true;
 		}
 		if ( 'plan' === $type && 'cancelled' === $to ) {
@@ -369,6 +373,9 @@ class MKD_Desk_Remind {
 			MKD_Desk_Plans::unreserve( $id );
 			$wpdb->update( MKD_Desk::t_plans(), array( 'status' => 'cancelled', 'updated_at' => $now ), array( 'id' => $id ) );
 			MKD_Desk::log( MKD_Desk::t_plans(), $id, 'Plan cancelled.' );
+			if ( class_exists( 'MKD_Staff' ) ) {
+				MKD_Staff::log( 'plan', 'Payment plan ' . $p->ref . ' cancelled', array( 'object' => 'plan', 'object_id' => (int) $id ) );
+			}
 			return true;
 		}
 		return false;
@@ -386,6 +393,10 @@ class MKD_Desk_Remind {
 			return (bool) $wpdb->delete( MKD_Desk::t_plans(), array( 'id' => $id ) );
 		}
 		if ( 'appt' === $type ) {
+			$a = MKD_Desk_Appts::get( $id );
+			if ( $a && class_exists( 'MKD_Staff' ) ) {
+				MKD_Staff::log( 'delete', 'Deleted booking ' . $a->ref . ' - ' . $a->customer_name, array( 'object' => 'appointment', 'object_id' => (int) $id ) );
+			}
 			return (bool) $wpdb->delete( MKD_Desk::t_appts(), array( 'id' => $id ) );
 		}
 		if ( 'order' === $type && MKD_Desk_Orders::is_order( $id ) ) {
@@ -471,8 +482,7 @@ class MKD_Desk_Remind {
 				case 'paid':
 				case 'unpaid':
 					if ( 'order' === $type ) {
-						MKD_Desk_Orders::set_paid( $id, 'paid' === $op, isset( $_POST['ref'] ) ? sanitize_text_field( wp_unslash( $_POST['ref'] ) ) : '' );
-						$ok++;
+						MKD_Desk_Orders::set_paid( $id, 'paid' === $op, isset( $_POST['ref'] ) ? sanitize_text_field( wp_unslash( $_POST['ref'] ) ) : '' ) ? $ok++ : $fail++;
 					} else {
 						$fail++;
 					}
@@ -500,11 +510,12 @@ class MKD_Desk_Remind {
 		MKD_Desk::guard( 'mkd_desk_order_pay' );
 		$id   = isset( $_POST['order_id'] ) ? absint( $_POST['order_id'] ) : 0;
 		$paid = ! empty( $_POST['paid'] );
+		$ok   = true;
 		if ( $id && MKD_Desk_Orders::is_order( $id ) ) {
-			MKD_Desk_Orders::set_paid( $id, $paid, isset( $_POST['ref'] ) ? sanitize_text_field( wp_unslash( $_POST['ref'] ) ) : '' );
+			$ok = MKD_Desk_Orders::set_paid( $id, $paid, isset( $_POST['ref'] ) ? sanitize_text_field( wp_unslash( $_POST['ref'] ) ) : '' );
 		}
 		MKD_Desk::bust();
-		wp_safe_redirect( MKD_Desk::url( MKD_Desk::P_ORDERS, array( 'order' => $id, 'nd_msg' => 'saved' ) ) );
+		wp_safe_redirect( MKD_Desk::url( MKD_Desk::P_ORDERS, array( 'order' => $id, 'nd_msg' => $ok ? 'saved' : 'dup' ) ) );
 		exit;
 	}
 

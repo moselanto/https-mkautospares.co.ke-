@@ -198,7 +198,12 @@ class MKD_Desk_Orders {
 		return 'paid' === get_post_meta( $post_id, '_mkdwo_pay', true );
 	}
 
-	public static function set_paid( $post_id, $paid, $ref = '' ) {
+	public static function set_paid( $post_id, $paid, $ref = '', $ex_order = 0 ) {
+		$ref = mb_substr( strtoupper( preg_replace( '/[^A-Za-z0-9\- ]/', '', (string) $ref ) ), 0, 40 );
+		if ( $paid && '' !== $ref && '' !== MKD_Desk::ref_used( $ref, $ex_order, $post_id ) ) {
+			self::log( $post_id, 'Not marked paid: code ' . $ref . ' is already used on ' . MKD_Desk::ref_used( $ref, $ex_order, $post_id ) . '.' );
+			return false;
+		}
 		if ( $paid ) {
 			update_post_meta( $post_id, '_mkdwo_pay', 'paid' );
 			update_post_meta( $post_id, '_mkdwo_pay_ref', mb_substr( strtoupper( preg_replace( '/[^A-Za-z0-9\- ]/', '', (string) $ref ) ), 0, 40 ) );
@@ -210,6 +215,7 @@ class MKD_Desk_Orders {
 			delete_post_meta( $post_id, '_mkdwo_paid_at' );
 			self::log( $post_id, 'Marked as unpaid.' );
 		}
+		return true;
 	}
 
 	private static function log( $post_id, $msg ) {
@@ -259,7 +265,7 @@ class MKD_Desk_Orders {
 			$c = self::count( $kk );
 			echo '<a class="nd-pill' . ( $kk === $tab ? ' is-on' : '' ) . ( 'new' === $kk && $c ? ' nd-pill--alert' : '' ) . '" href="' . esc_url( MKD_Desk::url( MKD_Desk::P_ORDERS, array( 'tab' => $kk, 's' => $q ) ) ) . '">' . esc_html( $lbl ) . ' <span>' . (int) $c . '</span></a>';
 		}
-		echo '</nav><form method="get" class="nd-search"><input type="hidden" name="page" value="' . esc_attr( MKD_Desk::P_ORDERS ) . '"><input type="hidden" name="tab" value="' . esc_attr( $tab ) . '"><input type="search" name="s" value="' . esc_attr( $q ) . '" placeholder="Search name, phone, ref or wig"><button class="nd-btn nd-btn--ghost" type="submit">Search</button></form></div>';
+		echo '</nav><form method="get" class="nd-search"><input type="hidden" name="page" value="' . esc_attr( MKD_Desk::P_ORDERS ) . '"><input type="hidden" name="tab" value="' . esc_attr( $tab ) . '"><input type="search" name="s" value="' . esc_attr( $q ) . '" placeholder="Search name, phone, ref or part"><button class="nd-btn nd-btn--ghost" type="submit">Search</button></form></div>';
 
 		$per = 25;
 		$res = self::query( $tab, $q, $paged, $per );

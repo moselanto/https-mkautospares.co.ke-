@@ -354,7 +354,7 @@
 			else {
 				$l.html(cart.map(function (l, i) {
 					return '<li class="pos-line"><span class="pos-line__main"><strong>' + esc(l.name) + '</strong>' + (l.opt ? '<small>' + esc(l.opt) + '</small>' : '') + (l.src ? '<small class="pos-line__src">Sourced from ' + esc(l.src.supplier) + ' @ ' + ksh(l.src.cost) + (l.src.paid ? ' (paid)' : ' (owed)') + '</small>' : '') +
-						'<label class="pos-line__price">@ <input type="number" min="0" step="1" value="' + l.price + '" data-i="' + i + '" data-f="price"></label></span>' +
+						'<label class="pos-line__price">@ <input type="number" min="0" step="1" value="' + l.price + '" data-i="' + i + '" data-f="price"' + (!P.canPrice && !l.custom ? ' readonly title="Only the owner can change prices"' : '') + '></label></span>' +
 						'<span class="pos-line__qty"><button type="button" data-i="' + i + '" data-d="-1" aria-label="Less">&minus;</button><input type="number" min="1" value="' + l.qty + '" data-i="' + i + '" data-f="qty"><button type="button" data-i="' + i + '" data-d="1" aria-label="More">+</button></span>' +
 						'<span class="pos-line__tot">' + ksh(l.price * l.qty) + '</span><button type="button" class="pos-line__x" data-x="' + i + '" aria-label="Remove">&times;</button></li>';
 				}).join(''));
@@ -382,6 +382,15 @@
 			if (!cart.length) { return; }
 			if (paid && method === 'cash' && (Number($('[data-pos-tender]').val()) || 0) > 0 && (Number($('[data-pos-tender]').val()) || 0) < t.total) { toast('Cash received is less than the total.', 'err'); return; }
 			if (!paid && !c.name && !c.phone) { toast('Add the customer name or phone for an invoice.', 'err'); return; }
+			var zero = cart.filter(function (l) { return !(l.price > 0); });
+			if (zero.length && !window.confirm(zero.map(function (l) { return l.name; }).join(', ') + (zero.length > 1 ? ' are' : ' is') + ' priced at KSh 0. Continue anyway?')) { return; }
+			var loss = cart.filter(function (l) { return l.src && l.src.cost && l.price < l.src.cost; });
+			if (loss.length && !window.confirm(loss.map(function (l) { return l.name + ' (' + ksh(l.price) + ', cost ' + ksh(l.src.cost) + ')'; }).join(', ') + ' will be sold below what it cost us. Continue?')) { return; }
+			var code = $.trim($('[data-pos-ref]').val()).toUpperCase().replace(/\s+/g, '');
+			if (paid && method === 'mpesa') {
+				if (code && !/^[A-Z0-9]{10}$/.test(code)) { toast('That does not look like an M-Pesa code (10 letters and numbers).', 'err'); $('[data-pos-ref]').trigger('focus'); return; }
+				if (!code && !window.confirm('No M-Pesa code entered. Complete the sale without it?')) { $('[data-pos-ref]').trigger('focus'); return; }
+			}
 			var sale = {
 				items: cart.map(function (l) { return { id: l.custom ? 0 : l.id, qty: l.qty, price: l.price, name: l.name, custom: l.custom ? 1 : 0, src: l.src || null }; }),
 				customer: { name: c.name, phone: c.phone, email: c.email, consent: c.consent, user_id: $pos.data('uid') || 0 },
@@ -434,7 +443,7 @@
 		/* Custom item */
 		var $cm = $('[data-pos-custom-modal]');
 		$d.on('click', '[data-pos-custom]', function () { $cm.prop('hidden', false).addClass('is-open'); $cm.find('[data-pos-cname]').trigger('focus'); });
-		$d.on('click', '[data-pos-custom-close]', function () { $cm.removeClass('is-open').prop('hidden', true); });
+		$d.on('click', '[data-pos-custom-close]', function () { $cm.removeClass('is-open').prop('hidden', true); resetModal(); });
 		$d.on('click', '.pos-custom__quick button', function () { $cm.find('[data-pos-cname]').val($(this).attr('data-q')); $cm.find('[data-pos-cprice]').trigger('focus'); });
 		$d.on('change', '[data-pos-src]', function () { $cm.find('[data-pos-src-box]').prop('hidden', !this.checked); srcMargin(); });
 		$d.on('input', '[data-pos-cprice],[data-pos-scost]', srcMargin);
@@ -448,7 +457,13 @@
 				'<div><span>Our cost</span><b>' + ksh(co) + '</b></div>' +
 				'<div class="pcm-sum__p"><span>' + (g >= 0 ? 'Profit per unit' : 'Loss per unit') + '</span><b>' + ksh(Math.abs(g)) + ' <em>' + pct + '%</em></b></div>');
 		}
+		function resetModal() {
+			linkProd(null);
+			$cm.find('input[type=text],input[type=number],input[type=tel]').val(''); $cm.find('[data-pos-src]').prop('checked', false); $cm.find('[data-pos-src-box]').prop('hidden', true); $cm.find('.pcm-f').removeClass('is-bad'); $cm.find('input[name=pos_src_paid][value=0]').prop('checked', true); srcMargin();
+		}
 		function linkProd(p) {
+			var lock = !!p && !P.canPrice;
+			$cm.find('[data-pos-cprice]').prop('readonly', lock); $cm.find('[data-pos-plock]').prop('hidden', !lock);
 			$cm.data('pid', p ? p.id : 0);
 			$cm.find('[data-pos-clinked]').prop('hidden', !p).text(p ? 'Catalogue part: ' + p.name + (p.opt ? ' (' + p.opt + ')' : '') + ' - our stock will not be reduced.' : '');
 			$cm.find('[data-pos-cname]').prop('readonly', !!p);
@@ -463,7 +478,7 @@
 			$cm.find('[data-pos-src]').prop('checked', true).trigger('change');
 			$cm.find('[data-pos-sname]').trigger('focus');
 		});
-		$d.on('click', '[data-pos-custom], [data-pos-custom-close]', function () { linkProd(null); });
+		$d.on('click', '[data-pos-custom]', function () { linkProd(null); });
 		$d.on('click', '[data-pos-source-missing]', function () {
 			linkProd(null);
 			$cm.prop('hidden', false).addClass('is-open');
@@ -478,13 +493,13 @@
 				src = { supplier: $.trim($cm.find('[data-pos-sname]').val()), phone: $.trim($cm.find('[data-pos-sphone]').val()), cost: Number($cm.find('[data-pos-scost]').val()) || 0, oem: $.trim($cm.find('[data-pos-soem]').val()), paid: $cm.find('input[name=pos_src_paid]:checked').val() === '1' ? 1 : 0 };
 				if (!src.supplier) { $cm.find('[data-pos-sname]').closest('.pcm-f').addClass('is-bad').end().trigger('focus'); toast('Add the neighbour / supplier shop name.', 'err'); return; }
 				if (!src.cost) { $cm.find('[data-pos-scost]').closest('.pcm-f').addClass('is-bad').end().trigger('focus'); toast('Add what the part cost us.', 'err'); return; }
-				if (!pr) { toast('Add the selling price to the customer.', 'err'); return; }
 			}
+			if (!(pr > 0)) { $cm.find('[data-pos-cprice]').closest('.pcm-f').addClass('is-bad').end().trigger('focus'); toast('Add the selling price to the customer.', 'err'); return; }
+			if (src && pr < src.cost && !window.confirm('You are selling below cost: ' + ksh(pr) + ' against ' + ksh(src.cost) + ' paid. Continue?')) { return; }
 			var pid = $cm.data('pid') || 0;
 			if (pid && !src) { toast('Tick "Sourced from a neighbour shop" and add the supplier, or tap the part itself to sell from our stock.', 'err'); return; }
 			if (pid) { add({ id: pid, name: n, price: pr, custom: false, src: src }); } else { add({ id: 'c' + Date.now(), name: n, price: pr, custom: true, src: src }); }
-			linkProd(null);
-			$cm.find('input[type=text],input[type=number],input[type=tel]').val(''); $cm.find('[data-pos-src]').prop('checked', false); $cm.find('[data-pos-src-box]').prop('hidden', true); $cm.find('.pcm-f').removeClass('is-bad'); $cm.find('input[name=pos_src_paid][value=0]').prop('checked', true); srcMargin();
+			resetModal();
 			$cm.removeClass('is-open').prop('hidden', true);
 		});
 

@@ -144,6 +144,43 @@ class MKD_Desk_Appts {
 		return self::booked( $date, $time, $exclude ) >= max( 1, (int) $s['appt_capacity'] );
 	}
 
+	/** Write an appointment action to the Team activity log (area "appointment"). */
+	public static function staff_log( $id, $what ) {
+		if ( ! class_exists( 'MKD_Staff' ) ) {
+			return;
+		}
+		$a = is_object( $id ) ? $id : self::get( $id );
+		if ( ! $a ) {
+			return;
+		}
+		MKD_Staff::log( 'appointment', 'Booking ' . $a->ref . ' (' . $a->customer_name . ', ' . MKD_Desk::date_label( $a->appt_date, 'j M' ) . ' ' . $a->appt_time . ') - ' . $what, array( 'object' => 'appointment', 'object_id' => (int) $a->id, 'amount' => isset( $a->price ) ? (float) $a->price : 0 ) );
+	}
+
+	/** Another open booking for this phone on this day? Returns its ref or ''. */
+	public static function phone_booked( $phone, $date, $exclude = 0 ) {
+		global $wpdb;
+		if ( '' === (string) $phone ) {
+			return '';
+		}
+		$t = MKD_Desk::t_appts();
+		return (string) $wpdb->get_var( $wpdb->prepare( "SELECT ref FROM $t WHERE phone = %s AND appt_date = %s AND status IN ('request','confirmed') AND id <> %d LIMIT 1", $phone, $date, (int) $exclude ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	}
+
+	/** Times still bookable online for a date: real slots, not passed, not full. */
+	public static function open_slots( $date ) {
+		$out = array();
+		$now = current_time( 'H:i' );
+		foreach ( self::slots( $date ) as $sl ) {
+			if ( $date === MKD_Desk::today() && $sl <= $now ) {
+				continue;
+			}
+			if ( ! self::is_full( $date, $sl ) ) {
+				$out[] = $sl;
+			}
+		}
+		return $out;
+	}
+
 	public static function routes() {
 		register_rest_route( 'mkd/v1', '/slots', array(
 			'methods'             => 'GET',
@@ -153,13 +190,10 @@ class MKD_Desk_Appts {
 				if ( '' === $date ) {
 					return new WP_Error( 'mkd_date', 'Invalid date', array( 'status' => 400 ) );
 				}
-				$slots = self::slots( $date );
-				$full  = array();
-				foreach ( $slots as $sl ) {
-					if ( self::is_full( $date, $sl ) ) {
-						$full[] = $sl;
-					}
-				}
+				$today = MKD_Desk::today();
+				$slots = ( $date < $today || $date > gmdate( 'Y-m-d', strtotime( $today . ' +60 days' ) ) ) ? array() : self::slots( $date );
+				$open  = self::open_slots( $date );
+				$full  = array_values( array_diff( $slots, $open ) );
 				$res = rest_ensure_response( array( 'closed' => ! $slots, 'slots' => $slots, 'full' => $full ) );
 				$res->header( 'Cache-Control', 'no-store' );
 				return $res;
@@ -175,6 +209,10 @@ class MKD_Desk_Appts {
 		$ref = MKD_Desk::new_ref( 'APT', $t );
 		$now = current_time( 'mysql' );
 		$u   = wp_get_current_user();
+		$ph  = MKD_Desk::phone( $a['phone'] );
+		if ( ! in_array( (string) $a['time'], self::open_slots( (string) $a['date'] ), true ) || '' !== self::phone_booked( $ph, (string) $a['date'] ) ) {
+			return '';
+		}
 		$wpdb->insert( $t, array(
 			'ref'           => $ref,
 			'status'        => 'request',
@@ -631,6 +669,12 @@ class MKD_Desk_Appts {
 			exit;
 		}
 		$status = isset( $in['status'] ) && array_key_exists( $in['status'], self::statuses() ) ? $in['status'] : 'confirmed';
+		$prev   = $id ? self::get( $id ) : null;
+		$moved  = ! $prev || $prev->appt_date !== $date || $prev->appt_time !== $time;
+		if ( $moved && in_array( $status, array( 'request', 'confirmed' ), true ) && ( $date . ' ' . $time ) < current_time( 'Y-m-d H:i' ) ) {
+			wp_safe_redirect( add_query_arg( 'nd_msg', 'past', $back ) );
+			exit;
+		}
 		$email  = isset( $in['email'] ) && is_email( $in['email'] ) ? sanitize_email( $in['email'] ) : '';
 		$data   = array(
 			'status'        => $status,
@@ -661,6 +705,7 @@ class MKD_Desk_Appts {
 			$wpdb->update( $t, $data, array( 'id' => $id ) );
 			$msg = ( $old->appt_date !== $date || $old->appt_time !== $time ) ? 'Rescheduled from ' . MKD_Desk::date_label( $old->appt_date, 'D j M' ) . ' ' . $old->appt_time . ' to ' . MKD_Desk::date_label( $date, 'D j M' ) . ' ' . $time . '.' : 'Details edited.';
 			MKD_Desk::log( $t, $id, $msg );
+			self::staff_log( $id, rtrim( $msg, '.' ) );
 		} else {
 			$data['ref']        = MKD_Desk::new_ref( 'APT', $t );
 			$data['source']     = 'admin';
@@ -669,10 +714,12 @@ class MKD_Desk_Appts {
 			$wpdb->insert( $t, $data );
 			$id = (int) $wpdb->insert_id;
 			MKD_Desk::log( $t, $id, 'Appointment created.' );
+			self::staff_log( $id, 'created by staff' );
 		}
 		MKD_Desk::bust();
-		$s   = MKD_Desk::settings();
-		$msg = ( in_array( $status, array( 'request', 'confirmed' ), true ) && self::booked( $date, $time ) > max( 1, (int) $s['appt_capacity'] ) ) ? 'full' : 'saved';
+		$s    = MKD_Desk::settings();
+		$open = in_array( $status, array( 'request', 'confirmed' ), true );
+		$msg  = ( $open && self::booked( $date, $time ) > max( 1, (int) $s['appt_capacity'] ) ) ? 'full' : ( ( $open && '' !== self::phone_booked( $phone, $date, $id ) ) ? 'dupday' : 'saved' );
 		wp_safe_redirect( MKD_Desk::url( MKD_Desk::P_APPTS, array( 'appt' => $id, 'nd_msg' => $msg ) ) );
 		exit;
 	}
@@ -689,6 +736,7 @@ class MKD_Desk_Appts {
 		}
 		$wpdb->update( MKD_Desk::t_appts(), array( 'status' => $to, 'updated_at' => current_time( 'mysql' ) ), array( 'id' => $id ) );
 		MKD_Desk::log( MKD_Desk::t_appts(), $id, 'Status changed to ' . self::status_label( $to ) . '.' );
+		self::staff_log( $id, 'Status changed to ' . self::status_label( $to ) );
 		MKD_Desk::bust();
 		$ref  = wp_get_referer();
 		$dest = ( $ref && false !== strpos( $ref, 'page=' . MKD_Desk::P_APPTS ) && false === strpos( $ref, 'appt=' ) ) || ( $ref && false !== strpos( $ref, 'page=' . MKD_Desk::MENU ) ) ? remove_query_arg( 'nd_msg', $ref ) : MKD_Desk::url( MKD_Desk::P_APPTS, array( 'appt' => $id ) );

@@ -655,7 +655,7 @@ class MKD_WA_Order {
 
 						<div class="nwo-f">
 							<label for="nwo-note"><?php esc_html_e( 'Anything else? (optional)', 'mk-desk' ); ?></label>
-							<textarea id="nwo-note" name="note" rows="2" maxlength="300" placeholder="<?php esc_attr_e( 'Preferred delivery time, colour question, styling request...', 'mk-desk' ); ?>"></textarea>
+							<textarea id="nwo-note" name="note" rows="2" maxlength="300" placeholder="<?php esc_attr_e( 'Preferred delivery time, vehicle model or chassis number...', 'mk-desk' ); ?>"></textarea>
 						</div>
 
 						<div class="nwo-hp" aria-hidden="true">

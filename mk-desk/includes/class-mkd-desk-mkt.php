@@ -760,7 +760,7 @@ class MKD_Desk_Mkt {
 		echo '<label class="nd-field"><span class="nd-label">Message *</span><textarea name="body" rows="10" required data-mkt-in data-mkt-body>' . esc_textarea( $v->body ) . '</textarea><small>{first} = customer\'s first name. *bold*. Blank line = new paragraph. Links: [text](https://...)</small></label>';
 		echo '<div class="nd-fields nd-fields--2"><label class="nd-field"><span class="nd-label">Button text</span><input type="text" name="btn_text" value="' . esc_attr( $v->btn_text ) . '" data-mkt-in></label><label class="nd-field"><span class="nd-label">Button link</span><input type="url" name="btn_url" value="' . esc_attr( $v->btn_url ) . '" data-mkt-in></label></div>';
 		if ( 'email' === $ch ) {
-			echo '<label class="nd-field"><span class="nd-label">Feature products (up to 6, live prices)</span><select class="wc-product-search" multiple name="products[]" data-placeholder="Search wigs..." data-action="woocommerce_json_search_products" style="width:100%" data-mkt-prods>';
+			echo '<label class="nd-field"><span class="nd-label">Feature products (up to 6, live prices)</span><select class="wc-product-search" multiple name="products[]" data-placeholder="Search parts..." data-action="woocommerce_json_search_products" style="width:100%" data-mkt-prods>';
 			foreach ( array_filter( array_map( 'absint', explode( ',', (string) $v->products ) ) ) as $pid ) {
 				$p = function_exists( 'wc_get_product' ) ? wc_get_product( $pid ) : null;
 				if ( $p ) {

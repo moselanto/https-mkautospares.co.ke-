@@ -729,3 +729,7 @@ a.nt-who:hover{color:#a07a24}
 .pcm__add{background:#CA1D24!important;border-color:#CA1D24!important;color:#fff!important}
 .pcm__add:hover,.pcm__add:focus{background:#A81820!important;border-color:#A81820!important}
 @media (max-width:600px){.pcm-row,.pcm-sum{grid-template-columns:1fr}.pcm-sum div{border-right:0;border-bottom:1px solid #eceef1}.nd-modal{padding:0;align-items:flex-end}.pcm.nd-modal__box{max-height:94vh;border-radius:18px 18px 0 0}}
+
+/* 1.4.0 */
+.pcm-lock{display:block;margin-top:4px;font-size:12px;color:#8a5a00}
+.pos-line__price input[readonly],.pcm-money input[readonly]{background:#f3f4f6;cursor:not-allowed}

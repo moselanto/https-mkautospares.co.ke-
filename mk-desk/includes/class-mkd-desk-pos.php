@@ -207,6 +207,17 @@ class MKD_Desk_POS {
 		$paid    = ! empty( $pay['paid'] );
 		$ref     = mb_substr( strtoupper( preg_replace( '/[^A-Za-z0-9\- ]/', '', isset( $pay['ref'] ) ? (string) $pay['ref'] : '' ) ), 0, 40 );
 		$channel = isset( $raw['channel'] ) && array_key_exists( $raw['channel'], self::channels() ) ? $raw['channel'] : 'walk-in';
+		$wa_in   = isset( $raw['wa_order'] ) ? absint( $raw['wa_order'] ) : 0;
+		if ( $paid && '' !== $ref ) {
+			if ( 'mpesa' === $method && ! MKD_Desk::mpesa_code_ok( $ref ) ) {
+				wp_send_json_error( array( 'message' => 'That does not look like an M-Pesa code (10 letters and numbers, e.g. SGH4K2LMNP).' ), 400 );
+			}
+			$used = MKD_Desk::ref_used( $ref, 0, $wa_in );
+			if ( '' !== $used ) {
+				MKD_Staff::log( 'blocked', 'Blocked: payment code ' . $ref . ' already used on ' . $used, array( 'level' => 'warn' ) );
+				wp_send_json_error( array( 'message' => 'Payment code ' . $ref . ' has already been used on ' . $used . '. Check the code with the customer.' ), 409 );
+			}
+		}
 
 		try {
 			$order = wc_create_order( array( 'customer_id' => $uid, 'created_via' => 'mkd_pos' ) );
@@ -225,6 +236,9 @@ class MKD_Desk_POS {
 				if ( $p ) {
 					$iid = $order->add_product( $p, $qty, array( 'subtotal' => $pr * $qty, 'total' => $pr * $qty ) );
 					$src = MKD_Desk_Source::clean_line( isset( $it['src'] ) ? $it['src'] : null, $qty );
+					if ( $src && $pr < (float) $src['cost'] ) {
+						MKD_Staff::log( 'sale', 'Sourced ' . $p->get_name() . ' sold below cost: ' . MKD_Desk::money( $pr ) . ' (cost ' . MKD_Desk::money( $src['cost'] ) . ')', array( 'level' => 'warn' ) );
+					}
 					if ( $src && $iid ) {
 						$li = $order->get_item( $iid );
 						if ( $li ) {
@@ -328,7 +342,7 @@ class MKD_Desk_POS {
 		if ( $wa && class_exists( 'MKD_Desk_Orders' ) && MKD_Desk_Orders::is_order( $wa ) ) {
 			update_post_meta( $wa, MKD_Desk_Orders::STATUS, $paid ? 'delivered' : 'confirmed' );
 			if ( $paid ) {
-				MKD_Desk_Orders::set_paid( $wa, true, $ref );
+				MKD_Desk_Orders::set_paid( $wa, true, $ref, $order->get_id() );
 			}
 			update_post_meta( $wa, '_mkdwo_wc_order', $order->get_id() );
 			MKD_Desk_Orders::add_log( $wa, 'Sale #' . $order->get_order_number() . ' created at the POS.' );
@@ -524,6 +538,14 @@ class MKD_Desk_POS {
 		if ( 'paid' === $op ) {
 			$method = isset( $_POST['method'] ) && array_key_exists( wp_unslash( $_POST['method'] ), self::methods() ) ? sanitize_key( wp_unslash( $_POST['method'] ) ) : 'mpesa';
 			$ref    = isset( $_POST['ref'] ) ? mb_substr( strtoupper( preg_replace( '/[^A-Za-z0-9\- ]/', '', wp_unslash( $_POST['ref'] ) ) ), 0, 40 ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			if ( $ref && 'mpesa' === $method && ! MKD_Desk::mpesa_code_ok( $ref ) ) {
+				wp_send_json_error( array( 'message' => 'That does not look like an M-Pesa code (10 letters and numbers, e.g. SGH4K2LMNP).' ), 400 );
+			}
+			$used = $ref ? MKD_Desk::ref_used( $ref, $order->get_id(), (int) $order->get_meta( '_mkd_wa_order' ) ) : '';
+			if ( '' !== $used ) {
+				MKD_Staff::log( 'blocked', 'Blocked: payment code ' . $ref . ' already used on ' . $used, array( 'level' => 'warn' ) );
+				wp_send_json_error( array( 'message' => 'Payment code ' . $ref . ' has already been used on ' . $used . '. Check the code with the customer.' ), 409 );
+			}
 			$order->set_payment_method( 'mkd_pos_' . $method );
 			$order->set_payment_method_title( self::methods()[ $method ] );
 			if ( $ref ) {
@@ -653,6 +675,7 @@ class MKD_Desk_POS {
 			'channels' => self::channels(),
 			'pre'      => $pre,
 			'mpesa'    => (string) MKD_Desk::settings()['mpesa_details'],
+			'canPrice' => MKD_Staff::can( 'edit_price' ) ? 1 : 0,
 		) );
 		MKD_Desk::header( MKD_Desk::P_POS, 'Point of sale', self::subnav( 'register' ) );
 		$cats = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => true, 'parent' => 0, 'number' => 12 ) );
@@ -768,7 +791,7 @@ class MKD_Desk_POS {
 						<h4 class="pcm__label">Item</h4>
 						<label class="pcm-f"><span>Description <i>*</i></span><input type="text" placeholder="e.g. Front brake pads - Toyota Fielder" data-pos-cname maxlength="120" autocomplete="off"></label>
 						<div class="pcm-row">
-							<label class="pcm-f"><span>Selling price per unit <i>*</i></span><span class="pcm-money"><em>KSh</em><input type="number" min="0" step="1" inputmode="numeric" placeholder="0" data-pos-cprice></span></label>
+							<label class="pcm-f"><span>Selling price per unit <i>*</i></span><span class="pcm-money"><em>KSh</em><input type="number" min="0" step="1" inputmode="numeric" placeholder="0" data-pos-cprice></span><small class="pcm-lock" data-pos-plock hidden>Shop price - only the owner can change prices.</small></label>
 							<div class="pcm-f"><span>Quick add</span><div class="pos-custom__quick">
 								<button type="button" data-q="Fitting / labour">Fitting</button>
 								<button type="button" data-q="Wheel alignment">Alignment</button>
@@ -896,7 +919,7 @@ class MKD_Desk_POS {
 
 		$exp = MKD_Desk::export_btns( 'sales', 'Sales report', '&from=' . $from . '&to=' . $to ) . MKD_Desk::export_btns( 'sale_items', 'Items report', '&from=' . $from . '&to=' . $to );
 		MKD_Desk::header( MKD_Desk::P_POS, 'Sales & invoices', self::subnav( 'sales' ) . $exp );
-		wp_localize_script( 'mkd-desk', 'MKD_POS', array( 'ajax' => admin_url( 'admin-ajax.php' ), 'nonce' => wp_create_nonce( 'mkd_pos' ), 'methods' => self::methods() ) );
+		wp_localize_script( 'mkd-desk', 'MKD_POS', array( 'ajax' => admin_url( 'admin-ajax.php' ), 'nonce' => wp_create_nonce( 'mkd_pos' ), 'methods' => self::methods(), 'canPrice' => MKD_Staff::can( 'edit_price' ) ? 1 : 0 ) );
 
 		echo '<div class="nd-kpis">';
 		MKD_Desk::kpi( 'Sales', MKD_Desk::money( $k['total'] ), $k['count'] . ' orders', 'ink' );
