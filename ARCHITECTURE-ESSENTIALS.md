@@ -8,10 +8,12 @@ One-page summary. Full detail in [ARCHITECTURE.md](ARCHITECTURE.md).
 | --- | --- | :---: | --- |
 | `mk-auto-elite/` | Theme (active) | 2.19.0 | Storefront, design system, fitment engine and tools, WooCommerce integration, Knowledge Centre, locations, fitment landing pages, booking, chat, schema, analytics, front-end hardening, setup wizard |
 | `mk-auto-core/` | Plugin | 1.0.0 | Branded staff sign-in screen, login guard |
+| `mk-desk/` | Plugin | 1.0.0 | MKauto Desk back office: POS with neighbour sourcing and supplier ledger, WhatsApp cart orders (plus theme leads), payment plans, garage and service bookings, reminders, follow-ups, marketing, social feeds, team permissions and activity log, encrypted contacts, Excel reports |
 
 ## Boot
 
 - Theme: `functions.php` > PHP 8.1 guard > constants > `inc/autoload.php` (PSR-4 `MKAutoElite\` > `inc/src/`) > `Theme::instance()` creates every module. Admin-only modules: `Admin\PluginActivation`, `Admin\Tools`, `Admin\SetupWizard`.
+- Plugin: `mk-desk/mk-desk.php` > on `plugins_loaded` (20, WooCommerce required) requires `includes/class-mkd-*.php` > `MKD_WA_Order`, `MKD_Desk` (registers every Desk module), `MKD_Followup`.
 - Plugin: `mk-auto-core.php` > requires `includes/` > on `plugins_loaded` creates `MKAC_Login_Brand` and `MKAC_Login_Guard`.
 
 ## Data
@@ -25,6 +27,7 @@ One-page summary. Full detail in [ARCHITECTURE.md](ARCHITECTURE.md).
 | Locations | CPT location (`/spare-parts/...`) |
 | Fitment landing pages | CPT `mkae_landing` (`/fitment/...`), meta `_mkae_l_*` |
 | Bookings | CPT `mkae_booking`, meta `_mkae_*` |
+| Desk records | Tables `{prefix}mkd_lmm_plans`, `mkd_lmm_payments`, `mkd_appointments` (with vehicle, plate, mileage), `mkd_sourcing` (neighbour-sourced lines, supplier owed/paid), marketing and activity tables; CPT `mkd_wa_order` (cart orders); POS sales are WooCommerce orders (`created_via` `mkd_pos`) |
 | Saved vehicle | Cookie `mkae_vehicle` |
 | Caches, rate limits, lockouts | Transients (`mkae_*`, `mkac_lg_*`) |
 

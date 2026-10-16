@@ -1,0 +1,1061 @@
+<?php
+/**
+ * MKauto WhatsApp cart order pop-up (MKauto Desk 1.0.0).
+ *
+ * A polished "Order on WhatsApp" form, ported from the Tabarak Electronics order
+ * funnel and restyled for MK Auto Spares:
+ *   - One modal rendered in wp_footer on every front-end page.
+ *   - Triggers: single product page (under add to cart, uses the chosen
+ *     variation), every shop / category product card, and "Order whole cart on
+ *     WhatsApp" on the cart page. Every trigger is a real wa.me link, so it still
+ *     works without JavaScript.
+ *   - Kenyan phone validation, delivery area / pick-up, payment preference,
+ *     order reference MK-YYMMDD-XXXX and a cleanly formatted WhatsApp message.
+ *   - Every order is saved as a lead (admin-ajax, no nonce so cached pages keep
+ *     working; protected by a honeypot, a fill-time trap, link-spam filtering,
+ *     length caps and a per-IP limit) and listed under
+ *     WooCommerce > WhatsApp Orders.
+ *
+ * The destination number is the one already configured for MK Auto Spares:
+ * Settings > MKauto Desk > "WhatsApp link or number", then the theme
+ * Customizer "WhatsApp link", then the shop's public number. Filter:
+ * mkd_whatsapp_number.
+ *
+ * @package MK_Desk
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+class MKD_WA_Order {
+
+	const CPT       = 'mkd_wa_order';
+	const META      = '_mkdwo';
+	const STATUS    = '_mkdwo_status';
+	const PAGE      = 'mkd-wa-orders';
+	const STORE_KEY = 'mkd_wa_order_contact';
+
+	public function __construct() {
+		if ( ! apply_filters( 'mkd_wa_order_enabled', true ) ) {
+			return;
+		}
+		add_action( 'init', array( $this, 'register_cpt' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'assets' ), 20 );
+		add_action( 'wp_footer', array( $this, 'modal' ), 5 ); // Before footer scripts (priority 20) so the pop-up exists when its script runs.
+
+		// Triggers.
+		// The MK Auto Elite theme already puts an "Order on WhatsApp" button on each
+		// product (with vehicle + chassis fields). The Desk adds the whole-cart order;
+		// the per-product buttons can be switched on with the mkd_wa_product_buttons filter.
+		if ( apply_filters( 'mkd_wa_product_buttons', false ) ) {
+			add_action( 'woocommerce_after_add_to_cart_button', array( $this, 'product_button' ), 25 );
+			add_action( 'woocommerce_after_shop_loop_item', array( $this, 'card_button' ), 14 );
+		}
+		add_action( 'woocommerce_proceed_to_checkout', array( $this, 'cart_button' ), 30 );
+
+		// AJAX: save lead + variation options for product-card orders.
+		add_action( 'wp_ajax_mkd_wa_order', array( $this, 'ajax_lead' ) );
+		add_action( 'wp_ajax_nopriv_mkd_wa_order', array( $this, 'ajax_lead' ) );
+		add_action( 'wp_ajax_mkd_wa_product', array( $this, 'ajax_product' ) );
+		add_action( 'wp_ajax_nopriv_mkd_wa_product', array( $this, 'ajax_product' ) );
+		add_action( 'wp_ajax_mkd_wa_ship', array( $this, 'ajax_ship' ) );
+		add_action( 'wp_ajax_nopriv_mkd_wa_ship', array( $this, 'ajax_ship' ) );
+		add_action( 'admin_post_mkd_wa_fees', array( $this, 'save_fees' ) );
+
+		// Admin list.
+		add_action( 'admin_menu', array( $this, 'menu' ), 55 );
+		add_action( 'admin_post_mkd_wa_order_status', array( $this, 'admin_update' ) );
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Helpers                                                             */
+	/* ------------------------------------------------------------------ */
+
+	/** Store WhatsApp number as digits, reusing the shop's existing settings. */
+	public static function whatsapp_number() {
+		$raw = '';
+		if ( class_exists( 'MKD_Settings' ) ) {
+			$raw = (string) MKD_Settings::get( 'whatsapp', '' );
+		}
+		if ( '' === trim( $raw ) ) {
+			$raw = (string) get_theme_mod( 'mkae_whatsapp', '' );
+		}
+		$digits = (string) preg_replace( '/\D+/', '', $raw );
+		if ( '' === $digits ) {
+			$digits = '254702343302'; // MK Auto Spares public WhatsApp number (same fallback as the theme).
+		}
+		if ( 0 === strpos( $digits, '0' ) ) {
+			$digits = '254' . substr( $digits, 1 );
+		}
+		return (string) preg_replace( '/\D+/', '', (string) apply_filters( 'mkd_whatsapp_number', $digits ) );
+	}
+
+	/** Plain wa.me link with a short prefilled text (no-JS fallback). */
+	private static function wa_link( $text ) {
+		return 'https://wa.me/' . self::whatsapp_number() . '?text=' . rawurlencode( $text );
+	}
+
+	/** Normalise a Kenyan mobile number to 2547XXXXXXXX / 2541XXXXXXXX, or ''. */
+	public static function normalise_phone( $raw ) {
+		$d = (string) preg_replace( '/\D/', '', (string) $raw );
+		if ( 10 === strlen( $d ) && '0' === $d[0] ) {
+			$d = '254' . substr( $d, 1 );
+		} elseif ( 9 === strlen( $d ) && in_array( $d[0], array( '7', '1' ), true ) ) {
+			$d = '254' . $d;
+		}
+		return preg_match( '/^254[17]\d{8}$/', $d ) ? $d : '';
+	}
+
+	/** "KSh 12,500" */
+	public static function money( $amount ) {
+		return 'KSh ' . number_format( (float) $amount, 0, '.', ',' );
+	}
+
+	/** Display price (incl./excl. tax as the shop shows it). */
+	private static function display_price( $product ) {
+		if ( ! $product instanceof WC_Product ) {
+			return 0.0;
+		}
+		if ( $product->is_type( 'variable' ) ) {
+			return (float) $product->get_variation_price( 'min', true );
+		}
+		return (float) wc_get_price_to_display( $product );
+	}
+
+	/** Pick-up point text for the "Pick-up" option. */
+	private static function pickup_text() {
+		$addr = function_exists( 'mkd_opt' ) ? (string) mkd_opt( 'mkd_address' ) : (string) get_theme_mod( 'mkd_address', '' );
+		$addr = trim( wp_strip_all_tags( $addr ) );
+		$txt  = '' !== $addr ? sprintf( /* translators: %s: studio address */ __( 'Pick-up at our Kirinyaga Road shop (%s)', 'mk-desk' ), $addr ) : __( 'Pick-up at our Kirinyaga Road shop, Nairobi CBD', 'mk-desk' );
+		return (string) apply_filters( 'mkd_wa_order_pickup_text', $txt );
+	}
+
+	/** Delivery areas: Nairobi estates + major towns. */
+	/** Kenya's 47 counties (Nairobi first, the rest A-Z). */
+	private static function counties() {
+		$list = array( 'Nairobi', 'Baringo', 'Bomet', 'Bungoma', 'Busia', 'Elgeyo-Marakwet', 'Embu', 'Garissa', 'Homa Bay', 'Isiolo', 'Kajiado', 'Kakamega', 'Kericho', 'Kiambu', 'Kilifi', 'Kirinyaga', 'Kisii', 'Kisumu', 'Kitui', 'Kwale', 'Laikipia', 'Lamu', 'Machakos', 'Makueni', 'Mandera', 'Marsabit', 'Meru', 'Migori', 'Mombasa', "Murang'a", 'Nakuru', 'Nandi', 'Narok', 'Nyamira', 'Nyandarua', 'Nyeri', 'Samburu', 'Siaya', 'Taita-Taveta', 'Tana River', 'Tharaka-Nithi', 'Trans Nzoia', 'Turkana', 'Uasin Gishu', 'Vihiga', 'Wajir', 'West Pokot' );
+		return apply_filters( 'mkd_wa_order_counties', $list );
+	}
+
+	private static function payments() {
+		return apply_filters( 'mkd_wa_order_payments', array(
+			'M-Pesa on delivery',
+			'M-Pesa now',
+			'Cash on delivery',
+		) );
+	}
+
+	private static function statuses() {
+		return array(
+			'new'       => __( 'New', 'mk-desk' ),
+			'confirmed' => __( 'Confirmed', 'mk-desk' ),
+			'delivered' => __( 'Delivered', 'mk-desk' ),
+			'cancelled' => __( 'Cancelled', 'mk-desk' ),
+		);
+	}
+
+	private static function wa_icon() {
+		return '<svg class="nwo-ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.7a2.8 2.8 0 0 0 1.8-1.3 2.3 2.3 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg>';
+	}
+
+	/** JSON payload describing one product for the modal. */
+	/** Pop-up payload for other modules (e.g. the parts chat's Order on WhatsApp button). */
+	public static function payload_for( $product ) {
+		return $product instanceof WC_Product ? self::product_payload( $product ) : array();
+	}
+
+	private static function product_payload( $product ) {
+		$img = wp_get_attachment_image_url( $product->get_image_id(), 'woocommerce_thumbnail' );
+		return array(
+			'id'       => $product->get_id(),
+			'name'     => wp_strip_all_tags( $product->get_name() ),
+			'price'    => self::display_price( $product ),
+			'img'      => $img ? $img : ( function_exists( 'wc_placeholder_img_src' ) ? wc_placeholder_img_src() : '' ),
+			'url'      => get_permalink( $product->get_id() ),
+			'variable' => $product->is_type( 'variable' ) ? 1 : 0,
+			'regular'  => self::regular_price( $product ),
+			'cat'      => self::category_name( $product ),
+		);
+	}
+
+	/** Regular (crossed-out) price when the product is on sale, else 0. */
+	private static function regular_price( $product ) {
+		if ( ! $product instanceof WC_Product || ! $product->is_on_sale() ) {
+			return 0.0;
+		}
+		if ( $product->is_type( 'variable' ) ) {
+			return (float) $product->get_variation_regular_price( 'min', true );
+		}
+		$reg = $product->get_regular_price();
+		if ( '' === $reg ) {
+			return 0.0;
+		}
+		return (float) wc_get_price_to_display( $product, array( 'price' => $reg ) );
+	}
+
+	/** First real product category name, shown above the product in the pop-up. */
+	private static function category_name( $product ) {
+		$terms = get_the_terms( $product->get_id(), 'product_cat' );
+		if ( empty( $terms ) || is_wp_error( $terms ) ) {
+			return '';
+		}
+		foreach ( $terms as $term ) {
+			if ( 'uncategorized' !== $term->slug ) {
+				return wp_strip_all_tags( $term->name );
+			}
+		}
+		return '';
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Storage                                                             */
+	/* ------------------------------------------------------------------ */
+
+	public function register_cpt() {
+		register_post_type( self::CPT, array(
+			'label'               => __( 'WhatsApp Orders', 'mk-desk' ),
+			'public'              => false,
+			'show_ui'             => false,
+			'show_in_rest'        => false,
+			'exclude_from_search' => true,
+			'publicly_queryable'  => false,
+			'rewrite'             => false,
+			'query_var'           => false,
+			'supports'            => array( 'title' ),
+		) );
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Front end                                                           */
+	/* ------------------------------------------------------------------ */
+
+	/* ------------------------------------------------------------------ */
+	/* Delivery fee quote (v1.56.0)                                        */
+	/* ------------------------------------------------------------------ */
+
+	const FEES = 'mkd_wo_fees';
+
+	/** Manual fallback fees (used only where WooCommerce zones give no price). */
+	private static function fee_table() {
+		$d = array( 'nairobi' => '', 'nearby' => '', 'rest' => '', 'free_over' => '' );
+		$o = get_option( self::FEES, array() );
+		return array_merge( $d, is_array( $o ) ? $o : array() );
+	}
+
+	private static function nearby_counties() {
+		return (array) apply_filters( 'mkd_wa_order_nearby_counties', array( 'Kiambu', 'Kajiado', 'Machakos', "Murang'a" ) );
+	}
+
+	private static function eta( $county ) {
+		if ( 'Nairobi' === $county ) {
+			return __( 'Same-day delivery when ordered before 5 PM', 'mk-desk' );
+		}
+		if ( in_array( $county, self::nearby_counties(), true ) ) {
+			return __( 'Next-day delivery', 'mk-desk' );
+		}
+		return __( 'Delivered in 1-3 business days', 'mk-desk' );
+	}
+
+	/** WooCommerce state code for a county name (KE01...KE47). */
+	private static function state_code( $county ) {
+		if ( ! function_exists( 'WC' ) || ! WC() || empty( WC()->countries ) ) {
+			return '';
+		}
+		$norm = static function ( $s ) {
+			return preg_replace( '/[^a-z]/', '', str_replace( 'county', '', strtolower( remove_accents( (string) $s ) ) ) );
+		};
+		$want = $norm( $county );
+		foreach ( (array) WC()->countries->get_states( 'KE' ) as $code => $name ) {
+			if ( $norm( $name ) === $want ) {
+				return (string) $code;
+			}
+		}
+		return '';
+	}
+
+	/** Price from the shop's own WooCommerce shipping zones, or null. */
+	private static function wc_quote( $county, $sub ) {
+		if ( ! class_exists( 'WC_Shipping_Zones' ) ) {
+			return null;
+		}
+		$package = array(
+			'contents'        => array(),
+			'contents_cost'   => $sub,
+			'cart_subtotal'   => $sub,
+			'applied_coupons' => array(),
+			'user'            => array( 'ID' => get_current_user_id() ),
+			'destination'     => array(
+				'country'   => 'KE',
+				'state'     => self::state_code( $county ),
+				'postcode'  => '',
+				'city'      => '',
+				'address'   => '',
+				'address_1' => '',
+				'address_2' => '',
+			),
+		);
+		$best = null;
+		$free = false;
+		$over = 0;
+		try {
+			$zone = WC_Shipping_Zones::get_zone_matching_package( $package );
+			if ( ! $zone ) {
+				return null;
+			}
+			foreach ( $zone->get_shipping_methods( true ) as $m ) {
+				$id = isset( $m->id ) ? (string) $m->id : '';
+				if ( in_array( $id, array( 'local_pickup', 'pickup_location' ), true ) ) {
+					continue;
+				}
+				if ( 'free_shipping' === $id ) {
+					$req = (string) $m->get_option( 'requires', '' );
+					$min = (float) $m->get_option( 'min_amount', 0 );
+					if ( '' === $req ) {
+						$free = true;
+					} elseif ( in_array( $req, array( 'min_amount', 'either' ), true ) ) {
+						if ( $sub >= $min ) {
+							$free = true;
+						} elseif ( $min > 0 ) {
+							$over = $over > 0 ? min( $over, $min ) : $min;
+						}
+					}
+					continue;
+				}
+				$cost = null;
+				$raw  = trim( (string) $m->get_option( 'cost', '' ) );
+				if ( '' !== $raw && is_numeric( $raw ) ) {
+					$cost = (float) $raw;
+				} elseif ( method_exists( $m, 'get_rates_for_package' ) ) {
+					foreach ( (array) $m->get_rates_for_package( $package ) as $r ) {
+						if ( is_object( $r ) && method_exists( $r, 'get_cost' ) ) {
+							$c    = (float) $r->get_cost();
+							$cost = null === $cost ? $c : min( $cost, $c );
+						}
+					}
+				}
+				if ( null !== $cost ) {
+					$best = null === $best ? $cost : min( $best, $cost );
+				}
+			}
+		} catch ( \Throwable $e ) {
+			return null;
+		}
+		if ( $free ) {
+			return array( 'known' => true, 'fee' => 0, 'free_over' => 0 );
+		}
+		if ( null === $best ) {
+			return null;
+		}
+		return array( 'known' => true, 'fee' => max( 0, $best ), 'free_over' => $over );
+	}
+
+	/** Price from the manual fallback table, or null. */
+	private static function table_quote( $county, $sub ) {
+		$t   = self::fee_table();
+		$key = 'Nairobi' === $county ? 'nairobi' : ( in_array( $county, self::nearby_counties(), true ) ? 'nearby' : 'rest' );
+		if ( '' === (string) $t[ $key ] ) {
+			return null;
+		}
+		$fee  = max( 0, (float) $t[ $key ] );
+		$over = '' === (string) $t['free_over'] ? 0 : max( 0, (float) $t['free_over'] );
+		if ( $over > 0 && $sub >= $over ) {
+			$fee = 0;
+		}
+		return array( 'known' => true, 'fee' => $fee, 'free_over' => $fee > 0 ? $over : 0 );
+	}
+
+	/** Delivery quote for a county + subtotal. */
+	public static function ship_quote( $county, $sub ) {
+		$q = self::wc_quote( $county, $sub );
+		if ( null === $q ) {
+			$q = self::table_quote( $county, $sub );
+		}
+		if ( null === $q ) {
+			$q = array( 'known' => false, 'fee' => 0, 'free_over' => 0 );
+		}
+		$q['county'] = $county;
+		$q['eta']    = self::eta( $county );
+		$q['free']   = $q['known'] && $q['fee'] <= 0;
+		return apply_filters( 'mkd_wa_order_shipping', $q, $county, $sub );
+	}
+
+	/** AJAX: delivery quote (public, read-only, no nonce so cached pages work). */
+	public function ajax_ship() {
+		$county = isset( $_GET['county'] ) ? sanitize_text_field( wp_unslash( $_GET['county'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$sub    = isset( $_GET['subtotal'] ) ? min( 10000000, max( 0, (float) $_GET['subtotal'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( ! in_array( $county, self::counties(), true ) ) {
+			wp_send_json_error( array( 'message' => 'county' ), 400 );
+		}
+		wp_send_json_success( self::ship_quote( $county, $sub ) );
+	}
+
+	/** Admin: fallback delivery fees box on the WhatsApp Orders page. */
+	private function fees_box() {
+		$t      = self::fee_table();
+		$fields = array(
+			'nairobi'   => __( 'Nairobi', 'mk-desk' ),
+			'nearby'    => implode( ', ', self::nearby_counties() ),
+			'rest'      => __( 'Rest of Kenya', 'mk-desk' ),
+			'free_over' => __( 'Free delivery on orders from', 'mk-desk' ),
+		);
+		$open = isset( $_GET['nwo_fees'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		echo '<details style="max-width:760px;margin:14px 0;padding:10px 16px;background:#fff;border:1px solid #dcdcde;border-radius:6px"' . ( $open ? ' open' : '' ) . '>';
+		echo '<summary style="cursor:pointer;font-weight:600">' . esc_html__( 'Delivery fees shown in the order pop-up', 'mk-desk' ) . '</summary>';
+		if ( $open ) {
+			echo '<p style="color:#008a20">' . esc_html__( 'Delivery fees saved.', 'mk-desk' ) . '</p>';
+		}
+		echo '<p class="description">' . esc_html__( 'The pop-up uses your WooCommerce shipping zones first (WooCommerce > Settings > Shipping). These amounts are only used for counties your zones do not price. Leave a box empty to show "Confirmed on WhatsApp" instead.', 'mk-desk' ) . '</p>';
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="mkd_wa_fees">';
+		wp_nonce_field( 'mkd_wa_fees' );
+		echo '<table class="form-table" role="presentation">';
+		foreach ( $fields as $k => $label ) {
+			echo '<tr><th scope="row"><label for="nwo-fee-' . esc_attr( $k ) . '">' . esc_html( $label ) . '</label></th><td>KSh <input type="number" min="0" step="1" class="regular-text" style="max-width:140px" id="nwo-fee-' . esc_attr( $k ) . '" name="fees[' . esc_attr( $k ) . ']" value="' . esc_attr( $t[ $k ] ) . '"></td></tr>';
+		}
+		echo '</table>';
+		submit_button( __( 'Save delivery fees', 'mk-desk' ), 'secondary' );
+		echo '</form></details>';
+	}
+
+	public function save_fees() {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_die( esc_html__( 'Sorry, you are not allowed to do that.', 'mk-desk' ) );
+		}
+		check_admin_referer( 'mkd_wa_fees' );
+		$in  = isset( $_POST['fees'] ) && is_array( $_POST['fees'] ) ? wp_unslash( $_POST['fees'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$out = array();
+		foreach ( array( 'nairobi', 'nearby', 'rest', 'free_over' ) as $k ) {
+			$v         = isset( $in[ $k ] ) ? trim( (string) $in[ $k ] ) : '';
+			$out[ $k ] = '' === $v ? '' : (string) max( 0, (int) $v );
+		}
+		update_option( self::FEES, $out, false );
+		wp_safe_redirect( admin_url( 'admin.php?page=' . self::PAGE . '&nwo_fees=1' ) );
+		exit;
+	}
+
+	public function assets() {
+		if ( is_admin() ) {
+			return;
+		}
+		wp_enqueue_style( 'mkd-wa-order', MKD_URL . 'assets/css/mk-wa-order.css', array(), MKD_VERSION );
+		wp_enqueue_script( 'mkd-wa-order', MKD_URL . 'assets/js/mk-wa-order.js', array(), MKD_VERSION, true );
+		wp_localize_script( 'mkd-wa-order', 'MKD_WO', array(
+			'ajax'     => admin_url( 'admin-ajax.php' ),
+			'wa'       => self::whatsapp_number(),
+			'pickup'   => self::pickup_text(),
+			'brand'    => 'MK Auto Spares',
+			'store'    => self::STORE_KEY,
+			'currency' => function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : 'KES',
+		) );
+	}
+
+	/** Single product page: under add to cart. */
+	public function product_button() {
+		global $product;
+		if ( ! $product instanceof WC_Product || ! function_exists( 'is_product' ) ) {
+			return;
+		}
+		$data = self::product_payload( $product );
+		$text = sprintf( /* translators: 1: product name, 2: URL */ __( "Hi MK Auto Spares, I'd like to order the %1\$s (%2\$s). Is it available?", 'mk-desk' ), $data['name'], $data['url'] );
+		printf(
+			'<div class="nwo-pdp"><a class="nwo-btn nwo-btn--pdp" href="%1$s" target="_blank" rel="noopener nofollow" data-nwo-open="product" data-nwo="%2$s">%3$s<span>%4$s</span></a><p class="nwo-pdp__hint" data-nwo-hint role="status" aria-live="polite" hidden></p></div>',
+			esc_url( self::wa_link( $text ) ),
+			esc_attr( wp_json_encode( $data ) ),
+			self::wa_icon(), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static SVG.
+			esc_html__( 'Order on WhatsApp', 'mk-desk' )
+		);
+	}
+
+	/** Shop / category product card. */
+	public function card_button() {
+		global $product;
+		if ( ! $product instanceof WC_Product ) {
+			return;
+		}
+		$data = self::product_payload( $product );
+		$text = sprintf( /* translators: 1: product name, 2: URL */ __( "Hi MK Auto Spares, I'd like to order the %1\$s (%2\$s). Is it available?", 'mk-desk' ), $data['name'], $data['url'] );
+		printf(
+			'<a class="nwo-btn nwo-btn--card" href="%1$s" target="_blank" rel="noopener nofollow" data-nwo-open="card" data-nwo="%2$s" aria-label="%3$s">%4$s<span>%5$s</span></a>',
+			esc_url( self::wa_link( $text ) ),
+			esc_attr( wp_json_encode( $data ) ),
+			esc_attr( sprintf( /* translators: %s: product name */ __( 'Order %s on WhatsApp', 'mk-desk' ), $data['name'] ) ),
+			self::wa_icon(), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static SVG.
+			esc_html__( 'Order on WhatsApp', 'mk-desk' )
+		);
+	}
+
+	/** Cart page: order the whole cart. */
+	public function cart_button() {
+		if ( ! function_exists( 'WC' ) || ! WC()->cart || WC()->cart->is_empty() ) {
+			return;
+		}
+		$lines = array();
+		$plain = array();
+		$n     = 0;
+		foreach ( WC()->cart->get_cart() as $item ) {
+			$p = isset( $item['data'] ) ? $item['data'] : null;
+			if ( ! $p instanceof WC_Product ) {
+				continue;
+			}
+			$qty    = max( 1, (int) $item['quantity'] );
+			$unit   = (float) wc_get_price_to_display( $p );
+			$option = '';
+			if ( ! empty( $item['variation'] ) && is_array( $item['variation'] ) && function_exists( 'wc_get_formatted_variation' ) ) {
+				$option = str_replace( ', ', ' / ', wp_strip_all_tags( wc_get_formatted_variation( $item['variation'], true, false, false ) ) );
+			}
+			$parent  = $p->get_parent_id() ? wc_get_product( $p->get_parent_id() ) : $p;
+			$name    = wp_strip_all_tags( $parent ? $parent->get_name() : $p->get_name() );
+			$lines[] = array(
+				'id'     => $p->get_id(),
+				'name'   => $name,
+				'option' => $option,
+				'qty'    => $qty,
+				'price'  => $unit,
+				'line'   => $unit * $qty,
+			);
+			$n++;
+			$plain[] = $n . '. ' . $name . ( '' !== $option ? ' - ' . $option : '' ) . ' x ' . $qty . ' = ' . self::money( $unit * $qty );
+		}
+		if ( empty( $lines ) ) {
+			return;
+		}
+		$total = (float) WC()->cart->get_displayed_subtotal();
+		$disc  = (float) WC()->cart->get_discount_total();
+		if ( $disc > 0 ) {
+			$total -= WC()->cart->display_prices_including_tax() ? $disc + (float) WC()->cart->get_discount_tax() : $disc;
+		}
+		$total = max( 0, $total );
+		$text  = __( 'Hi MK Auto Spares, I would like to order:', 'mk-desk' ) . "\n" . implode( "\n", $plain ) . "\n" . __( 'Subtotal (delivery extra):', 'mk-desk' ) . ' ' . self::money( $total );
+		$data  = array(
+			'items' => $lines,
+			'total' => $total,
+			'url'   => wc_get_cart_url(),
+		);
+		printf(
+			'<a class="nwo-btn nwo-btn--cart" href="%1$s" target="_blank" rel="noopener nofollow" data-nwo-open="cart" data-nwo="%2$s">%3$s<span>%4$s</span></a>',
+			esc_url( self::wa_link( $text ) ),
+			esc_attr( wp_json_encode( $data ) ),
+			self::wa_icon(), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static SVG.
+			esc_html__( 'Order whole cart on WhatsApp', 'mk-desk' )
+		);
+	}
+
+	/** The order modal, rendered once per page. */
+	public function modal() {
+		if ( is_admin() ) {
+			return;
+		}
+		$steps = array(
+			__( 'Your details', 'mk-desk' ),
+			__( 'Send on WhatsApp', 'mk-desk' ),
+			__( 'We confirm & deliver', 'mk-desk' ),
+		);
+		$pay_notes = array(
+			'M-Pesa on delivery' => __( 'Pay when it arrives', 'mk-desk' ),
+			'M-Pesa now'         => __( 'We send the till number', 'mk-desk' ),
+			'Cash on delivery'   => __( 'Pay the rider in cash', 'mk-desk' ),
+		);
+		?>
+		<div class="nwo" id="nwo-modal" data-nwo-modal hidden>
+			<div class="nwo__overlay" data-nwo-close></div>
+			<div class="nwo__panel" role="dialog" aria-modal="true" aria-labelledby="nwo-title" tabindex="-1">
+				<div class="nwo__top">
+					<div class="nwo__head">
+						<div class="nwo__headtxt">
+							<p class="nwo__eyebrow"><?php echo self::wa_icon(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static SVG. ?><span><?php esc_html_e( 'Fast WhatsApp order', 'mk-desk' ); ?></span></p>
+							<h2 class="nwo__title" id="nwo-title" data-nwo-title><?php esc_html_e( 'Complete your order', 'mk-desk' ); ?></h2>
+						</div>
+						<button type="button" class="nwo__close" data-nwo-close aria-label="<?php esc_attr_e( 'Close', 'mk-desk' ); ?>"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+					</div>
+					<ol class="nwo-progress" aria-label="<?php esc_attr_e( 'Order progress', 'mk-desk' ); ?>">
+						<?php foreach ( $steps as $i => $label ) : ?>
+							<li class="nwo-progress__step<?php echo 0 === $i ? ' is-active' : ''; ?>" data-nwo-step="<?php echo (int) $i; ?>"><span class="nwo-progress__dot"><?php echo (int) ( $i + 1 ); ?></span><span class="nwo-progress__label"><?php echo esc_html( $label ); ?></span></li>
+						<?php endforeach; ?>
+					</ol>
+				</div>
+
+				<form class="nwo-form" data-nwo-form novalidate>
+					<div class="nwo-body">
+						<div class="nwo-card">
+							<div class="nwo-sum" data-nwo-sum></div>
+							<div class="nwo-opts" data-nwo-opts hidden></div>
+							<div class="nwo-qtyrow" data-nwo-qtyrow>
+								<div class="nwo-qty__ctrl" role="group" aria-label="<?php esc_attr_e( 'Quantity', 'mk-desk' ); ?>">
+									<button type="button" class="nwo-qty__btn" data-nwo-qty="-1" aria-label="<?php esc_attr_e( 'Decrease quantity', 'mk-desk' ); ?>">&minus;</button>
+									<input type="number" name="qty" class="nwo-qty__input" value="1" min="1" max="20" inputmode="numeric" aria-label="<?php esc_attr_e( 'Quantity', 'mk-desk' ); ?>">
+									<button type="button" class="nwo-qty__btn" data-nwo-qty="1" aria-label="<?php esc_attr_e( 'Increase quantity', 'mk-desk' ); ?>">+</button>
+								</div>
+								<div class="nwo-total"><span><?php esc_html_e( 'Subtotal', 'mk-desk' ); ?></span><strong data-nwo-total aria-live="polite"></strong></div>
+							</div>
+						</div>
+
+						<h3 class="nwo-sec"><span aria-hidden="true">1</span><?php esc_html_e( 'Contact details', 'mk-desk' ); ?></h3>
+						<div class="nwo-f">
+							<label for="nwo-name"><?php esc_html_e( 'Full name', 'mk-desk' ); ?> <span class="nwo-req" aria-hidden="true">*</span></label>
+							<input id="nwo-name" name="name" type="text" autocomplete="name" maxlength="80" placeholder="<?php esc_attr_e( 'e.g. Jane Wanjiku', 'mk-desk' ); ?>" required aria-describedby="nwo-err-name">
+							<p class="nwo-err" id="nwo-err-name"></p>
+						</div>
+
+						<div class="nwo-f">
+							<label for="nwo-phone"><?php esc_html_e( 'Phone / WhatsApp number', 'mk-desk' ); ?> <span class="nwo-req" aria-hidden="true">*</span></label>
+							<div class="nwo-phone">
+								<span class="nwo-phone__cc" aria-hidden="true">+254</span>
+								<input id="nwo-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="16" placeholder="0712 345 678" required aria-describedby="nwo-err-phone">
+							</div>
+							<p class="nwo-err" id="nwo-err-phone"></p>
+						</div>
+
+						<h3 class="nwo-sec"><span aria-hidden="true">2</span><?php esc_html_e( 'Delivery', 'mk-desk' ); ?></h3>
+						<div class="nwo-row2">
+							<div class="nwo-f">
+								<label for="nwo-location"><?php esc_html_e( 'County', 'mk-desk' ); ?> <span class="nwo-req" aria-hidden="true">*</span></label>
+								<div class="nwo-select">
+									<select id="nwo-location" name="location" autocomplete="address-level1" required aria-describedby="nwo-err-location">
+										<option value=""><?php esc_html_e( 'Select county', 'mk-desk' ); ?></option>
+										<?php foreach ( self::counties() as $county ) : ?>
+											<option value="<?php echo esc_attr( $county ); ?>"><?php echo esc_html( $county ); ?></option>
+										<?php endforeach; ?>
+									</select>
+								</div>
+								<p class="nwo-err" id="nwo-err-location"></p>
+							</div>
+							<div class="nwo-f">
+								<label for="nwo-town"><?php esc_html_e( 'Town', 'mk-desk' ); ?> <span class="nwo-req" aria-hidden="true">*</span></label>
+								<input id="nwo-town" name="town" type="text" autocomplete="address-level2" maxlength="60" placeholder="<?php esc_attr_e( 'e.g. Westlands, Thika', 'mk-desk' ); ?>" required aria-describedby="nwo-err-town">
+								<p class="nwo-err" id="nwo-err-town"></p>
+							</div>
+						</div>
+
+						<fieldset class="nwo-f nwo-choice">
+							<legend><?php esc_html_e( 'How do you want to receive it?', 'mk-desk' ); ?></legend>
+							<div class="nwo-cards nwo-cards--2">
+								<label class="nwo-opt"><input type="radio" name="fulfil" value="delivery" checked><span class="nwo-opt__box"><span class="nwo-opt__ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="7" cy="17.5" r="1.7" fill="#fff" stroke="currentColor" stroke-width="1.6"/><circle cx="17" cy="17.5" r="1.7" fill="#fff" stroke="currentColor" stroke-width="1.6"/></svg></span><span class="nwo-opt__txt"><strong><?php esc_html_e( 'Delivery', 'mk-desk' ); ?></strong><small><?php esc_html_e( 'Same day in Nairobi, countrywide 1-3 days', 'mk-desk' ); ?></small></span><span class="nwo-opt__tick" aria-hidden="true"></span></span></label>
+								<label class="nwo-opt"><input type="radio" name="fulfil" value="pickup"><span class="nwo-opt__box"><span class="nwo-opt__ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 10l1.5-5h13L20 10M4 10v10h16V10M4 10h16M10 20v-5h4v5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span><span class="nwo-opt__txt"><strong><?php esc_html_e( 'Pick up', 'mk-desk' ); ?></strong><small><?php esc_html_e( 'Collect at our Nairobi CBD studio', 'mk-desk' ); ?></small></span><span class="nwo-opt__tick" aria-hidden="true"></span></span></label>
+							</div>
+						</fieldset>
+
+						<div data-nwo-delivery>
+							<div class="nwo-f">
+								<label for="nwo-area"><?php esc_html_e( 'Estate, street or landmark (optional)', 'mk-desk' ); ?></label>
+								<input id="nwo-area" name="area" type="text" autocomplete="street-address" maxlength="120" placeholder="<?php esc_attr_e( 'e.g. Kilimani, Argwings Kodhek Rd, near Yaya Centre', 'mk-desk' ); ?>">
+							</div>
+						</div>
+						<p class="nwo-pickup" data-nwo-pickup hidden><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="9.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><span><?php echo esc_html( self::pickup_text() ); ?></span></p>
+						<div class="nwo-ship" data-nwo-ship aria-live="polite" hidden></div>
+
+						<h3 class="nwo-sec"><span aria-hidden="true">3</span><?php esc_html_e( 'Payment', 'mk-desk' ); ?></h3>
+						<fieldset class="nwo-f nwo-choice">
+							<legend><?php esc_html_e( 'How will you pay?', 'mk-desk' ); ?></legend>
+							<div class="nwo-cards">
+								<?php foreach ( self::payments() as $i => $pay ) : ?>
+									<label class="nwo-opt nwo-opt--row"><input type="radio" name="payment" value="<?php echo esc_attr( $pay ); ?>"<?php checked( 0, $i ); ?>><span class="nwo-opt__box"><span class="nwo-opt__txt"><strong><?php echo esc_html( $pay ); ?></strong><?php if ( isset( $pay_notes[ $pay ] ) ) : ?><small><?php echo esc_html( $pay_notes[ $pay ] ); ?></small><?php endif; ?></span><span class="nwo-opt__tick" aria-hidden="true"></span></span></label>
+								<?php endforeach; ?>
+							</div>
+						</fieldset>
+
+						<div class="nwo-f">
+							<label for="nwo-note"><?php esc_html_e( 'Anything else? (optional)', 'mk-desk' ); ?></label>
+							<textarea id="nwo-note" name="note" rows="2" maxlength="300" placeholder="<?php esc_attr_e( 'Preferred delivery time, colour question, styling request...', 'mk-desk' ); ?>"></textarea>
+						</div>
+
+						<div class="nwo-hp" aria-hidden="true">
+							<label for="nwo-website">Website</label>
+							<input id="nwo-website" name="website" type="text" tabindex="-1" autocomplete="off">
+						</div>
+
+						<ul class="nwo-trust">
+							<li><?php esc_html_e( 'No payment now', 'mk-desk' ); ?></li>
+							<li><?php esc_html_e( 'We confirm stock first', 'mk-desk' ); ?></li>
+							<li><?php esc_html_e( '7-day returns', 'mk-desk' ); ?></li>
+						</ul>
+					</div>
+
+					<div class="nwo-foot">
+						<p class="nwo-formerr" data-nwo-formerr role="alert" hidden></p>
+						<dl class="nwo-bill">
+							<div><dt><?php esc_html_e( 'Subtotal', 'mk-desk' ); ?></dt><dd data-nwo-bsub></dd></div>
+							<div><dt><?php esc_html_e( 'Delivery', 'mk-desk' ); ?></dt><dd data-nwo-bship><?php esc_html_e( 'Select your county', 'mk-desk' ); ?></dd></div>
+						</dl>
+						<div class="nwo-foot__row">
+							<div class="nwo-foot__total"><span><?php esc_html_e( 'Total', 'mk-desk' ); ?></span><strong data-nwo-foottotal aria-live="polite"></strong></div>
+							<button type="submit" class="nwo-submit"><?php echo self::wa_icon(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static SVG. ?><span><?php esc_html_e( 'Send order', 'mk-desk' ); ?></span></button>
+						</div>
+						<p class="nwo-small"><?php esc_html_e( 'WhatsApp opens with your order ready. Just tap send.', 'mk-desk' ); ?></p>
+					</div>
+				</form>
+
+				<div class="nwo-done" data-nwo-done hidden>
+					<div class="nwo-done__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.2 4.2L19 7"/></svg></div>
+					<h3 class="nwo-done__title" tabindex="-1"><?php esc_html_e( 'Almost done - tap send on WhatsApp', 'mk-desk' ); ?></h3>
+					<p class="nwo-done__text"><?php esc_html_e( 'WhatsApp has opened with your order already written. Tap send and our parts team will confirm availability, delivery and payment within minutes.', 'mk-desk' ); ?></p>
+					<p class="nwo-done__ref"><?php esc_html_e( 'Your order reference', 'mk-desk' ); ?> <strong data-nwo-ref></strong></p>
+					<a class="nwo-submit nwo-done__wa" data-nwo-again href="#" target="_blank" rel="noopener nofollow"><?php echo self::wa_icon(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static SVG. ?><span><?php esc_html_e( 'Open WhatsApp again', 'mk-desk' ); ?></span></a>
+					<button type="button" class="nwo-done__close" data-nwo-close><?php esc_html_e( 'Continue shopping', 'mk-desk' ); ?></button>
+				</div>
+			</div>
+		</div>
+		<?php
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* AJAX                                                                */
+	/* ------------------------------------------------------------------ */
+
+	/**
+	 * Variation options for a variable product (used when ordering from a
+	 * product card). Read-only public data, cached; no nonce so cached pages work.
+	 */
+	public function ajax_product() {
+		$id      = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$product = ( $id && function_exists( 'wc_get_product' ) ) ? wc_get_product( $id ) : null;
+		if ( ! $product || ! $product->is_type( 'variable' ) || 'publish' !== $product->get_status() ) {
+			wp_send_json_error( array( 'message' => 'not_found' ), 404 );
+		}
+		$mod  = $product->get_date_modified();
+		$ckey = 'mkd_wo_p_' . $id . '_' . ( $mod ? $mod->getTimestamp() : 0 );
+		$hit  = get_transient( $ckey );
+		if ( is_array( $hit ) ) {
+			wp_send_json_success( $hit );
+		}
+		$attrs = array();
+		foreach ( $product->get_variation_attributes() as $attr => $options ) {
+			$opts = array();
+			$tax  = taxonomy_exists( $attr );
+			if ( $tax ) {
+				$terms = wc_get_product_terms( $id, $attr, array( 'fields' => 'all' ) );
+				foreach ( $terms as $t ) {
+					if ( in_array( $t->slug, (array) $options, true ) ) {
+						$opts[] = array( 'v' => $t->slug, 't' => $t->name );
+					}
+				}
+			} else {
+				foreach ( (array) $options as $o ) {
+					$opts[] = array( 'v' => (string) $o, 't' => (string) $o );
+				}
+			}
+			$attrs[] = array(
+				'key'     => 'attribute_' . sanitize_title( $attr ),
+				'label'   => wc_attribute_label( $attr, $product ),
+				'options' => $opts,
+			);
+		}
+		$vars = array();
+		foreach ( array_slice( $product->get_available_variations(), 0, 150 ) as $v ) {
+			$vars[] = array(
+				'id'    => (int) $v['variation_id'],
+				'a'     => (array) $v['attributes'],
+				'p'     => (float) $v['display_price'],
+				'img'   => ! empty( $v['image']['thumb_src'] ) ? (string) $v['image']['thumb_src'] : '',
+				'stock' => ! empty( $v['is_in_stock'] ) ? 1 : 0,
+			);
+		}
+		$out = array(
+			'attrs' => $attrs,
+			'vars'  => $vars,
+		);
+		set_transient( $ckey, $out, HOUR_IN_SECONDS );
+		wp_send_json_success( $out );
+	}
+
+	/** Save the order as a lead. */
+	public function ajax_lead() {
+		// Public form on cached pages: a stale nonce must not block real customers,
+		// so spam is stopped with a honeypot, a fill-time trap, link filtering,
+		// length caps and a per-IP limit instead (same approach as Tabarak 1.12.1).
+		$in = wp_unslash( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitised per field below.
+		if ( ! empty( $in['website'] ) || ! isset( $in['tt'] ) || (int) $in['tt'] < 2500 ) {
+			wp_send_json_success( array( 'ok' => 1 ) ); // Bot: quietly ignore.
+		}
+		$note = isset( $in['note'] ) ? (string) $in['note'] : '';
+		if ( preg_match_all( '#https?://#i', $note ) > 0 ) {
+			wp_send_json_success( array( 'ok' => 1 ) ); // Link spam: quietly ignore.
+		}
+		$ip  = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$rk  = 'mkd_wo_rl_' . md5( $ip );
+		$cnt = (int) get_transient( $rk );
+		if ( $cnt >= 12 ) {
+			wp_send_json_error( array( 'message' => __( 'Too many orders from this connection. Please chat with us on WhatsApp.', 'mk-desk' ) ), 429 );
+		}
+		set_transient( $rk, $cnt + 1, HOUR_IN_SECONDS );
+
+		$name  = isset( $in['name'] ) ? self::cut( sanitize_text_field( (string) $in['name'] ), 80 ) : '';
+		$phone = self::normalise_phone( isset( $in['phone'] ) ? $in['phone'] : '' );
+		$ref   = isset( $in['ref'] ) ? strtoupper( sanitize_text_field( (string) $in['ref'] ) ) : '';
+		if ( strlen( $name ) < 2 || '' === $phone || ! preg_match( '/^MK-\d{6}-[A-Z0-9]{4}$/', $ref ) ) {
+			wp_send_json_error( array( 'message' => __( 'Please check your name and phone number.', 'mk-desk' ) ), 400 );
+		}
+
+		// Idempotent: the same reference is only stored once.
+		$dupe = get_posts( array(
+			'post_type'      => self::CPT,
+			'post_status'    => 'any',
+			'title'          => $ref,
+			'posts_per_page' => 1,
+			'fields'         => 'ids',
+			'no_found_rows'  => true,
+		) );
+		if ( ! empty( $dupe ) ) {
+			wp_send_json_success( array( 'ok' => 1 ) );
+		}
+
+		$items = array();
+		$raw   = isset( $in['items'] ) ? json_decode( (string) $in['items'], true ) : array();
+		if ( is_array( $raw ) ) {
+			foreach ( array_slice( $raw, 0, 30 ) as $it ) {
+				if ( ! is_array( $it ) ) {
+					continue;
+				}
+				$pid  = isset( $it['id'] ) ? absint( $it['id'] ) : 0;
+				$prod = ( $pid && function_exists( 'wc_get_product' ) ) ? wc_get_product( $pid ) : null;
+				$nm   = isset( $it['name'] ) ? self::cut( sanitize_text_field( (string) $it['name'] ), 160 ) : '';
+				if ( $prod ) {
+					$par = $prod->get_parent_id() ? wc_get_product( $prod->get_parent_id() ) : $prod;
+					$nm  = wp_strip_all_tags( $par ? $par->get_name() : $prod->get_name() );
+				}
+				if ( '' === $nm ) {
+					continue;
+				}
+				$qty     = isset( $it['qty'] ) ? min( 99, max( 1, (int) $it['qty'] ) ) : 1;
+				$price   = isset( $it['price'] ) ? max( 0, (float) $it['price'] ) : 0;
+				if ( $prod && ! $prod->is_type( 'variable' ) ) {
+					$price = (float) wc_get_price_to_display( $prod ); // Trust the store price, not the browser.
+				}
+				$items[] = array(
+					'id'     => $pid,
+					'name'   => $nm,
+					'option' => isset( $it['option'] ) ? self::cut( sanitize_text_field( (string) $it['option'] ), 160 ) : '',
+					'qty'    => $qty,
+					'price'  => $price,
+					'line'   => $price * $qty,
+				);
+			}
+		}
+		if ( empty( $items ) ) {
+			wp_send_json_error( array( 'message' => __( 'Please choose a product first.', 'mk-desk' ) ), 400 );
+		}
+		$total = 0.0;
+		foreach ( $items as $it ) {
+			$total += $it['line'];
+		}
+
+		$fulfil   = ( isset( $in['fulfil'] ) && 'pickup' === $in['fulfil'] ) ? 'pickup' : 'delivery';
+		$location = isset( $in['location'] ) ? self::cut( sanitize_text_field( (string) $in['location'] ), 80 ) : '';
+		$town     = isset( $in['town'] ) ? self::cut( sanitize_text_field( (string) $in['town'] ), 60 ) : '';
+		$area     = isset( $in['area'] ) ? self::cut( sanitize_text_field( (string) $in['area'] ), 120 ) : '';
+		if ( '' === $location || '' === $town ) {
+			wp_send_json_error( array( 'message' => __( 'Please choose your county and enter your town.', 'mk-desk' ) ), 400 );
+		}
+		$place    = $town . ', ' . $location . ' County';
+		$payment  = isset( $in['payment'] ) ? sanitize_text_field( (string) $in['payment'] ) : '';
+		if ( ! in_array( $payment, self::payments(), true ) ) {
+			$payment = '';
+		}
+		$delivery = 'pickup' === $fulfil ? self::pickup_text() : trim( ( '' !== $area ? $area . ', ' : '' ) . $place, ', ' );
+		$source   = isset( $in['source'] ) && in_array( $in['source'], array( 'product', 'card', 'cart' ), true ) ? (string) $in['source'] : 'product';
+		$page     = isset( $in['page'] ) ? esc_url_raw( (string) $in['page'] ) : '';
+		if ( '' !== $page && wp_parse_url( $page, PHP_URL_HOST ) !== wp_parse_url( home_url(), PHP_URL_HOST ) ) {
+			$page = '';
+		}
+
+		$data = array(
+			'ref'      => $ref,
+			'name'     => $name,
+			'phone'    => $phone,
+			'items'    => $items,
+			'total'    => $total,
+			'fulfil'   => $fulfil,
+			'delivery' => $delivery,
+			'county'   => $location,
+			'town'     => $town,
+			'payment'  => $payment,
+			'ship'     => isset( $in['ship'] ) && '' !== (string) $in['ship'] ? (int) $in['ship'] : '',
+			'note'     => self::cut( sanitize_textarea_field( $note ), 300 ),
+			'source'   => $source,
+			'page'     => $page,
+		);
+
+		$post_id = wp_insert_post( array(
+			'post_type'   => self::CPT,
+			'post_status' => 'private',
+			'post_title'  => $ref,
+		), true );
+		if ( is_wp_error( $post_id ) || ! $post_id ) {
+			wp_send_json_error( array( 'message' => 'save_failed' ), 500 );
+		}
+		update_post_meta( $post_id, self::META, $data );
+		update_post_meta( $post_id, self::STATUS, 'new' );
+
+		/** Fires after a WhatsApp order lead is saved. */
+		do_action( 'mkd_wa_order_saved', $post_id, $data );
+
+		wp_send_json_success( array( 'ok' => 1 ) );
+	}
+
+	private static function cut( $s, $len ) {
+		$s = (string) $s;
+		return function_exists( 'mb_substr' ) ? mb_substr( $s, 0, $len ) : substr( $s, 0, $len );
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Admin: WooCommerce > WhatsApp Orders                                */
+	/* ------------------------------------------------------------------ */
+
+	public function menu() {
+		$new   = self::count_new();
+		$title = __( 'WhatsApp Orders', 'mk-desk' );
+		if ( $new > 0 ) {
+			$title .= ' <span class="awaiting-mod"><span class="pending-count">' . (int) $new . '</span></span>';
+		}
+		add_submenu_page( 'woocommerce', __( 'WhatsApp Orders', 'mk-desk' ), $title, 'manage_woocommerce', self::PAGE, array( $this, 'page' ) );
+	}
+
+	private static function count_new() {
+		$q = new WP_Query( array(
+			'post_type'      => self::CPT,
+			'post_status'    => 'private',
+			'posts_per_page' => 1,
+			'fields'         => 'ids',
+			'meta_key'       => self::STATUS, // phpcs:ignore WordPress.DB.SlowDBQuery
+			'meta_value'     => 'new', // phpcs:ignore WordPress.DB.SlowDBQuery
+		) );
+		return (int) $q->found_posts;
+	}
+
+	/** Status change / delete (POST, nonce + capability checked). */
+	public function admin_update() {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_die( esc_html__( 'Sorry, you are not allowed to do that.', 'mk-desk' ) );
+		}
+		check_admin_referer( 'mkd_wa_order_status' );
+		$id = isset( $_POST['order_id'] ) ? absint( $_POST['order_id'] ) : 0;
+		if ( $id && self::CPT === get_post_type( $id ) ) {
+			if ( ! empty( $_POST['nwo_delete'] ) ) {
+				wp_delete_post( $id, true );
+			} else {
+				$st = isset( $_POST['status'] ) ? sanitize_key( wp_unslash( $_POST['status'] ) ) : '';
+				if ( array_key_exists( $st, self::statuses() ) ) {
+					update_post_meta( $id, self::STATUS, $st );
+				}
+			}
+		}
+		$back = isset( $_POST['back'] ) ? esc_url_raw( wp_unslash( $_POST['back'] ) ) : '';
+		wp_safe_redirect( $back ? $back : admin_url( 'admin.php?page=' . self::PAGE ) );
+		exit;
+	}
+
+	public function page() {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			return;
+		}
+		$statuses = self::statuses();
+		$filter   = isset( $_GET['nwo_status'] ) ? sanitize_key( wp_unslash( $_GET['nwo_status'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$paged    = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$args     = array(
+			'post_type'      => self::CPT,
+			'post_status'    => 'private',
+			'posts_per_page' => 30,
+			'paged'          => $paged,
+			'orderby'        => 'date',
+			'order'          => 'DESC',
+		);
+		if ( array_key_exists( $filter, $statuses ) ) {
+			$args['meta_key']   = self::STATUS; // phpcs:ignore WordPress.DB.SlowDBQuery
+			$args['meta_value'] = $filter; // phpcs:ignore WordPress.DB.SlowDBQuery
+		}
+		$q    = new WP_Query( $args );
+		$base = admin_url( 'admin.php?page=' . self::PAGE );
+		$self = add_query_arg( array( 'nwo_status' => $filter, 'paged' => $paged ), $base );
+		?>
+		<div class="wrap">
+			<h1><?php esc_html_e( 'WhatsApp Orders', 'mk-desk' ); ?></h1>
+			<p class="description"><?php echo esc_html( sprintf( /* translators: %s: phone number */ __( 'Every order sent from the "Order on WhatsApp" pop-up is saved here, even if the customer never presses send in WhatsApp. Orders go to WhatsApp +%s (Settings > MKauto Desk > WhatsApp link or number).', 'mk-desk' ), self::whatsapp_number() ) ); ?></p>
+			<?php if ( class_exists( 'MKD_Desk' ) ) : ?><div class="notice notice-info inline" style="margin:12px 0"><p><?php esc_html_e( 'Tip: these orders are now also managed in MKauto Desk, next to appointments and payment plans.', 'mk-desk' ); ?> <a class="button button-primary" href="<?php echo esc_url( admin_url( 'admin.php?page=mkd-orders' ) ); ?>"><?php esc_html_e( 'Open in MKauto Desk', 'mk-desk' ); ?></a></p></div><?php endif; ?>
+			<?php $this->fees_box(); ?>
+			<ul class="subsubsub">
+				<li><a href="<?php echo esc_url( $base ); ?>"<?php echo '' === $filter ? ' class="current"' : ''; ?>><?php esc_html_e( 'All', 'mk-desk' ); ?></a> |</li>
+				<?php $last = array_key_last( $statuses ); ?>
+				<?php foreach ( $statuses as $k => $label ) : ?>
+					<li><a href="<?php echo esc_url( add_query_arg( 'nwo_status', $k, $base ) ); ?>"<?php echo $filter === $k ? ' class="current"' : ''; ?>><?php echo esc_html( $label ); ?></a><?php echo $k !== $last ? ' |' : ''; ?></li>
+				<?php endforeach; ?>
+			</ul>
+			<table class="widefat striped" style="clear:both">
+				<thead><tr>
+					<th><?php esc_html_e( 'Ref', 'mk-desk' ); ?></th>
+					<th><?php esc_html_e( 'Date', 'mk-desk' ); ?></th>
+					<th><?php esc_html_e( 'Customer', 'mk-desk' ); ?></th>
+					<th><?php esc_html_e( 'Phone', 'mk-desk' ); ?></th>
+					<th style="width:26%"><?php esc_html_e( 'Items', 'mk-desk' ); ?></th>
+					<th><?php esc_html_e( 'Total', 'mk-desk' ); ?></th>
+					<th><?php esc_html_e( 'Delivery', 'mk-desk' ); ?></th>
+					<th><?php esc_html_e( 'Payment', 'mk-desk' ); ?></th>
+					<th><?php esc_html_e( 'Status', 'mk-desk' ); ?></th>
+				</tr></thead>
+				<tbody>
+				<?php if ( ! $q->have_posts() ) : ?>
+					<tr><td colspan="9"><?php esc_html_e( 'No WhatsApp orders yet.', 'mk-desk' ); ?></td></tr>
+				<?php endif; ?>
+				<?php foreach ( $q->posts as $post ) : ?>
+					<?php
+					$d  = get_post_meta( $post->ID, self::META, true );
+					$d  = is_array( $d ) ? $d : array();
+					$st = (string) get_post_meta( $post->ID, self::STATUS, true );
+					$ph = isset( $d['phone'] ) ? (string) $d['phone'] : '';
+					$nm = isset( $d['name'] ) ? (string) $d['name'] : '';
+					$rf = isset( $d['ref'] ) ? (string) $d['ref'] : $post->post_title;
+					$hi = sprintf( /* translators: 1: customer name, 2: order ref */ __( 'Hi %1$s, this is MK Auto Spares about your order %2$s.', 'mk-desk' ), $nm, $rf );
+					?>
+					<tr>
+						<td><strong><?php echo esc_html( $rf ); ?></strong><?php if ( ! empty( $d['page'] ) ) : ?><br><a href="<?php echo esc_url( $d['page'] ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'page', 'mk-desk' ); ?></a><?php endif; ?></td>
+						<td><?php echo esc_html( get_the_date( 'j M Y, H:i', $post ) ); ?></td>
+						<td><?php echo esc_html( $nm ); ?></td>
+						<td><?php if ( '' !== $ph ) : ?><a href="<?php echo esc_url( 'https://wa.me/' . $ph . '?text=' . rawurlencode( $hi ) ); ?>" target="_blank" rel="noopener">+<?php echo esc_html( $ph ); ?></a><?php endif; ?></td>
+						<td>
+							<?php
+							$n = 0;
+							foreach ( isset( $d['items'] ) ? (array) $d['items'] : array() as $it ) {
+								$n++;
+								echo esc_html( $n . '. ' . $it['name'] . ( ! empty( $it['option'] ) ? ' - ' . $it['option'] : '' ) . ' x ' . (int) $it['qty'] ) . '<br>';
+							}
+							if ( ! empty( $d['note'] ) ) {
+								echo '<em>' . esc_html( $d['note'] ) . '</em>';
+							}
+							?>
+						</td>
+						<td><?php echo esc_html( self::money( isset( $d['total'] ) ? $d['total'] : 0 ) ); ?></td>
+						<td><?php echo esc_html( isset( $d['delivery'] ) ? $d['delivery'] : '' ); ?></td>
+						<td><?php echo esc_html( isset( $d['payment'] ) ? $d['payment'] : '' ); ?></td>
+						<td>
+							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
+								<?php wp_nonce_field( 'mkd_wa_order_status' ); ?>
+								<input type="hidden" name="action" value="mkd_wa_order_status">
+								<input type="hidden" name="order_id" value="<?php echo (int) $post->ID; ?>">
+								<input type="hidden" name="back" value="<?php echo esc_attr( $self ); ?>">
+								<select name="status">
+									<?php foreach ( $statuses as $k => $label ) : ?>
+										<option value="<?php echo esc_attr( $k ); ?>"<?php selected( $st, $k ); ?>><?php echo esc_html( $label ); ?></option>
+									<?php endforeach; ?>
+								</select>
+								<button type="submit" class="button button-small"><?php esc_html_e( 'Save', 'mk-desk' ); ?></button>
+								<button type="submit" class="button-link button-link-delete" name="nwo_delete" value="1" onclick="return confirm('<?php echo esc_js( __( 'Delete this order permanently?', 'mk-desk' ) ); ?>');"><?php esc_html_e( 'Delete', 'mk-desk' ); ?></button>
+							</form>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+			<?php
+			if ( $q->max_num_pages > 1 ) {
+				echo '<div class="tablenav"><div class="tablenav-pages">';
+				echo wp_kses_post( paginate_links( array(
+					'base'    => add_query_arg( 'paged', '%#%', add_query_arg( 'nwo_status', $filter, $base ) ),
+					'format'  => '',
+					'current' => $paged,
+					'total'   => (int) $q->max_num_pages,
+				) ) );
+				echo '</div></div>';
+			}
+			?>
+		</div>
+		<?php
+	}
+}

@@ -21,6 +21,7 @@ Two packages:
 ```
 mk-auto-elite/   Theme   - storefront, fitment engine, WooCommerce, content, SEO
 mk-auto-core/    Plugin  - staff sign-in screen and login guard
+mk-desk/         Plugin  - MKauto Desk back office (POS, sourcing, orders, plans, garage)
 ```
 
 WordPress core, WooCommerce, third-party plugins, uploads and the database are
@@ -31,7 +32,8 @@ WordPress core, WooCommerce, third-party plugins, uploads and the database are
 1. **Commit directly to `main`.** No feature branches, no pull requests.
 2. **Every change keeps every related file current in the same commit:** the
    version bump (theme: `style.css` header and `MK_AUTO_ELITE_VERSION` in
-   `functions.php`; plugin: header and `MKAC_VERSION` in `mk-auto-core.php`),
+   `functions.php`; plugin: header and `MKAC_VERSION` in `mk-auto-core.php`;
+   desk: header and `MKD_VERSION` in `mk-desk/mk-desk.php`),
    the package `readme.txt` changelog, the README badges, Security line and
    Release history table, and any doc in this list whose subject changed.
 3. **Never hardcode editable content.** Phone, WhatsApp, email, address, hours,
@@ -89,6 +91,9 @@ WordPress core, WooCommerce, third-party plugins, uploads and the database are
 | Front-end hardening, robots.txt | `inc/src/Security.php` |
 | Setup wizard, starter pages / articles / menus | `inc/src/Admin/*.php`, `inc/content/` |
 | Sign-in screen look | `mk-auto-core/includes/class-mkac-login-brand.php`, `assets/css/login.css` |
+| MKauto Desk shell, menu, settings, exports | `mk-desk/includes/class-mkd-desk.php` |
+| Till, invoices, neighbour-sourced lines | `mk-desk/includes/class-mkd-desk-pos.php`, `class-mkd-desk-source.php`, `assets/js/mk-desk.js` |
+| Garage and service bookings | `mk-desk/includes/class-mkd-desk-appts.php` |
 | Lockout, password policy, sessions | `mk-auto-core/includes/class-mkac-login-guard.php` |
 
 `functions.php` stays thin: environment guard, constants, autoloader, boot.
