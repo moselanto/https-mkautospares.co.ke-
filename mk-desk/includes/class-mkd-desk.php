@@ -222,6 +222,7 @@ class MKD_Desk {
 			'appt_close'    => '17:30',
 			'appt_step'     => 30,
 			'appt_duration' => 60,
+			'garage_terms'  => "Booking: A booking made on this website is a request. Your slot is confirmed only when we reply on WhatsApp or call you.\nInspection and quote: We inspect the vehicle and agree the price with you before any work starts. Any inspection or diagnosis fee is stated when we confirm your booking.\nExtra work: If we find further faults, we contact you first. No additional work or parts are charged without your approval.\nParts: We explain the genuine, OEM and ex-Japan options and their prices so you can choose. Replaced parts are returned to you on request.\nYour own parts: You may bring your own parts. We charge labour only and cannot guarantee parts we did not supply.\nPayment: Payment is due when the work is complete, by M-Pesa, cash or card. Parts that must be specially ordered may need a deposit. The vehicle is released once payment is made.\nChanges and cancellations: Please tell us on WhatsApp at least 2 hours before your slot if you need to change or cancel. If you arrive more than 30 minutes late we may need to move you to the next free slot.\nMobile mechanic: The vehicle must be in a safe place where we can work. Any call-out fee is agreed before we travel. Some jobs can only be done at the garage.\nVehicle and valuables: Please remove valuables before handing over the vehicle. We take reasonable care of your vehicle but are not responsible for items left inside. A short road test may be done to check the work.\nCollection: Please collect the vehicle on the day we tell you it is ready. Vehicles left for more than 48 hours after that may attract a daily storage charge.\nWorkmanship: If a problem with our work appears, contact us straight away with your booking reference and we will inspect it at no cost. Warranty on parts follows the terms stated on your receipt.\nYour details: We use your name, phone and vehicle details only to manage your booking and service history. We do not share them.",
 			'staff'         => '',
 			'mpesa_details' => '',
 			'auto_wa'       => 0,
@@ -661,7 +662,7 @@ class MKD_Desk {
 		self::field_num( 'appt_duration', 'Default appointment length (minutes)', $s['appt_duration'], '' );
 		self::field_num( 'appt_capacity', 'Clients per time slot', $s['appt_capacity'], 'When a time is full the website asks the client to choose another time.' );
 		self::field_text( 'staff', 'Mechanics / team', $s['staff'], 'Comma separated names to assign garage jobs, e.g. Peter, Kamau' );
-		echo '</div></section>';
+		echo '</div><label class="nd-field" id="nd-garage-terms"><span class="nd-label">Garage &amp; service terms and conditions</span><textarea name="garage_terms" rows="12">' . esc_textarea( $s['garage_terms'] ) . '</textarea><span class="nd-mut nd-small">One term per line, written as Heading: text. Customers must tick to agree before booking on the Garage &amp; Service page. Leave empty to restore the default terms.</span></label></section>';
 
 		echo '<section class="nd-card"><header class="nd-card__h"><h2>Delivery fees</h2></header><p class="nd-mut">The WhatsApp order pop-up uses your WooCommerce shipping zones first, then these fallback fees.</p>' . self::btn( admin_url( 'admin.php?page=mkd-wa-orders&nwo_fees=1' ), 'Edit delivery fees', 'nd-btn--ghost' ) . '</section>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		echo '<section class="nd-card"><header class="nd-card__h"><h2>Business details (invoices and receipts)</h2></header><div class="nd-fields nd-fields--2">';
@@ -807,6 +808,8 @@ class MKD_Desk {
 		}
 		$out['invoice_logo']   = isset( $in['invoice_logo'] ) ? esc_url_raw( trim( $in['invoice_logo'] ) ) : '';
 		$out['invoice_note']   = isset( $in['invoice_note'] ) ? mb_substr( sanitize_textarea_field( $in['invoice_note'] ), 0, 400 ) : '';
+		$gt                   = isset( $in['garage_terms'] ) ? trim( mb_substr( sanitize_textarea_field( $in['garage_terms'] ), 0, 6000 ) ) : '';
+		$out['garage_terms']   = '' === $gt ? self::defaults()['garage_terms'] : $gt;
 		$out['mkt_soft_optin'] = empty( $in['mkt_soft_optin'] ) ? 0 : 1;
 		if ( current_user_can( 'manage_options' ) ) {
 			$out['staff_export'] = empty( $in['staff_export'] ) ? 0 : 1;

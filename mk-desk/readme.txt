@@ -3,7 +3,7 @@ Contributors: pimofy
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 1.3.0
+Stable tag: 1.3.1
 License: GPLv2 or later
 
 The back office for MK Auto Spares, Kirinyaga Road, Nairobi.
@@ -27,6 +27,9 @@ One black and red desk under wp-admin > MKauto Desk:
 3. Add shop managers under Users > Add New (role Shop manager), then set their limits under MKauto Desk > Team.
 
 == Changelog ==
+
+= 1.3.1 =
+* Garage & service terms and conditions: customers must tick to agree before booking (checked in the browser and on the server). Terms open in a pop-up from the form and are listed on the page. Editable in Desk > Settings (one term per line, Heading: text). Agreement and terms version are recorded in the booking history, the WhatsApp message and the shop e-mail.
 
 = 1.3.0 =
 * Garage & Service page redesigned form-first: the booking form now sits at the top beside a short headline (and straight under it on phones), in three short steps. Services became compact cards that preselect the service and jump to the form; steps, contact details and trust points moved into a slim column; a sticky "Book a service" button appears on phones when the form is off screen.

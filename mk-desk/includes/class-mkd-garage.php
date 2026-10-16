@@ -155,6 +155,41 @@ class MKD_Garage {
 		);
 	}
 
+	/**
+	 * Garage terms as array( array( heading, text ), ... ). Edited in Desk > Settings.
+	 * Filter: mkd_garage_terms.
+	 */
+	public static function terms() {
+		$s   = MKD_Desk::settings();
+		$raw = trim( (string) ( isset( $s['garage_terms'] ) ? $s['garage_terms'] : '' ) );
+		if ( '' === $raw ) {
+			$raw = MKD_Desk::defaults()['garage_terms'];
+		}
+		$out = array();
+		foreach ( preg_split( '/\r?\n/', $raw ) as $line ) {
+			$line = trim( $line );
+			if ( '' === $line ) {
+				continue;
+			}
+			$p     = strpos( $line, ':' );
+			$out[] = ( false !== $p && $p < 60 ) ? array( trim( substr( $line, 0, $p ) ), trim( substr( $line, $p + 1 ) ) ) : array( '', $line );
+		}
+		return apply_filters( 'mkd_garage_terms', $out );
+	}
+
+	/** Short version tag of the current terms, saved with each booking. */
+	public static function terms_version() {
+		return substr( md5( wp_json_encode( self::terms() ) ), 0, 8 );
+	}
+
+	private static function terms_list( $terms ) {
+		$h = '<ol class="mkg-terms__list">';
+		foreach ( $terms as $tm ) {
+			$h .= '<li>' . ( '' !== $tm[0] ? '<strong>' . esc_html( $tm[0] ) . '.</strong> ' : '' ) . esc_html( $tm[1] ) . '</li>';
+		}
+		return $h . '</ol>';
+	}
+
 	public static function render() {
 		$services = MKD_Desk_Appts::services();
 		$cards    = array_intersect_key( self::cards(), $services );
@@ -177,6 +212,7 @@ class MKD_Garage {
 			'alignment'  => '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/><path d="M12 3v7M12 14v7M3 12h7M14 12h7"/>',
 			'fitting'    => '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>',
 		);
+		$terms    = self::terms();
 		ob_start();
 		?>
 		<div class="mkg" id="mkg">
@@ -232,13 +268,17 @@ class MKD_Garage {
 							<label class="mkg-f"><span>Describe the problem <em>(optional)</em></span><textarea name="notes" rows="2" maxlength="600" placeholder="e.g. Squeaking when braking, engine light on"></textarea></label>
 						</fieldset>
 
+						<label class="mkg-agree" data-mkg-agree>
+							<input type="checkbox" name="terms" value="1" required>
+							<span>I have read and agree to the <a href="#mkg-terms" data-mkg-terms-open>Garage &amp; service terms</a>, including that the price is agreed before work starts. <i>*</i></span>
+						</label>
 						<div class="mkg-hp" aria-hidden="true"><label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
 						<p class="mkg-error" data-mkg-error role="alert" hidden></p>
 						<button type="submit" class="mkg-btn mkg-btn--red mkg-btn--block" data-mkg-submit>
 							<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-3.3-.8-2.8-1.1-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2.1 1-2.4c.3-.3.6-.3.8-.3h.6c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1.1c.2-.3.4-.2.6-.1l2 .9c.3.2.5.2.5.4.1.1.1.7-.1 1.3z"/></svg>
 							<span>Book &amp; confirm on WhatsApp</span>
 						</button>
-						<p class="mkg-fine">Free to book. Your details are used only for this booking.</p>
+						<p class="mkg-fine">Free to book. Your details are used only for this booking. <a href="#mkg-terms" data-mkg-terms-open>Terms</a></p>
 					</form>
 
 					<div class="mkg-done" data-mkg-done hidden>
@@ -299,6 +339,22 @@ class MKD_Garage {
 					<details><summary>How do I pay?</summary><p>M-Pesa, cash or card. You receive an itemised receipt on WhatsApp or e-mail.</p></details>
 				</div>
 			</section>
+
+			<section class="mkg-sec mkg-terms" id="mkg-terms">
+				<header class="mkg-sec__h">
+					<h2>Garage &amp; service terms</h2>
+					<p>Please read before booking.</p>
+				</header>
+				<?php echo self::terms_list( $terms ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in terms_list(). ?>
+			</section>
+
+			<dialog class="mkg-dlg" data-mkg-terms aria-labelledby="mkg-dlg-h">
+				<div class="mkg-dlg__box">
+					<header class="mkg-dlg__h"><h2 id="mkg-dlg-h">Garage &amp; service terms</h2><button type="button" class="mkg-dlg__x" data-mkg-terms-close aria-label="Close">&times;</button></header>
+					<div class="mkg-dlg__body"><?php echo self::terms_list( $terms ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in terms_list(). ?></div>
+					<footer class="mkg-dlg__f"><button type="button" class="mkg-btn mkg-btn--red mkg-btn--block" data-mkg-terms-accept>I agree</button></footer>
+				</div>
+			</dialog>
 
 			<a class="mkg-sticky" href="#mkg-book" data-mkg-sticky hidden>Book a service</a>
 		</div>
@@ -362,6 +418,8 @@ class MKD_Garage {
 			$err = 'Please enter your name.';
 		} elseif ( '' === $phone || strlen( $phone ) < 11 ) {
 			$err = 'Please enter a valid phone number, e.g. 0712 345 678.';
+		} elseif ( '1' !== self::field( 'terms', 1 ) ) {
+			$err = 'Please tick the box to agree to the Garage & service terms.';
 		}
 		if ( $err ) {
 			wp_send_json_error( array( 'message' => $err ), 400 );
@@ -394,7 +452,7 @@ class MKD_Garage {
 				'mileage'       => $mileage,
 				'notes'         => $note,
 				'source'        => 'website',
-				'log'           => wp_json_encode( array( array( 't' => $now, 'u' => 'Website', 'm' => 'Booked on the Garage & Service page, sent to WhatsApp.' ) ) ),
+				'log'           => wp_json_encode( array( array( 't' => $now, 'u' => 'Website', 'm' => 'Booked on the Garage & Service page, sent to WhatsApp. Customer agreed to the Garage & service terms (version ' . self::terms_version() . ').' ) ) ),
 				'created_at'    => $now,
 				'updated_at'    => $now,
 			)
@@ -420,6 +478,7 @@ class MKD_Garage {
 		if ( '' !== $notes ) {
 			$lines[] = '*Notes:* ' . $notes;
 		}
+		$lines[] = '*Terms:* I have read and agree to the Garage & service terms.';
 		$lines[] = '';
 		$lines[] = 'Please confirm my slot. Thank you.';
 		$wa      = 'https://wa.me/' . ( class_exists( 'MKD_WA_Order' ) ? MKD_WA_Order::whatsapp_number() : '254702343302' ) . '?text=' . rawurlencode( implode( "\n", $lines ) );

@@ -13,7 +13,7 @@
 		form.querySelectorAll('.is-bad').forEach(function (el) { el.classList.remove('is-bad'); });
 		if (!msg) { $err.hidden = true; return; }
 		$err.textContent = msg; $err.hidden = false;
-		if (field) { var w = field.closest('.mkg-f'); if (w) { w.classList.add('is-bad'); } field.focus({ preventScroll: true }); }
+		if (field) { var w = field.closest('.mkg-f, .mkg-agree'); if (w) { w.classList.add('is-bad'); } field.focus({ preventScroll: true }); }
 		$err.scrollIntoView({ behavior: 'smooth', block: 'center' });
 	}
 	function label(t) {
@@ -21,6 +21,25 @@
 		return ((h % 12) || 12) + ':' + m + (h < 12 ? ' am' : ' pm');
 	}
 	function today() { var n = new Date(); return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0'); }
+
+	/* Terms: open in a pop-up; "I agree" ticks the box. Falls back to the section on the page. */
+	var dlg = d.querySelector('[data-mkg-terms]');
+	d.querySelectorAll('[data-mkg-terms-open]').forEach(function (a) {
+		a.addEventListener('click', function (e) {
+			if (!dlg || typeof dlg.showModal !== 'function') { return; }
+			e.preventDefault();
+			dlg.showModal();
+		});
+	});
+	if (dlg) {
+		dlg.querySelector('[data-mkg-terms-close]').addEventListener('click', function () { dlg.close(); });
+		dlg.querySelector('[data-mkg-terms-accept]').addEventListener('click', function () {
+			form.elements.terms.checked = true;
+			var w = form.querySelector('.mkg-agree'); if (w) { w.classList.remove('is-bad'); }
+			dlg.close();
+		});
+		dlg.addEventListener('click', function (e) { if (e.target === dlg) { dlg.close(); } });
+	}
 
 	/* Service cards preselect the service and bring the form into view. */
 	d.querySelectorAll('[data-mkg-pick]').forEach(function (a) {
@@ -86,6 +105,7 @@
 		if (!$time.value) { return err('Please choose a time.'); }
 		if (f.name.value.trim().length < 2) { return err('Please enter your name.', f.name); }
 		if (f.phone.value.replace(/\D/g, '').length < 9) { return err('Please enter a valid phone number, e.g. 0712 345 678.', f.phone); }
+		if (!f.terms.checked) { return err('Please tick the box to agree to the Garage & service terms.', f.terms); }
 		err('');
 
 		var mobile = window.matchMedia('(max-width: 768px)').matches;
