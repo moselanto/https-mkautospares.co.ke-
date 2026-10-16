@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       MKauto Desk
  * Plugin URI:        https://mkautospares.co.ke/
- * Description:       The back office for MK Auto Spares: point of sale with neighbour sourcing, WhatsApp cart orders, payment plans, garage and service bookings, reminders, follow-ups, marketing, social catalogue, team permissions with an activity log, encrypted customer data and branded Excel reports. Requires WooCommerce.
- * Version:           1.1.0
+ * Description:       The back office for MK Auto Spares: point of sale with neighbour sourcing, WhatsApp cart orders, payment plans, garage and service bookings with a public booking page, reminders, follow-ups, marketing, social catalogue, team permissions with an activity log, encrypted customer data and branded Excel reports. Requires WooCommerce.
+ * Version:           1.2.0
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * WC requires at least: 8.0
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'MKD_VERSION', '1.1.0' );
+define( 'MKD_VERSION', '1.2.0' );
 define( 'MKD_FILE', __FILE__ );
 define( 'MKD_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MKD_URL', plugin_dir_url( __FILE__ ) );
@@ -52,11 +52,12 @@ add_action(
 			);
 			return;
 		}
-		foreach ( array( 'whatsapp', 'xlsx', 'vault', 'staff', 'wa-order', 'followup', 'desk', 'desk-plans', 'desk-appts', 'desk-orders', 'desk-remind', 'desk-pos', 'desk-source', 'desk-mkt', 'desk-social', 'desk-subscribe' ) as $mkd_file ) {
+		foreach ( array( 'whatsapp', 'xlsx', 'vault', 'staff', 'wa-order', 'followup', 'desk', 'desk-plans', 'desk-appts', 'desk-orders', 'desk-remind', 'desk-pos', 'desk-source', 'desk-mkt', 'desk-social', 'desk-subscribe', 'garage' ) as $mkd_file ) {
 			require_once MKD_DIR . 'includes/class-mkd-' . $mkd_file . '.php';
 		}
 		new MKD_WA_Order();
 		new MKD_Desk();
+		MKD_Garage::hooks();
 		MKD_Followup::instance()->boot();
 	},
 	20

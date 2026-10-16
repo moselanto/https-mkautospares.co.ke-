@@ -403,11 +403,11 @@ AJAX actions (all nonce-checked with `mkae_nonce`): `mkae_get_terms`, `mkae_sear
 <sub>Designed, developed and maintained by <a href="https://github.com/moselanto"><b>Pimofy Digital</b></a>, Nairobi &nbsp;&bull;&nbsp; Licensed GPLv2 or later</sub>
 </div>
 
-## MKauto Desk (plugin `mk-desk/`, 1.1.0)
+## MKauto Desk (plugin `mk-desk/`, 1.2.0)
 
 The shop's back office under wp-admin > MKauto Desk: Overview, Point of sale, WhatsApp orders, Payment plans, Sourcing, Garage & service, Reminders, Marketing, Social, Settings and Team.
 
 - **Neighbour sourcing:** at the till use *+ Sourced part* (next to search) or the *Sourced* tag on any product tile; sourced catalogue parts do not reduce our stock. Enter the supplier shop, our cost and whether they are paid; the sale goes through and the line lands in *Sourcing* with profit, margin and an owed-to-suppliers ledger (settle a supplier in one click, WhatsApp them the amount).
-- **Garage & service:** bookings by service type with vehicle, registration number, mileage and mechanic.
+- **Garage & service:** public page `/garage-service/` (shortcode `[mkd_garage]`, added to the primary menu) books straight into the Desk and hands the customer to WhatsApp; bookings by service type with vehicle, registration number, mileage and mechanic.
 - **WhatsApp orders:** whole-cart orders from the cart page plus the theme's single-part leads (vehicle and chassis number) in one list.
 - Install: zip the `mk-desk` folder, upload under Plugins > Add New > Upload, activate (WooCommerce required).

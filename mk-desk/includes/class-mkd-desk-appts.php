@@ -203,7 +203,7 @@ class MKD_Desk_Appts {
 
 	public static function confirm_text( $a ) {
 		$first = trim( strtok( (string) $a->customer_name, ' ' ) );
-		$where = 'studio' === $a->type ? 'at our studio, ' . MKD_Desk::shop_address() : ( 'video' === $a->type ? 'by video call (we will send the link before we start)' : 'here on WhatsApp' );
+		$where = 'studio' === $a->type ? 'at our garage, ' . MKD_Desk::shop_address() : ( 'video' === $a->type ? 'with our mobile mechanic at your location' : 'here on WhatsApp' );
 		return implode( "\n", array(
 			'Hi ' . ( $first ? $first : 'there' ) . ', this is MK Auto Spares.',
 			'',

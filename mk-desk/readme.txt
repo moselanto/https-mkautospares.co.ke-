@@ -3,7 +3,7 @@ Contributors: pimofy
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: GPLv2 or later
 
 The back office for MK Auto Spares, Kirinyaga Road, Nairobi.
@@ -27,6 +27,10 @@ One black and red desk under wp-admin > MKauto Desk:
 3. Add shop managers under Users > Add New (role Shop manager), then set their limits under MKauto Desk > Team.
 
 == Changelog ==
+
+= 1.2.0 =
+* New public Garage & Service page (/garage-service/, shortcode [mkd_garage]) created automatically and added to the main menu: hero, eight service cards, how it works, booking form (vehicle, reg. no., mileage, service, garage or mobile mechanic, live time slots, contact) and FAQ. Each booking is saved to MKauto Desk > Garage & service as Awaiting confirmation, the shop is e-mailed, and the customer is sent to WhatsApp with the booking written out.
+* Shop address now comes from the theme Customizer.
 
 = 1.1.0 =
 * Point of sale: "+ Sourced part" button beside the search box, and a "Sourced" tag on every product tile to sell a catalogue part bought from a neighbour (supplier, our cost, paid or owed). Sourced catalogue parts do not reduce our own stock and appear in Sourcing with their profit.

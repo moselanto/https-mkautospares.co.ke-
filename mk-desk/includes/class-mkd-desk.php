@@ -340,9 +340,9 @@ class MKD_Desk {
 	}
 
 	public static function shop_address() {
-		$addr = function_exists( 'mkd_opt' ) ? (string) mkd_opt( 'mkd_address' ) : '';
+		$addr = (string) get_theme_mod( 'mkae_address', '' );
 		$addr = trim( wp_strip_all_tags( $addr ) );
-		return '' !== $addr ? $addr : 'Imenti House, Moi Avenue, Nairobi CBD';
+		return '' !== $addr ? $addr : 'Kirinyaga Road, Nairobi';
 	}
 
 	public static function new_ref( $prefix, $table ) {
