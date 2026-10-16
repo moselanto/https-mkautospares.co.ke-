@@ -3,7 +3,7 @@ Contributors: pimofy
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 1.2.0
+Stable tag: 1.2.1
 License: GPLv2 or later
 
 The back office for MK Auto Spares, Kirinyaga Road, Nairobi.
@@ -27,6 +27,9 @@ One black and red desk under wp-admin > MKauto Desk:
 3. Add shop managers under Users > Add New (role Shop manager), then set their limits under MKauto Desk > Team.
 
 == Changelog ==
+
+= 1.2.1 =
+* Fix: the Team & activity page loaded without the Desk stylesheet, so tabs, filters, summary boxes and tables showed as plain text. It now uses the same black and red design as every other Desk page.
 
 = 1.2.0 =
 * New public Garage & Service page (/garage-service/, shortcode [mkd_garage]) created automatically and added to the main menu: hero, eight service cards, how it works, booking form (vehicle, reg. no., mileage, service, garage or mobile mechanic, live time slots, contact) and FAQ. Each booking is saved to MKauto Desk > Garage & service as Awaiting confirmation, the shop is e-mailed, and the customer is sent to WhatsApp with the booking written out.
