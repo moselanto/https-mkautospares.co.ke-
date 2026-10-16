@@ -438,11 +438,15 @@
 		$d.on('click', '.pos-custom__quick button', function () { $cm.find('[data-pos-cname]').val($(this).attr('data-q')); $cm.find('[data-pos-cprice]').trigger('focus'); });
 		$d.on('change', '[data-pos-src]', function () { $cm.find('[data-pos-src-box]').prop('hidden', !this.checked); srcMargin(); });
 		$d.on('input', '[data-pos-cprice],[data-pos-scost]', srcMargin);
+		$d.on('input', '.pcm-f input', function () { $(this).closest('.pcm-f').removeClass('is-bad'); });
 		function srcMargin() {
 			var pr = Number($cm.find('[data-pos-cprice]').val()) || 0, co = Number($cm.find('[data-pos-scost]').val()) || 0, $m = $cm.find('[data-pos-smargin]');
-			if (!$cm.find('[data-pos-src]').prop('checked') || !pr || !co) { $m.text('').removeClass('is-loss'); return; }
-			var g = pr - co;
-			$m.text((g >= 0 ? 'Profit per unit: ' : 'Loss per unit: ') + ksh(Math.abs(g)) + ' (' + Math.round(g / pr * 100) + '% margin)').toggleClass('is-loss', g < 0);
+			if (!$cm.find('[data-pos-src]').prop('checked') || !pr || !co) { $m.prop('hidden', true).empty(); return; }
+			var g = pr - co, pct = Math.round(g / pr * 100);
+			$m.prop('hidden', false).toggleClass('is-loss', g < 0).html(
+				'<div><span>Selling price</span><b>' + ksh(pr) + '</b></div>' +
+				'<div><span>Our cost</span><b>' + ksh(co) + '</b></div>' +
+				'<div class="pcm-sum__p"><span>' + (g >= 0 ? 'Profit per unit' : 'Loss per unit') + '</span><b>' + ksh(Math.abs(g)) + ' <em>' + pct + '%</em></b></div>');
 		}
 		function linkProd(p) {
 			$cm.data('pid', p ? p.id : 0);
@@ -469,18 +473,18 @@
 		});
 		$d.on('click', '[data-pos-cadd]', function () {
 			var n = $.trim($cm.find('[data-pos-cname]').val()), pr = Number($cm.find('[data-pos-cprice]').val()) || 0, src = null;
-			if (!n) { toast('Add a description.', 'err'); return; }
+			if (!n) { $cm.find('[data-pos-cname]').closest('.pcm-f').addClass('is-bad').end().trigger('focus'); toast('Add a description.', 'err'); return; }
 			if ($cm.find('[data-pos-src]').prop('checked')) {
 				src = { supplier: $.trim($cm.find('[data-pos-sname]').val()), phone: $.trim($cm.find('[data-pos-sphone]').val()), cost: Number($cm.find('[data-pos-scost]').val()) || 0, oem: $.trim($cm.find('[data-pos-soem]').val()), paid: $cm.find('input[name=pos_src_paid]:checked').val() === '1' ? 1 : 0 };
-				if (!src.supplier) { toast('Add the neighbour / supplier shop name.', 'err'); return; }
-				if (!src.cost) { toast('Add what the part cost us.', 'err'); return; }
+				if (!src.supplier) { $cm.find('[data-pos-sname]').closest('.pcm-f').addClass('is-bad').end().trigger('focus'); toast('Add the neighbour / supplier shop name.', 'err'); return; }
+				if (!src.cost) { $cm.find('[data-pos-scost]').closest('.pcm-f').addClass('is-bad').end().trigger('focus'); toast('Add what the part cost us.', 'err'); return; }
 				if (!pr) { toast('Add the selling price to the customer.', 'err'); return; }
 			}
 			var pid = $cm.data('pid') || 0;
 			if (pid && !src) { toast('Tick "Sourced from a neighbour shop" and add the supplier, or tap the part itself to sell from our stock.', 'err'); return; }
 			if (pid) { add({ id: pid, name: n, price: pr, custom: false, src: src }); } else { add({ id: 'c' + Date.now(), name: n, price: pr, custom: true, src: src }); }
 			linkProd(null);
-			$cm.find('input[type=text],input[type=number],input[type=tel]').val(''); $cm.find('[data-pos-src]').prop('checked', false); $cm.find('[data-pos-src-box]').prop('hidden', true); $cm.find('input[name=pos_src_paid][value=0]').prop('checked', true); srcMargin();
+			$cm.find('input[type=text],input[type=number],input[type=tel]').val(''); $cm.find('[data-pos-src]').prop('checked', false); $cm.find('[data-pos-src-box]').prop('hidden', true); $cm.find('.pcm-f').removeClass('is-bad'); $cm.find('input[name=pos_src_paid][value=0]').prop('checked', true); srcMargin();
 			$cm.removeClass('is-open').prop('hidden', true);
 		});
 

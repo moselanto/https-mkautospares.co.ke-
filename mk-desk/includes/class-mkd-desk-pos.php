@@ -757,35 +757,53 @@ class MKD_Desk_POS {
 		</div>
 
 		<div class="nd-modal" data-pos-custom-modal hidden>
-			<div class="nd-modal__box" role="dialog" aria-modal="true" aria-label="Custom item">
-				<header><strong data-pos-ctitle>Custom item, labour or sourced part</strong><button type="button" class="nd-modal__x" data-pos-custom-close aria-label="Close">&times;</button></header>
-				<div class="pos-custom">
+			<div class="nd-modal__box pcm" role="dialog" aria-modal="true" aria-labelledby="pcm-title">
+				<header class="pcm__head">
+					<div><strong id="pcm-title" data-pos-ctitle>Add an item to this sale</strong><small>Labour, a service, or a part bought from a neighbour shop</small></div>
+					<button type="button" class="nd-modal__x" data-pos-custom-close aria-label="Close">&times;</button>
+				</header>
+				<div class="pcm__body pos-custom">
 					<p class="pos-src__linked" data-pos-clinked hidden></p>
-					<input type="text" placeholder="Description, e.g. Front brake pads - Toyota Fielder" data-pos-cname maxlength="120">
-					<input type="number" min="0" step="1" placeholder="Selling price to customer (KSh)" data-pos-cprice>
-					<div class="pos-custom__quick">
-						<button type="button" data-q="Fitting / labour">Fitting</button>
-						<button type="button" data-q="Wheel alignment">Alignment</button>
-						<button type="button" data-q="Full service labour">Service labour</button>
-						<button type="button" data-q="Diagnostics">Diagnostics</button>
-					</div>
-					<label class="pos-src__toggle"><input type="checkbox" data-pos-src> <span><strong>Sourced from a neighbour shop</strong><small>Not in our stock - we bought it from another shop to complete this sale.</small></span></label>
-					<div class="pos-src" data-pos-src-box hidden>
-						<div class="pos-src__grid">
-							<input type="text" list="mkd-suppliers" placeholder="Neighbour / supplier shop *" data-pos-sname maxlength="80">
-							<input type="tel" placeholder="Supplier phone" data-pos-sphone maxlength="20">
-							<input type="number" min="0" step="1" placeholder="Our cost per unit (KSh) *" data-pos-scost>
-							<input type="text" placeholder="Part no. / OEM (optional)" data-pos-soem maxlength="60">
+					<section class="pcm__sec">
+						<h4 class="pcm__label">Item</h4>
+						<label class="pcm-f"><span>Description <i>*</i></span><input type="text" placeholder="e.g. Front brake pads - Toyota Fielder" data-pos-cname maxlength="120" autocomplete="off"></label>
+						<div class="pcm-row">
+							<label class="pcm-f"><span>Selling price per unit <i>*</i></span><span class="pcm-money"><em>KSh</em><input type="number" min="0" step="1" inputmode="numeric" placeholder="0" data-pos-cprice></span></label>
+							<div class="pcm-f"><span>Quick add</span><div class="pos-custom__quick">
+								<button type="button" data-q="Fitting / labour">Fitting</button>
+								<button type="button" data-q="Wheel alignment">Alignment</button>
+								<button type="button" data-q="Full service labour">Service labour</button>
+								<button type="button" data-q="Diagnostics">Diagnostics</button>
+							</div></div>
 						</div>
-						<div class="pos-src__pay">
-							<label><input type="radio" name="pos_src_paid" value="0" checked> Owe the supplier (pay later)</label>
-							<label><input type="radio" name="pos_src_paid" value="1"> Already paid the supplier</label>
+					</section>
+					<label class="pcm-switch">
+						<input type="checkbox" data-pos-src>
+						<span class="pcm-switch__ui" aria-hidden="true"></span>
+						<span class="pcm-switch__txt"><strong>Sourced from a neighbour shop</strong><small>Not in our stock. We bought it from another shop to complete this sale.</small></span>
+					</label>
+					<section class="pcm__sec pcm__src" data-pos-src-box hidden>
+						<h4 class="pcm__label">Supplier</h4>
+						<div class="pcm-row">
+							<label class="pcm-f"><span>Neighbour / supplier shop <i>*</i></span><input type="text" list="mkd-suppliers" placeholder="e.g. Mwangi Auto Parts" data-pos-sname maxlength="80" autocomplete="off"></label>
+							<label class="pcm-f"><span>Supplier phone</span><input type="tel" placeholder="0712 345 678" data-pos-sphone maxlength="20"></label>
+							<label class="pcm-f"><span>Our cost per unit <i>*</i></span><span class="pcm-money"><em>KSh</em><input type="number" min="0" step="1" inputmode="numeric" placeholder="0" data-pos-scost></span></label>
+							<label class="pcm-f"><span>Part no. / OEM</span><input type="text" placeholder="Optional" data-pos-soem maxlength="60"></label>
 						</div>
-						<p class="pos-src__margin" data-pos-smargin></p>
+						<div class="pcm-f"><span>Supplier payment</span>
+							<div class="pcm-seg" role="radiogroup" aria-label="Supplier payment">
+								<label><input type="radio" name="pos_src_paid" value="0" checked><span>Owe supplier <small>Pay later</small></span></label>
+								<label><input type="radio" name="pos_src_paid" value="1"><span>Paid supplier <small>Already settled</small></span></label>
+							</div>
+						</div>
+						<div class="pcm-sum" data-pos-smargin hidden></div>
 						<datalist id="mkd-suppliers"><?php foreach ( MKD_Desk_Source::supplier_names() as $sn ) { echo '<option value="' . esc_attr( $sn ) . '">'; } ?></datalist>
-					</div>
+					</section>
 				</div>
-				<footer><button type="button" class="nd-btn nd-btn--primary" data-pos-cadd>Add to sale</button></footer>
+				<footer class="pcm__foot">
+					<button type="button" class="nd-btn nd-btn--ghost" data-pos-custom-close>Cancel</button>
+					<button type="button" class="nd-btn nd-btn--primary pcm__add" data-pos-cadd>Add to sale</button>
+				</footer>
 			</div>
 		</div>
 		<?php

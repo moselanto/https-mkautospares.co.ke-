@@ -661,3 +661,71 @@ a.nt-who:hover{color:#a07a24}
 .pos-tile__src{position:absolute;top:8px;right:8px;z-index:2;padding:3px 9px;border:0;border-radius:999px;background:var(--ink);color:#fff;font-size:11px;font-weight:700;letter-spacing:.02em;cursor:pointer;opacity:.9}
 .pos-tile__src:hover,.pos-tile__src:focus{background:var(--gold);opacity:1;outline:0}
 .pos-src__linked{margin:0 0 8px;padding:8px 12px;border-radius:8px;background:#f6f7f8;font-size:12px;color:var(--mut)}
+
+/* ---- 1.2.2: custom item / sourced part dialog ------------------------------ */
+.pcm.nd-modal__box{max-width:600px;max-height:calc(100vh - 40px);display:flex;flex-direction:column;background:#fff;border-radius:18px}
+.pcm__head{padding:18px 22px!important;align-items:flex-start!important}
+.pcm__head strong{display:block;font-size:17px;font-weight:700;letter-spacing:-.01em}
+.pcm__head small{display:block;margin-top:2px;font-size:12.5px;color:rgba(255,255,255,.6)}
+.pcm__head .nd-modal__x{width:34px;height:34px;margin:-4px -6px 0 0;border-radius:50%;line-height:1;transition:background .15s}
+.pcm__head .nd-modal__x:hover{background:rgba(255,255,255,.12)}
+.pcm .pcm__body{display:block;flex:1;overflow:auto;padding:22px;background:#fff}
+.pcm__sec{margin:0 0 18px}
+.pcm__label{margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5b6169}
+.pcm-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.pcm-f{display:flex;flex-direction:column;gap:6px;margin:0 0 14px;min-width:0}
+.pcm-f>span:first-child{font-size:13px;font-weight:600;color:#2a2d31}
+.pcm-f i{font-style:normal;color:#CA1D24}
+.pcm .pcm-f input[type=text],.pcm .pcm-f input[type=tel],.pcm .pcm-f input[type=number]{width:100%;height:44px;min-height:44px;margin:0;padding:0 12px;border:1.5px solid #e5e7eb;border-radius:10px;background:#fff;box-shadow:none;font-size:14px;color:#0b0b0b;transition:border-color .15s,box-shadow .15s}
+.pcm .pcm-f input::placeholder{color:#9aa0a8}
+.pcm .pcm-f input:focus{outline:0;border-color:#0b0b0b;box-shadow:0 0 0 3px rgba(11,11,11,.08)}
+.pcm .pcm-f.is-bad input{border-color:#CA1D24;box-shadow:0 0 0 3px rgba(202,29,36,.12)}
+.pcm-money{position:relative;display:block}
+.pcm-money em{position:absolute;left:1px;top:1px;bottom:1px;display:flex;align-items:center;padding:0 10px;border-right:1px solid #e5e7eb;border-radius:9px 0 0 9px;background:#f6f7f8;font-style:normal;font-size:12px;font-weight:700;color:#5b6169;pointer-events:none}
+.pcm .pcm-money input{padding-left:58px!important;font-variant-numeric:tabular-nums;font-weight:600}
+.pcm .pos-custom__quick{display:flex;flex-wrap:wrap;gap:6px}
+.pcm .pos-custom__quick button{height:32px;padding:0 12px;border:1px solid #e5e7eb;border-radius:999px;background:#f6f7f8;font-size:12.5px;font-weight:600;color:#2a2d31;cursor:pointer;transition:all .15s}
+.pcm .pos-custom__quick button:hover{border-color:#0b0b0b;background:#0b0b0b;color:#fff}
+/* Switch: our own control so WordPress admin checkbox styles cannot distort it. */
+.pcm-switch{display:flex;align-items:flex-start;gap:14px;margin:4px 0 18px;padding:14px 16px;border:1.5px solid #e5e7eb;border-radius:12px;cursor:pointer;transition:border-color .15s,background .15s}
+.pcm-switch:hover{border-color:#c7ccd1}
+.pcm-switch input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.pcm-switch__ui{position:relative;flex:none;width:42px;height:24px;margin-top:1px;border-radius:999px;background:#d5d9de;transition:background .2s}
+.pcm-switch__ui::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
+.pcm-switch input:checked~.pcm-switch__ui{background:#CA1D24}
+.pcm-switch input:checked~.pcm-switch__ui::after{transform:translateX(18px)}
+.pcm-switch input:focus-visible~.pcm-switch__ui{box-shadow:0 0 0 3px rgba(202,29,36,.25)}
+.pcm-switch:has(input:checked){border-color:rgba(202,29,36,.45);background:#fffafa}
+.pcm-switch__txt strong{display:block;font-size:14px;color:#0b0b0b}
+.pcm-switch__txt small{display:block;margin-top:2px;font-size:12.5px;line-height:1.45;color:#5b6169}
+.pcm__src{padding:18px 18px 4px;border-radius:12px;background:#f6f7f8;border:1px solid #eceef1}
+.pcm__src .pcm-f input{background:#fff}
+/* Segmented control for supplier payment. */
+.pcm-seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:12px;background:#e9ecef}
+.pcm-seg label{position:relative;margin:0;cursor:pointer}
+.pcm-seg input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.pcm-seg span{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:46px;padding:6px 8px;border-radius:9px;text-align:center;font-size:13.5px;font-weight:700;color:#5b6169;transition:all .15s}
+.pcm-seg small{font-size:11.5px;font-weight:500;opacity:.8}
+.pcm-seg input:checked+span{background:#fff;color:#0b0b0b;box-shadow:0 1px 4px rgba(11,11,11,.12)}
+.pcm-seg label:first-child input:checked+span{box-shadow:inset 0 -3px 0 #b7791f,0 1px 4px rgba(11,11,11,.12)}
+.pcm-seg label:last-child input:checked+span{box-shadow:inset 0 -3px 0 #1e8e3e,0 1px 4px rgba(11,11,11,.12)}
+.pcm-seg input:focus-visible+span{outline:2px solid #0b0b0b;outline-offset:1px}
+/* Profit summary. */
+.pcm-sum{display:grid;grid-template-columns:1fr 1fr 1.3fr;margin:2px 0 14px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;overflow:hidden}
+.pcm-sum[hidden]{display:none}
+.pcm-sum div{display:flex;flex-direction:column;gap:2px;padding:10px 14px;border-right:1px solid #eceef1}
+.pcm-sum div:last-child{border:0}
+.pcm-sum span{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#5b6169}
+.pcm-sum b{font-size:15px;color:#0b0b0b;font-variant-numeric:tabular-nums}
+.pcm-sum__p{background:#eef8f1}
+.pcm-sum__p b{color:#1e8e3e}
+.pcm-sum__p em{margin-left:4px;padding:1px 7px;border-radius:999px;background:#1e8e3e;color:#fff;font-style:normal;font-size:11px;vertical-align:2px}
+.pcm-sum.is-loss .pcm-sum__p{background:#fcf3f3}
+.pcm-sum.is-loss .pcm-sum__p b{color:#CA1D24}
+.pcm-sum.is-loss .pcm-sum__p em{background:#CA1D24}
+.pcm .pos-src__linked{margin:0 0 16px;padding:10px 14px;border-left:3px solid #CA1D24;border-radius:8px;background:#f6f7f8;font-size:13px;color:#2a2d31}
+.pcm__foot{gap:10px!important;padding:14px 22px!important;border-top:1px solid #eceef1}
+.pcm__foot .nd-btn{min-width:110px;height:42px;justify-content:center}
+.pcm__add{background:#CA1D24!important;border-color:#CA1D24!important;color:#fff!important}
+.pcm__add:hover,.pcm__add:focus{background:#A81820!important;border-color:#A81820!important}
+@media (max-width:600px){.pcm-row,.pcm-sum{grid-template-columns:1fr}.pcm-sum div{border-right:0;border-bottom:1px solid #eceef1}.nd-modal{padding:0;align-items:flex-end}.pcm.nd-modal__box{max-height:94vh;border-radius:18px 18px 0 0}}
