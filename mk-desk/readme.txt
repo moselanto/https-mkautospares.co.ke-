@@ -3,7 +3,7 @@ Contributors: pimofy
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 1.4.0
+Stable tag: 1.4.1
 License: GPLv2 or later
 
 The back office for MK Auto Spares, Kirinyaga Road, Nairobi.
@@ -27,6 +27,9 @@ One black and red desk under wp-admin > MKauto Desk:
 3. Add shop managers under Users > Add New (role Shop manager), then set their limits under MKauto Desk > Team.
 
 == Changelog ==
+
+= 1.4.1 =
+* Marketing e-mails rebranded: MK Auto Spares header and tagline instead of NURA / Wear your crown, MK red accents, footer names the shop. Car-parts examples in the campaign form; Instagram caption no longer says DM CROWN; receipt label colour is MK red.
 
 = 1.4.0 =
 * Payments: a payment code (M-Pesa code) already used on a till sale, plan payment or WhatsApp order is refused everywhere; M-Pesa codes must be 10 letters/digits. Blocked attempts go to the Team log.

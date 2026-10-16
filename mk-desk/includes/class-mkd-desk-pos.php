@@ -441,7 +441,7 @@ class MKD_Desk_POS {
 		$html .= '<tr><td style="height:5px;background:#CA1D24;line-height:5px;font-size:0;">&nbsp;</td></tr>';
 		$html .= '<tr><td align="center" style="padding:30px 24px 22px;background:#0B0B0B;">' . $brand . '</td></tr>';
 		$html .= '<tr><td style="padding:30px 32px 6px;' . $f . '">';
-		$html .= '<p style="margin:0 0 6px;font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:700;color:#a07a24;">' . ( $paid ? 'Receipt' : 'Invoice' ) . ' #' . esc_html( $num ) . ' · ' . esc_html( $date ) . '</p>';
+		$html .= '<p style="margin:0 0 6px;font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:700;color:#CA1D24;">' . ( $paid ? 'Receipt' : 'Invoice' ) . ' #' . esc_html( $num ) . ' · ' . esc_html( $date ) . '</p>';
 		$html .= '<h1 style="margin:0 0 12px;font-family:Georgia,\'Times New Roman\',serif;font-size:28px;line-height:1.2;font-weight:600;color:#0B0B0B;">' . esc_html( $title ) . '</h1>';
 		$html .= '<p style="margin:0;font-size:15px;line-height:1.6;color:#4a443c;">' . $intro . '</p></td></tr>';
 		$html .= '<tr><td style="padding:18px 32px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">' . $rows . '</table></td></tr>';

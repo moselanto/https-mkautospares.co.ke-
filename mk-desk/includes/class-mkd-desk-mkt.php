@@ -369,7 +369,7 @@ class MKD_Desk_Mkt {
 		foreach ( preg_split( "/\n\s*\n/", trim( (string) $text ) ) as $p ) {
 			$h = esc_html( $p );
 			$h = preg_replace( '/\*\*(.+?)\*\*|\*(.+?)\*/', '<strong>$1$2</strong>', $h );
-			$h = preg_replace( '/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/', '<a href="$2" style="color:#a07a24">$1</a>', $h );
+			$h = preg_replace( '/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/', '<a href="$2" style="color:#CA1D24">$1</a>', $h );
 			$out .= '<p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:#2b2622">' . nl2br( $h ) . '</p>';
 		}
 		return $out;
@@ -391,7 +391,7 @@ class MKD_Desk_Mkt {
 					continue;
 				}
 				$img     = wp_get_attachment_image_url( $p->get_image_id(), 'woocommerce_thumbnail' );
-				$cells[] = '<td width="50%" valign="top" style="padding:8px"><a href="' . esc_url( $utm( $p->get_permalink() ) ) . '" style="text-decoration:none;color:#1b1b1b"><img src="' . esc_url( $img ? $img : '' ) . '" width="250" alt="" style="width:100%;max-width:250px;height:auto;border-radius:10px;display:block;background:#f3e9dc"><p style="margin:10px 0 2px;font-size:14px;font-weight:600">' . esc_html( $p->get_name() ) . '</p><p style="margin:0 0 8px;font-size:14px;color:#a07a24;font-weight:700">' . esc_html( MKD_Desk::money( wc_get_price_to_display( $p ) ) ) . '</p><span style="display:inline-block;padding:7px 14px;border:1px solid #0B0B0B;border-radius:6px;font-size:12px;font-weight:700;letter-spacing:.08em">SHOP NOW</span></a></td>';
+				$cells[] = '<td width="50%" valign="top" style="padding:8px"><a href="' . esc_url( $utm( $p->get_permalink() ) ) . '" style="text-decoration:none;color:#1b1b1b"><img src="' . esc_url( $img ? $img : '' ) . '" width="250" alt="" style="width:100%;max-width:250px;height:auto;border-radius:10px;display:block;background:#f3e9dc"><p style="margin:10px 0 2px;font-size:14px;font-weight:600">' . esc_html( $p->get_name() ) . '</p><p style="margin:0 0 8px;font-size:14px;color:#CA1D24;font-weight:700">' . esc_html( MKD_Desk::money( wc_get_price_to_display( $p ) ) ) . '</p><span style="display:inline-block;padding:7px 14px;border:1px solid #0B0B0B;border-radius:6px;font-size:12px;font-weight:700;letter-spacing:.08em">SHOP NOW</span></a></td>';
 			}
 			foreach ( array_chunk( $cells, 2 ) as $row ) {
 				$prods .= '<tr>' . implode( '', $row ) . ( 1 === count( $row ) ? '<td></td>' : '' ) . '</tr>';
@@ -402,14 +402,14 @@ class MKD_Desk_Mkt {
 		$btn   = $k->btn_text && $k->btn_url ? '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 22px"><tr><td style="border-radius:8px;background:#0B0B0B"><a href="' . esc_url( $utm( $k->btn_url ) ) . '" style="display:inline-block;padding:14px 26px;color:#FF5A5F;font-weight:700;font-size:14px;letter-spacing:.08em;text-decoration:none;text-transform:uppercase">' . esc_html( $k->btn_text ) . '</a></td></tr></table>' : '';
 		$img   = $k->image ? '<img src="' . esc_url( $k->image ) . '" width="600" alt="" style="width:100%;max-width:600px;height:auto;display:block">' : '';
 		return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' . esc_html( $k->subject ) . '</title></head>' .
-			'<body style="margin:0;padding:0;background:#f2eee7;font-family:Helvetica,Arial,sans-serif">' .
+			'<body style="margin:0;padding:0;background:#f2f3f5;font-family:Helvetica,Arial,sans-serif">' .
 			'<div style="display:none;max-height:0;overflow:hidden">' . esc_html( self::personal( $k->preheader, $c ) ) . '</div>' .
-			'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f2eee7"><tr><td align="center" style="padding:24px 12px">' .
+			'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f2f3f5"><tr><td align="center" style="padding:24px 12px">' .
 			'<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:14px;overflow:hidden">' .
-			'<tr><td align="center" style="background:#0B0B0B;padding:26px 20px"><a href="' . esc_url( $utm( home_url( '/' ) ) ) . '" style="text-decoration:none"><span style="font-family:Arial,Helvetica,sans-serif;font-size:30px;letter-spacing:8px;color:#FF5A5F;font-weight:bold">' . esc_html( strtoupper( $b['name'] === 'MK Auto Spares' ? 'NURA' : $b['name'] ) ) . '</span><br><span style="font-size:10px;letter-spacing:4px;color:#bfb6a8">WEAR YOUR CROWN</span></a></td></tr>' .
+			'<tr><td align="center" style="background:#0B0B0B;padding:26px 20px"><a href="' . esc_url( $utm( home_url( '/' ) ) ) . '" style="text-decoration:none"><span style="font-family:Arial,Helvetica,sans-serif;font-size:28px;letter-spacing:4px;color:#ffffff;font-weight:bold"><span style="color:#CA1D24">MK</span> AUTO SPARES</span><br><span style="font-size:10px;letter-spacing:3px;color:#9aa0a8">GENUINE PARTS &middot; KIRINYAGA ROAD, NAIROBI</span></a></td></tr>' .
 			'<tr><td>' . $img . '</td></tr>' .
 			'<tr><td style="padding:30px 32px 10px">' . ( $k->heading ? '<h1 style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;font-size:26px;line-height:1.25;color:#0B0B0B">' . esc_html( self::personal( $k->heading, $c ) ) . '</h1>' : '' ) . self::body_html( self::personal( $k->body, $c ) ) . $btn . $prods . '</td></tr>' .
-			'<tr><td style="padding:22px 32px;background:#f6f7f8;border-top:1px solid #e5e7eb;font-size:12px;line-height:1.6;color:#5b6169" align="center">' . esc_html( $b['name'] . ' - ' . $b['addr'] ) . '<br>' . esc_html( $b['phone'] ) . ' - <a href="' . esc_url( home_url( '/' ) ) . '" style="color:#5b6169">' . esc_html( $b['web'] ) . '</a><br><br>You are receiving this because you shopped with us or joined NURA.<br><a href="' . esc_url( $unsub ) . '" style="color:#5b6169;text-decoration:underline">Unsubscribe</a></td></tr>' .
+			'<tr><td style="padding:22px 32px;background:#f6f7f8;border-top:1px solid #e5e7eb;font-size:12px;line-height:1.6;color:#5b6169" align="center">' . esc_html( $b['name'] . ' - ' . $b['addr'] ) . '<br>' . esc_html( $b['phone'] ) . ' - <a href="' . esc_url( home_url( '/' ) ) . '" style="color:#5b6169">' . esc_html( $b['web'] ) . '</a><br><br>You are receiving this because you shopped with us or joined ' . esc_html( $b['name'] ) . '.<br><a href="' . esc_url( $unsub ) . '" style="color:#5b6169;text-decoration:underline">Unsubscribe</a></td></tr>' .
 			'</table>' . $pixel . '</td></tr></table></body></html>';
 	}
 
@@ -743,18 +743,18 @@ class MKD_Desk_Mkt {
 		wp_nonce_field( 'mkd_mkt_save' );
 		echo '<div class="nd-plan nd-plan--mkt"><div class="nd-plan__main">';
 		echo '<section class="nd-card"><header class="nd-card__h"><h2>1. Audience</h2><span class="nd-badge nd-badge--confirmed" data-mkt-count>...</span></header><div class="nd-fields nd-fields--2">';
-		echo '<label class="nd-field"><span class="nd-label">Campaign name (internal)</span><input type="text" name="name" value="' . esc_attr( $v->name ) . '" placeholder="e.g. December bridal offer"></label>';
+		echo '<label class="nd-field"><span class="nd-label">Campaign name (internal)</span><input type="text" name="name" value="' . esc_attr( $v->name ) . '" placeholder="e.g. December brake pad offer"></label>';
 		echo '<label class="nd-field"><span class="nd-label">Send to</span><select name="segment" data-mkt-seg>';
 		foreach ( $segs as $sk => $sl ) {
 			echo '<option value="' . esc_attr( $sk ) . '"' . selected( $v->segment, $sk, false ) . '>' . esc_html( $sl ) . '</option>';
 		}
-		echo '</select></label><label class="nd-field" data-mkt-tag' . ( 'tag' === $v->segment ? '' : ' hidden' ) . '><span class="nd-label">Tag</span><input type="text" name="seg_value" value="' . esc_attr( $v->seg_value ) . '" placeholder="e.g. bridal"></label></div></section>';
+		echo '</select></label><label class="nd-field" data-mkt-tag' . ( 'tag' === $v->segment ? '' : ' hidden' ) . '><span class="nd-label">Tag</span><input type="text" name="seg_value" value="' . esc_attr( $v->seg_value ) . '" placeholder="e.g. toyota"></label></div></section>';
 
 		echo '<section class="nd-card"><header class="nd-card__h"><h2>2. Message</h2></header><div class="nd-fields">';
 		if ( 'email' === $ch ) {
-			echo '<div class="nd-fields nd-fields--2"><label class="nd-field"><span class="nd-label">Subject line *</span><input type="text" name="subject" required maxlength="200" value="' . esc_attr( $v->subject ) . '" placeholder="{first}, your new crown is waiting" data-mkt-in></label>';
+			echo '<div class="nd-fields nd-fields--2"><label class="nd-field"><span class="nd-label">Subject line *</span><input type="text" name="subject" required maxlength="200" value="' . esc_attr( $v->subject ) . '" placeholder="{first}, 15% off brake pads this week" data-mkt-in></label>';
 			echo '<label class="nd-field"><span class="nd-label">Preview text</span><input type="text" name="preheader" maxlength="200" value="' . esc_attr( $v->preheader ) . '" placeholder="Shown after the subject in the inbox"></label></div>';
-			echo '<label class="nd-field"><span class="nd-label">Headline</span><input type="text" name="heading" maxlength="200" value="' . esc_attr( $v->heading ) . '" placeholder="New in: 22 inch body wave" data-mkt-in></label>';
+			echo '<label class="nd-field"><span class="nd-label">Headline</span><input type="text" name="heading" maxlength="200" value="' . esc_attr( $v->heading ) . '" placeholder="New in: genuine Toyota service kits" data-mkt-in></label>';
 			echo '<label class="nd-field"><span class="nd-label">Banner image</span><span class="nd-inrow"><input type="url" name="image" value="' . esc_attr( $v->image ) . '" placeholder="https://..." data-mkt-in data-mkt-img><button type="button" class="nd-btn nd-btn--ghost" data-mkt-media>Choose image</button></span></label>';
 		}
 		echo '<label class="nd-field"><span class="nd-label">Message *</span><textarea name="body" rows="10" required data-mkt-in data-mkt-body>' . esc_textarea( $v->body ) . '</textarea><small>{first} = customer\'s first name. *bold*. Blank line = new paragraph. Links: [text](https://...)</small></label>';
@@ -840,7 +840,7 @@ class MKD_Desk_Mkt {
 		MKD_Desk::header( MKD_Desk::P_MKT, 'Audience', self::subnav( 'contacts' ) . $act );
 		echo '<details class="nd-card"><summary class="nd-sum">+ Add a contact</summary><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="nd-form" style="margin-top:12px"><input type="hidden" name="action" value="mkd_mkt_contact"><input type="hidden" name="op" value="add">';
 		wp_nonce_field( 'mkd_mkt_contact' );
-		echo '<div class="nd-fields nd-fields--4"><input type="text" name="name" placeholder="Name"><input type="tel" name="phone" placeholder="Phone"><input type="email" name="email" placeholder="E-mail"><input type="text" name="tags" placeholder="Tags, e.g. bridal, vip"></div><label class="nd-field nd-field--check" style="margin-top:10px"><input type="checkbox" name="consent" value="1" checked><span>Agreed to receive offers</span></label><button class="nd-btn nd-btn--primary">Add contact</button></form></details>';
+		echo '<div class="nd-fields nd-fields--4"><input type="text" name="name" placeholder="Name"><input type="tel" name="phone" placeholder="Phone"><input type="email" name="email" placeholder="E-mail"><input type="text" name="tags" placeholder="Tags, e.g. toyota, garage, vip"></div><label class="nd-field nd-field--check" style="margin-top:10px"><input type="checkbox" name="consent" value="1" checked><span>Agreed to receive offers</span></label><button class="nd-btn nd-btn--primary">Add contact</button></form></details>';
 		echo '<div class="nd-toolbar"><nav class="nd-pills">';
 		foreach ( array_merge( array( 'all' => 'All' ), array_slice( $segs, 1, null, true ) ) as $sk => $sl ) {
 			echo '<a class="nd-pill' . ( $sk === $seg ? ' is-on' : '' ) . '" href="' . esc_url( MKD_Desk::url( MKD_Desk::P_MKT, array( 'view' => 'contacts', 'seg' => $sk ) ) ) . '">' . esc_html( preg_replace( '/ \(.*\)$/', '', $sl ) ) . '</a>';

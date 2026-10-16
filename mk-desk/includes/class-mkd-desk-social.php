@@ -225,7 +225,7 @@ class MKD_Desk_Social {
 		$h     = self::hashtags();
 		$lm    = $lmm ? "Lipa Mdogo Mdogo: " . (int) $s['lmm_deposit'] . "% deposit, then about " . MKD_Desk::money( $lmm ) . " a week. No interest.\n" : '';
 		return array(
-			'instagram' => "In stock now. \n\n" . $name . "\n" . MKD_Desk::money( $price ) . ' ' . $from . "| M-Pesa | Same-day delivery in Nairobi\n" . $lm . "\nTap the link in our bio or DM \"CROWN\" to order.\n.\n.\n" . $h['core'] . ' ' . $h['style'] . ' ' . $h['local'],
+			'instagram' => "In stock now. \n\n" . $name . "\n" . MKD_Desk::money( $price ) . ' ' . $from . "| M-Pesa | Same-day delivery in Nairobi\n" . $lm . "\nTap the link in our bio or DM us your car model to order.\n.\n.\n" . $h['core'] . ' ' . $h['style'] . ' ' . $h['local'],
 			'facebook'  => $name . " - " . $from . MKD_Desk::money( $price ) . "\n\nGenuine and quality-checked on Kirinyaga Road. Send your chassis number and we confirm fitment before you pay.\n" . $lm . "Same-day delivery in Nairobi before 5pm, countrywide in 1-3 days. Pay with M-Pesa.\n\nShop: " . self::track( $link, 'facebook', 'social', 'organic' ) . "\nWhatsApp: wa.me/" . MKD_WA_Order::whatsapp_number(),
 			'tiktok'    => "Found the exact part for your ride \n" . $name . ' ' . $from . MKD_Desk::money( $price ) . ( $lmm ? ' | Lipa Mdogo Mdogo ' . MKD_Desk::money( $lmm ) . '/week' : '' ) . "\nLink in bio | Nairobi same-day delivery\n" . '#WigsKenya #NairobiTikTok #KenyanTikTok #WigTransformation #LaceFrontWig #MKAutoSpares #fyp',
 			'status'    => $name . "\n" . $from . MKD_Desk::money( $price ) . ( $lmm ? "\nOr Lipa Mdogo Mdogo " . MKD_Desk::money( $lmm ) . '/week' : '' ) . "\nOrder: " . self::track( $link, 'whatsapp', 'status', 'organic' ),

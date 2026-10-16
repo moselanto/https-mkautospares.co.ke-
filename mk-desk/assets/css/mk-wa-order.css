@@ -66,7 +66,7 @@ html.nwo-lock,html.nwo-lock body{overflow:hidden!important}
 .nwo-sum__prod{display:flex;align-items:center;gap:16px}
 .nwo-sum__img{flex:none;width:84px;height:84px;object-fit:cover;border-radius:12px;background:#fff;border:1px solid #ece6dc}
 .nwo-sum__info{min-width:0;flex:1}
-.nwo-sum__cat{margin:0 0 4px;font-family:var(--nwo-ui);font-size:.7rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#a07a24}
+.nwo-sum__cat{margin:0 0 4px;font-family:var(--nwo-ui);font-size:.7rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#CA1D24}
 .nwo-sum__name{margin:0;font-family:var(--nwo-ui);font-size:1.05rem;font-weight:600;line-height:1.3;color:var(--nwo-ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .nwo-sum__opt{display:inline-block;margin:6px 0 0;padding:3px 10px;border-radius:999px;background:#fff;border:1px solid #e6dfd3;font-size:.8rem;color:#4b443b}
 .nwo-sum__price{margin:6px 0 0;display:flex;align-items:baseline;flex-wrap:wrap;gap:8px}
@@ -76,7 +76,7 @@ html.nwo-lock,html.nwo-lock body{overflow:hidden!important}
 .nwo-sum__list{margin:8px 0 0;padding:0;list-style:none;max-height:210px;overflow:auto;border-top:1px solid #ece6dc}
 .nwo-sum__list li{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #ece6dc}
 .nwo-sum__list li:last-child{border-bottom:0}
-.nwo-sum__n{flex:none;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#fff;border:1px solid #e6dfd3;font-size:.72rem;font-weight:700;color:#a07a24}
+.nwo-sum__n{flex:none;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#fff;border:1px solid #e6dfd3;font-size:.72rem;font-weight:700;color:#CA1D24}
 .nwo-sum__item{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:.9rem}
 .nwo-sum__item strong{font-weight:600;color:var(--nwo-ink)}
 .nwo-sum__item em{font-style:normal;color:#5c5246;font-size:.8rem}
@@ -217,7 +217,7 @@ html.nwo-lock,html.nwo-lock body{overflow:hidden!important}
 .nwo-ship__ico{flex:none;width:20px;height:20px;margin-top:1px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 7h11v9H3zM14 10h4l3 3v3h-7z' fill='none' stroke='%231faa53' stroke-width='1.8' stroke-linejoin='round'/%3E%3Ccircle cx='7' cy='17.5' r='1.7' fill='none' stroke='%231faa53' stroke-width='1.8'/%3E%3Ccircle cx='17' cy='17.5' r='1.7' fill='none' stroke='%231faa53' stroke-width='1.8'/%3E%3C/svg%3E") center/20px no-repeat}
 .nwo-ship__txt{display:grid;gap:2px}
 .nwo-ship__txt small{font-size:.78rem;color:#4b6b57}
-.nwo-ship__txt .nwo-ship__up{color:#a07a24;font-weight:600}
+.nwo-ship__txt .nwo-ship__up{color:#CA1D24;font-weight:600}
 .nwo-bill{margin:0 0 10px;padding:0 0 10px;border-bottom:1px dashed #e6dcc4}
 .nwo-bill>div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:2px 0;font-size:.86rem}
 .nwo-bill dt{margin:0;color:var(--nwo-mut);font-weight:400}
