@@ -223,7 +223,18 @@ class MKD_Desk_POS {
 					throw new Exception( 'Only the owner can change prices at the till. ' . $p->get_name() . ' must be sold at ' . MKD_Desk::money( wc_get_price_to_display( $p ) ) . '.' );
 				}
 				if ( $p ) {
-					$order->add_product( $p, $qty, array( 'subtotal' => $pr * $qty, 'total' => $pr * $qty ) );
+					$iid = $order->add_product( $p, $qty, array( 'subtotal' => $pr * $qty, 'total' => $pr * $qty ) );
+					$src = MKD_Desk_Source::clean_line( isset( $it['src'] ) ? $it['src'] : null, $qty );
+					if ( $src && $iid ) {
+						$li = $order->get_item( $iid );
+						if ( $li ) {
+							$li->add_meta_data( '_mkd_sourced', $src, true );
+							$li->add_meta_data( 'Sourced', 'Yes', true );
+							// Bought in from a neighbour, so our own stock must not go down.
+							$li->add_meta_data( '_reduced_stock', $qty, true );
+							$li->save();
+						}
+					}
 					$lines++;
 				} elseif ( ! empty( $it['custom'] ) && ! empty( $it['name'] ) ) {
 					$item = new WC_Order_Item_Fee();
@@ -648,8 +659,9 @@ class MKD_Desk_POS {
 		?>
 		<div class="pos" data-pos>
 			<section class="pos__left">
-				<div class="pos__search">
+				<div class="pos__search pos__search--src">
 					<input type="search" placeholder="Search parts by name, SKU, OEM no., make or model  ( / )" data-pos-q autocomplete="off">
+					<button type="button" class="nd-btn nd-btn--primary pos__srcbtn" data-pos-source-missing title="Sell a part you got from a neighbour shop">+ Sourced part</button>
 				</div>
 				<div class="pos__cats" data-pos-cats>
 					<button type="button" class="is-on" data-cat="0">Popular</button>
@@ -746,8 +758,9 @@ class MKD_Desk_POS {
 
 		<div class="nd-modal" data-pos-custom-modal hidden>
 			<div class="nd-modal__box" role="dialog" aria-modal="true" aria-label="Custom item">
-				<header><strong data-pos-ctitle>Custom item, service or sourced part</strong><button type="button" class="nd-modal__x" data-pos-custom-close aria-label="Close">&times;</button></header>
+				<header><strong data-pos-ctitle>Custom item, labour or sourced part</strong><button type="button" class="nd-modal__x" data-pos-custom-close aria-label="Close">&times;</button></header>
 				<div class="pos-custom">
+					<p class="pos-src__linked" data-pos-clinked hidden></p>
 					<input type="text" placeholder="Description, e.g. Front brake pads - Toyota Fielder" data-pos-cname maxlength="120">
 					<input type="number" min="0" step="1" placeholder="Selling price to customer (KSh)" data-pos-cprice>
 					<div class="pos-custom__quick">

@@ -96,7 +96,7 @@ class MKD_Desk_Source {
 		}
 		global $wpdb;
 		self::maybe_install();
-		foreach ( $order->get_items( 'fee' ) as $item_id => $item ) {
+		foreach ( $order->get_items( array( 'line_item', 'fee' ) ) as $item_id => $item ) {
 			$src = $item->get_meta( '_mkd_sourced', true );
 			if ( ! is_array( $src ) || empty( $src['supplier'] ) ) {
 				continue;

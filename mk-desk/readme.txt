@@ -3,7 +3,7 @@ Contributors: pimofy
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 
 The back office for MK Auto Spares, Kirinyaga Road, Nairobi.
@@ -27,6 +27,9 @@ One black and red desk under wp-admin > MKauto Desk:
 3. Add shop managers under Users > Add New (role Shop manager), then set their limits under MKauto Desk > Team.
 
 == Changelog ==
+
+= 1.1.0 =
+* Point of sale: "+ Sourced part" button beside the search box, and a "Sourced" tag on every product tile to sell a catalogue part bought from a neighbour (supplier, our cost, paid or owed). Sourced catalogue parts do not reduce our own stock and appear in Sourcing with their profit.
 
 = 1.0.0 =
 * First release, built on the NURA Desk feature set and adapted for spare parts: neighbour sourcing and supplier ledger, garage and service bookings with vehicle details, theme WhatsApp leads in the Desk, MK red and black design.

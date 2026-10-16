@@ -327,16 +327,17 @@
 				if (!list.length) { $g.html('<div class="pos__hint pos__hint--src"><p>Not in our stock. Get it from a neighbour shop and still make the sale.</p><button type="button" class="nd-btn nd-btn--primary" data-pos-source-missing>Source from a neighbour</button></div>'); return; }
 				$g.html(list.map(function (p) {
 					var low = p.stock !== null && p.stock <= 2;
-					return '<button type="button" class="pos-tile' + (p.in ? '' : ' is-out') + '" data-p=\'' + esc(JSON.stringify(p)) + '\'>' +
+					return '<div class="pos-tile-wrap"><button type="button" class="pos-tile' + (p.in ? '' : ' is-out') + '" data-p=\'' + esc(JSON.stringify(p)) + '\'>' +
 						'<span class="pos-tile__img" style="background-image:url(' + esc(p.img) + ')"></span>' +
 						'<span class="pos-tile__name">' + esc(p.name) + '</span>' + (p.opt ? '<span class="pos-tile__opt">' + esc(p.opt) + '</span>' : '') +
-						'<span class="pos-tile__row"><b>' + ksh(p.price) + '</b>' + (p.stock !== null ? '<em class="' + (low ? 'is-low' : '') + '">' + (p.in ? p.stock + ' left' : 'Out of stock') + '</em>' : (p.in ? '' : '<em class="is-low">Out of stock</em>')) + '</span></button>';
+						'<span class="pos-tile__row"><b>' + ksh(p.price) + '</b>' + (p.stock !== null ? '<em class="' + (low ? 'is-low' : '') + '">' + (p.in ? p.stock + ' left' : 'Out of stock') + '</em>' : (p.in ? '' : '<em class="is-low">Out of stock</em>')) + '</span></button>' +
+						'<button type="button" class="pos-tile__src" data-pos-src-p=\'' + esc(JSON.stringify(p)) + '\' title="Sell this part sourced from a neighbour shop">Sourced</button></div>';
 				}).join(''));
 			}).always(function () { $g.removeClass('is-busy'); });
 		}
 		function add(p) {
 			var f = null;
-			cart.forEach(function (l) { if (!l.custom && l.id === p.id) { f = l; } });
+			cart.forEach(function (l) { if (!l.custom && !l.src && !p.src && l.id === p.id) { f = l; } });
 			if (f) { f.qty++; } else { cart.push({ id: p.id, name: p.name, opt: p.opt || '', price: Number(p.price) || 0, qty: Number(p.qty) || 1, img: p.img || '', custom: !!p.custom, src: p.src || null }); }
 			draw(); save();
 		}
@@ -443,7 +444,24 @@
 			var g = pr - co;
 			$m.text((g >= 0 ? 'Profit per unit: ' : 'Loss per unit: ') + ksh(Math.abs(g)) + ' (' + Math.round(g / pr * 100) + '% margin)').toggleClass('is-loss', g < 0);
 		}
+		function linkProd(p) {
+			$cm.data('pid', p ? p.id : 0);
+			$cm.find('[data-pos-clinked]').prop('hidden', !p).text(p ? 'Catalogue part: ' + p.name + (p.opt ? ' (' + p.opt + ')' : '') + ' - our stock will not be reduced.' : '');
+			$cm.find('[data-pos-cname]').prop('readonly', !!p);
+		}
+		$d.on('click', '[data-pos-src-p]', function (e) {
+			e.preventDefault(); e.stopPropagation();
+			var p = JSON.parse($(this).attr('data-pos-src-p'));
+			linkProd(p);
+			$cm.prop('hidden', false).addClass('is-open');
+			$cm.find('[data-pos-cname]').val(p.name + (p.opt ? ' - ' + p.opt : ''));
+			$cm.find('[data-pos-cprice]').val(Number(p.price) || '');
+			$cm.find('[data-pos-src]').prop('checked', true).trigger('change');
+			$cm.find('[data-pos-sname]').trigger('focus');
+		});
+		$d.on('click', '[data-pos-custom], [data-pos-custom-close]', function () { linkProd(null); });
 		$d.on('click', '[data-pos-source-missing]', function () {
+			linkProd(null);
 			$cm.prop('hidden', false).addClass('is-open');
 			$cm.find('[data-pos-cname]').val($.trim($('[data-pos-q]').val()));
 			$cm.find('[data-pos-src]').prop('checked', true).trigger('change');
@@ -458,7 +476,10 @@
 				if (!src.cost) { toast('Add what the part cost us.', 'err'); return; }
 				if (!pr) { toast('Add the selling price to the customer.', 'err'); return; }
 			}
-			add({ id: 'c' + Date.now(), name: n, price: pr, custom: true, src: src });
+			var pid = $cm.data('pid') || 0;
+			if (pid && !src) { toast('Tick "Sourced from a neighbour shop" and add the supplier, or tap the part itself to sell from our stock.', 'err'); return; }
+			if (pid) { add({ id: pid, name: n, price: pr, custom: false, src: src }); } else { add({ id: 'c' + Date.now(), name: n, price: pr, custom: true, src: src }); }
+			linkProd(null);
 			$cm.find('input[type=text],input[type=number],input[type=tel]').val(''); $cm.find('[data-pos-src]').prop('checked', false); $cm.find('[data-pos-src-box]').prop('hidden', true); $cm.find('input[name=pos_src_paid][value=0]').prop('checked', true); srcMargin();
 			$cm.removeClass('is-open').prop('hidden', true);
 		});

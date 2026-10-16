@@ -651,3 +651,13 @@ a.nt-who:hover{color:#a07a24}
 @media (max-width:782px){.pos-src__grid{grid-template-columns:1fr}}
 .nd-grid--2-1{display:grid;grid-template-columns:minmax(0,2fr) minmax(280px,1fr);gap:18px;align-items:start}
 @media (max-width:1100px){.nd-grid--2-1{grid-template-columns:1fr}}
+
+/* Sourced sales from the product grid (1.1.0) */
+.pos__search--src{display:flex;gap:8px;align-items:center}
+.pos__search--src input{flex:1;min-width:0}
+.pos__srcbtn{white-space:nowrap}
+.pos-tile-wrap{position:relative;display:flex}
+.pos-tile-wrap .pos-tile{width:100%}
+.pos-tile__src{position:absolute;top:8px;right:8px;z-index:2;padding:3px 9px;border:0;border-radius:999px;background:var(--ink);color:#fff;font-size:11px;font-weight:700;letter-spacing:.02em;cursor:pointer;opacity:.9}
+.pos-tile__src:hover,.pos-tile__src:focus{background:var(--gold);opacity:1;outline:0}
+.pos-src__linked{margin:0 0 8px;padding:8px 12px;border-radius:8px;background:#f6f7f8;font-size:12px;color:var(--mut)}
