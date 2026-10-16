@@ -3,7 +3,7 @@ Contributors: pimofy
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 1.2.2
+Stable tag: 1.3.0
 License: GPLv2 or later
 
 The back office for MK Auto Spares, Kirinyaga Road, Nairobi.
@@ -27,6 +27,9 @@ One black and red desk under wp-admin > MKauto Desk:
 3. Add shop managers under Users > Add New (role Shop manager), then set their limits under MKauto Desk > Team.
 
 == Changelog ==
+
+= 1.3.0 =
+* Garage & Service page redesigned form-first: the booking form now sits at the top beside a short headline (and straight under it on phones), in three short steps. Services became compact cards that preselect the service and jump to the form; steps, contact details and trust points moved into a slim column; a sticky "Book a service" button appears on phones when the form is off screen.
 
 = 1.2.2 =
 * Point of sale: redesigned the custom item / sourced part dialog - labelled fields, KSh price boxes, a proper on/off switch, an Owe / Paid segmented control, a live price-cost-profit summary, and Cancel / Add to sale buttons. Fixes the stretched checkbox and radio buttons.

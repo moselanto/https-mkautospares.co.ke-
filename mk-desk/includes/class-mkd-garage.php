@@ -180,160 +180,127 @@ class MKD_Garage {
 		ob_start();
 		?>
 		<div class="mkg" id="mkg">
-			<section class="mkg-hero">
-				<div class="mkg-hero__in">
+			<section class="mkg-top">
+				<div class="mkg-intro mkg-intro--head">
 					<p class="mkg-eyebrow">MK Auto Spares &middot; Garage &amp; Service</p>
-					<h2 class="mkg-hero__title">Professional care for your vehicle, with genuine parts on hand.</h2>
-					<p class="mkg-hero__lead">Book a service, diagnosis or repair in under a minute. We confirm on WhatsApp, give you a clear quote before any work starts, and fit quality parts from our own counter on Kirinyaga Road.</p>
-					<div class="mkg-hero__cta">
-						<a class="mkg-btn mkg-btn--red" href="#mkg-book">Book a service</a>
-						<a class="mkg-btn mkg-btn--line" href="<?php echo esc_url( $wa_hi ); ?>" target="_blank" rel="noopener">Ask on WhatsApp</a>
+					<h2 class="mkg-title">Book your car service in one minute.</h2>
+					<p class="mkg-lead">Choose a service and a time. We confirm on WhatsApp and agree the price with you before any work starts.</p>
+				</div>
+
+				<div class="mkg-form-card" id="mkg-book">
+					<header class="mkg-form-card__h">
+						<h2>Book a service</h2>
+						<p>Fields marked <i>*</i> are required</p>
+					</header>
+
+					<form class="mkg-form" data-mkg-form novalidate>
+						<fieldset>
+							<legend><span>1</span> Vehicle &amp; service</legend>
+							<label class="mkg-f"><span>Make, model &amp; year <i>*</i></span><input type="text" name="vehicle" maxlength="120" required placeholder="e.g. Toyota Fielder 2014" autocomplete="off"></label>
+							<label class="mkg-f"><span>Service needed <i>*</i></span>
+								<select name="service" required data-mkg-service>
+									<option value="">Choose a service</option>
+									<?php foreach ( $services as $k => $l ) : ?>
+										<option value="<?php echo esc_attr( $k ); ?>"><?php echo esc_html( $l ); ?></option>
+									<?php endforeach; ?>
+								</select>
+							</label>
+							<div class="mkg-row">
+								<label class="mkg-f"><span>Registration no.</span><input type="text" name="plate" maxlength="20" placeholder="KDA 123X" class="mkg-upper" autocomplete="off"></label>
+								<label class="mkg-f"><span>Mileage (km)</span><input type="text" name="mileage" maxlength="20" inputmode="numeric" placeholder="98,500" autocomplete="off"></label>
+							</div>
+							<div class="mkg-choice" role="radiogroup" aria-label="Where">
+								<label><input type="radio" name="type" value="studio" checked><span><strong>At the garage</strong><small>Kirinyaga Road</small></span></label>
+								<label><input type="radio" name="type" value="video"><span><strong>Mobile mechanic</strong><small>We come to you</small></span></label>
+							</div>
+							<label class="mkg-f" data-mkg-loc hidden><span>Your location <i>*</i></span><input type="text" name="location" maxlength="120" placeholder="Estate, road or landmark"></label>
+						</fieldset>
+
+						<fieldset>
+							<legend><span>2</span> Date &amp; time</legend>
+							<label class="mkg-f mkg-f--date"><span>Preferred date <i>*</i></span><input type="date" name="date" required min="<?php echo esc_attr( $today ); ?>" max="<?php echo esc_attr( $max ); ?>" data-mkg-date></label>
+							<div class="mkg-slots" data-mkg-slots aria-live="polite"><p class="mkg-hint">Pick a date to see available times.</p></div>
+							<input type="hidden" name="time" data-mkg-time>
+						</fieldset>
+
+						<fieldset>
+							<legend><span>3</span> Your details</legend>
+							<div class="mkg-row">
+								<label class="mkg-f"><span>Full name <i>*</i></span><input type="text" name="name" maxlength="120" required autocomplete="name"></label>
+								<label class="mkg-f"><span>Phone / WhatsApp <i>*</i></span><input type="tel" name="phone" maxlength="20" required placeholder="0712 345 678" autocomplete="tel"></label>
+							</div>
+							<label class="mkg-f"><span>Describe the problem <em>(optional)</em></span><textarea name="notes" rows="2" maxlength="600" placeholder="e.g. Squeaking when braking, engine light on"></textarea></label>
+						</fieldset>
+
+						<div class="mkg-hp" aria-hidden="true"><label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+						<p class="mkg-error" data-mkg-error role="alert" hidden></p>
+						<button type="submit" class="mkg-btn mkg-btn--red mkg-btn--block" data-mkg-submit>
+							<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-3.3-.8-2.8-1.1-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2.1 1-2.4c.3-.3.6-.3.8-.3h.6c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1.1c.2-.3.4-.2.6-.1l2 .9c.3.2.5.2.5.4.1.1.1.7-.1 1.3z"/></svg>
+							<span>Book &amp; confirm on WhatsApp</span>
+						</button>
+						<p class="mkg-fine">Free to book. Your details are used only for this booking.</p>
+					</form>
+
+					<div class="mkg-done" data-mkg-done hidden>
+						<span class="mkg-done__tick" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+						<h3>Booking received</h3>
+						<p class="mkg-done__ref">Reference <strong data-mkg-ref></strong></p>
+						<p data-mkg-summary></p>
+						<p>WhatsApp should open with your booking written. <strong>Tap send</strong> and we will confirm your slot shortly.</p>
+						<a class="mkg-btn mkg-btn--wa" data-mkg-wa href="#" target="_blank" rel="noopener">Open WhatsApp</a>
 					</div>
-					<ul class="mkg-trust">
-						<li><strong>Quote first</strong><span>No work without your approval</span></li>
-						<li><strong>Genuine parts</strong><span>Sourced the same day</span></li>
-						<li><strong>Garage or on site</strong><span>Mobile mechanic available</span></li>
+				</div>
+
+				<div class="mkg-intro mkg-intro--more">
+					<ul class="mkg-ticks">
+						<li><strong>Price agreed first.</strong> No work starts without your approval.</li>
+						<li><strong>Genuine parts on hand.</strong> From our own counter on Kirinyaga Road.</li>
+						<li><strong>Garage or mobile mechanic.</strong> We can come to you in Nairobi.</li>
 					</ul>
+					<ol class="mkg-flow">
+						<li><b>1</b>Book online</li>
+						<li><b>2</b>Confirm on WhatsApp</li>
+						<li><b>3</b>Drive away</li>
+					</ol>
+					<dl class="mkg-contact">
+						<div><dt>Garage</dt><dd><?php echo esc_html( $address ); ?><?php if ( $map ) : ?> <a href="<?php echo esc_url( $map ); ?>" target="_blank" rel="noopener">Directions</a><?php endif; ?></dd></div>
+						<div><dt>Hours</dt><dd><?php echo esc_html( $hours ); ?></dd></div>
+						<div><dt>Call</dt><dd><a href="<?php echo esc_url( $tel ); ?>"><?php echo esc_html( $phone ); ?></a></dd></div>
+					</dl>
+					<a class="mkg-btn mkg-btn--wa" href="<?php echo esc_url( $wa_hi ); ?>" target="_blank" rel="noopener">Prefer to chat? WhatsApp us</a>
 				</div>
 			</section>
 
 			<section class="mkg-sec">
 				<header class="mkg-sec__h">
-					<p class="mkg-eyebrow">What we do</p>
 					<h2>Workshop services</h2>
-					<p>From routine servicing to complex repairs, for saloons, SUVs, vans and light trucks.</p>
+					<p>Tap a service to book it.</p>
 				</header>
 				<div class="mkg-cards">
 					<?php foreach ( $cards as $key => $c ) : ?>
-						<article class="mkg-card">
-							<span class="mkg-card__ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><?php echo isset( $icons[ $key ] ) ? $icons[ $key ] : $icons['service']; // phpcs:ignore WordPress.Security.EscapeOutput -- static SVG paths. ?></svg></span>
-							<h3><?php echo esc_html( $c[0] ); ?></h3>
-							<p><?php echo esc_html( $c[1] ); ?></p>
-							<a href="#mkg-book" class="mkg-card__link" data-mkg-pick="<?php echo esc_attr( $key ); ?>">Book this service <span aria-hidden="true">&rarr;</span></a>
-						</article>
+						<a class="mkg-card" href="#mkg-book" data-mkg-pick="<?php echo esc_attr( $key ); ?>">
+							<span class="mkg-card__ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><?php echo isset( $icons[ $key ] ) ? $icons[ $key ] : $icons['service']; // phpcs:ignore WordPress.Security.EscapeOutput -- static SVG paths. ?></svg></span>
+							<span class="mkg-card__t"><strong><?php echo esc_html( $c[0] ); ?></strong><small><?php echo esc_html( $c[1] ); ?></small></span>
+							<span class="mkg-card__go" aria-hidden="true">&rarr;</span>
+						</a>
 					<?php endforeach; ?>
-				</div>
-			</section>
-
-			<section class="mkg-sec mkg-steps">
-				<header class="mkg-sec__h">
-					<p class="mkg-eyebrow">How it works</p>
-					<h2>Simple, transparent, on time</h2>
-				</header>
-				<ol class="mkg-steps__list">
-					<li><b>1</b><h3>Book online</h3><p>Choose the service, a date and a time that suits you.</p></li>
-					<li><b>2</b><h3>Confirm on WhatsApp</h3><p>Your booking opens in WhatsApp. Send it and we confirm your slot.</p></li>
-					<li><b>3</b><h3>Inspection &amp; quote</h3><p>We check the vehicle and agree the price with you before starting.</p></li>
-					<li><b>4</b><h3>Drive away</h3><p>Work done, tested and explained, with an itemised receipt.</p></li>
-				</ol>
-			</section>
-
-			<section class="mkg-sec mkg-book" id="mkg-book">
-				<div class="mkg-book__grid">
-					<div class="mkg-form-card">
-						<header class="mkg-form-card__h">
-							<p class="mkg-eyebrow">Book your visit</p>
-							<h2>Garage &amp; service booking</h2>
-							<p>Takes about a minute. Fields marked * are required.</p>
-						</header>
-
-						<form class="mkg-form" data-mkg-form novalidate>
-							<fieldset>
-								<legend><span>1</span> Your vehicle</legend>
-								<div class="mkg-row mkg-row--3">
-									<label class="mkg-f mkg-f--wide"><span>Make, model &amp; year *</span><input type="text" name="vehicle" maxlength="120" required placeholder="e.g. Toyota Fielder 2014" autocomplete="off"></label>
-									<label class="mkg-f"><span>Registration no.</span><input type="text" name="plate" maxlength="20" placeholder="KDA 123X" class="mkg-upper" autocomplete="off"></label>
-									<label class="mkg-f"><span>Mileage (km)</span><input type="text" name="mileage" maxlength="20" inputmode="numeric" placeholder="98,500" autocomplete="off"></label>
-								</div>
-							</fieldset>
-
-							<fieldset>
-								<legend><span>2</span> Service</legend>
-								<label class="mkg-f"><span>What do you need? *</span>
-									<select name="service" required data-mkg-service>
-										<option value="">Choose a service</option>
-										<?php foreach ( $services as $k => $l ) : ?>
-											<option value="<?php echo esc_attr( $k ); ?>"><?php echo esc_html( $l ); ?></option>
-										<?php endforeach; ?>
-									</select>
-								</label>
-								<div class="mkg-choice" role="radiogroup" aria-label="Where">
-									<label><input type="radio" name="type" value="studio" checked><span><strong>At the garage</strong><small>Kirinyaga Road, Nairobi</small></span></label>
-									<label><input type="radio" name="type" value="video"><span><strong>Mobile mechanic</strong><small>We come to you (Nairobi)</small></span></label>
-								</div>
-								<label class="mkg-f" data-mkg-loc hidden><span>Your location *</span><input type="text" name="location" maxlength="120" placeholder="Estate, road or landmark"></label>
-							</fieldset>
-
-							<fieldset>
-								<legend><span>3</span> Date &amp; time</legend>
-								<label class="mkg-f mkg-f--date"><span>Preferred date *</span><input type="date" name="date" required min="<?php echo esc_attr( $today ); ?>" max="<?php echo esc_attr( $max ); ?>" data-mkg-date></label>
-								<div class="mkg-slots" data-mkg-slots aria-live="polite"><p class="mkg-hint">Pick a date to see available times.</p></div>
-								<input type="hidden" name="time" data-mkg-time>
-							</fieldset>
-
-							<fieldset>
-								<legend><span>4</span> Your details</legend>
-								<div class="mkg-row">
-									<label class="mkg-f"><span>Full name *</span><input type="text" name="name" maxlength="120" required autocomplete="name"></label>
-									<label class="mkg-f"><span>Phone / WhatsApp *</span><input type="tel" name="phone" maxlength="20" required placeholder="0712 345 678" autocomplete="tel"></label>
-								</div>
-								<label class="mkg-f"><span>Describe the problem (optional)</span><textarea name="notes" rows="3" maxlength="600" placeholder="e.g. Squeaking when braking, engine light on since Monday"></textarea></label>
-							</fieldset>
-
-							<div class="mkg-hp" aria-hidden="true"><label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
-							<p class="mkg-error" data-mkg-error role="alert" hidden></p>
-							<button type="submit" class="mkg-btn mkg-btn--red mkg-btn--block" data-mkg-submit>
-								<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-3.3-.8-2.8-1.1-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2.1 1-2.4c.3-.3.6-.3.8-.3h.6c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1.1c.2-.3.4-.2.6-.1l2 .9c.3.2.5.2.5.4.1.1.1.7-.1 1.3z"/></svg>
-								<span>Book &amp; confirm on WhatsApp</span>
-							</button>
-							<p class="mkg-fine">Your details are used only to manage this booking. We never share them.</p>
-						</form>
-
-						<div class="mkg-done" data-mkg-done hidden>
-							<span class="mkg-done__tick" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
-							<h3>Booking received</h3>
-							<p class="mkg-done__ref">Reference <strong data-mkg-ref></strong></p>
-							<p data-mkg-summary></p>
-							<p>WhatsApp should open with your booking written. <strong>Tap send</strong> and we will confirm your slot shortly.</p>
-							<a class="mkg-btn mkg-btn--wa" data-mkg-wa href="#" target="_blank" rel="noopener">Open WhatsApp</a>
-						</div>
-					</div>
-
-					<aside class="mkg-aside">
-						<div class="mkg-info">
-							<h3>Visit the garage</h3>
-							<ul>
-								<li><span>Address</span><strong><?php echo esc_html( $address ); ?></strong><?php if ( $map ) : ?><a href="<?php echo esc_url( $map ); ?>" target="_blank" rel="noopener">Get directions</a><?php endif; ?></li>
-								<li><span>Opening hours</span><strong><?php echo esc_html( $hours ); ?></strong></li>
-								<li><span>Call</span><strong><a href="<?php echo esc_url( $tel ); ?>"><?php echo esc_html( $phone ); ?></a></strong></li>
-							</ul>
-							<a class="mkg-btn mkg-btn--wa mkg-btn--block" href="<?php echo esc_url( $wa_hi ); ?>" target="_blank" rel="noopener">Chat on WhatsApp</a>
-						</div>
-						<div class="mkg-info mkg-info--light">
-							<h3>Helpful to bring</h3>
-							<ul class="mkg-ticks">
-								<li>Logbook or chassis number for exact parts</li>
-								<li>Your last service record, if you have it</li>
-								<li>Any parts you already bought</li>
-							</ul>
-						</div>
-					</aside>
 				</div>
 			</section>
 
 			<section class="mkg-sec mkg-faq">
 				<header class="mkg-sec__h">
-					<p class="mkg-eyebrow">Questions</p>
-					<h2>Before you book</h2>
+					<h2>Questions</h2>
 				</header>
 				<div class="mkg-faq__list">
 					<details><summary>Will I know the price before the work starts?</summary><p>Yes. We inspect the vehicle first and agree the full price with you. No work starts without your approval.</p></details>
-					<details><summary>Do you use genuine parts?</summary><p>We fit parts from our own counter and trusted suppliers on Kirinyaga Road. We explain the genuine, OEM and ex-Japan options so you choose what suits your budget.</p></details>
+					<details><summary>Do you use genuine parts?</summary><p>We fit parts from our own counter and trusted suppliers on Kirinyaga Road, and explain the genuine, OEM and ex-Japan options so you choose what suits your budget.</p></details>
 					<details><summary>Can I bring my own parts?</summary><p>Yes. Bring them along and our mechanics will fit them. Labour is quoted separately.</p></details>
-					<details><summary>How long does a service take?</summary><p>A routine service usually takes one to two hours. Bigger repairs depend on the job and parts; we give you a time when we quote.</p></details>
+					<details><summary>How long does a service take?</summary><p>A routine service usually takes one to two hours. For bigger repairs we give you a time when we quote.</p></details>
 					<details><summary>How do I pay?</summary><p>M-Pesa, cash or card. You receive an itemised receipt on WhatsApp or e-mail.</p></details>
 				</div>
 			</section>
+
+			<a class="mkg-sticky" href="#mkg-book" data-mkg-sticky hidden>Book a service</a>
 		</div>
 		<?php
 		return (string) ob_get_clean();

@@ -22,10 +22,24 @@
 	}
 	function today() { var n = new Date(); return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0'); }
 
-	/* "Book this service" links preselect the service. */
+	/* Service cards preselect the service and bring the form into view. */
 	d.querySelectorAll('[data-mkg-pick]').forEach(function (a) {
-		a.addEventListener('click', function () { $svc.value = a.getAttribute('data-mkg-pick'); });
+		a.addEventListener('click', function (e) {
+			e.preventDefault();
+			$svc.value = a.getAttribute('data-mkg-pick');
+			var card = d.getElementById('mkg-book');
+			card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			setTimeout(function () { var v = form.elements.vehicle; (v.value ? form.elements.date : v).focus({ preventScroll: true }); }, 450);
+		});
 	});
+
+	/* Mobile: show a sticky "Book a service" button whenever the form is off screen. */
+	var sticky = d.querySelector('[data-mkg-sticky]'), card = d.getElementById('mkg-book');
+	if (sticky && card && 'IntersectionObserver' in window) {
+		sticky.hidden = false;
+		new IntersectionObserver(function (en) { sticky.classList.toggle('is-on', !en[0].isIntersecting); }, { threshold: 0.05 }).observe(card);
+		sticky.addEventListener('click', function (e) { e.preventDefault(); card.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+	}
 
 	/* Garage vs mobile mechanic. */
 	form.querySelectorAll('input[name=type]').forEach(function (r) {
