@@ -59,6 +59,33 @@ class MKD_Desk_POS {
 		return $order->is_paid() || 'completed' === $order->get_status();
 	}
 
+	/** Part payments (and a carried booking deposit) recorded on an invoice. */
+	public static function payments( $order ) {
+		$p = $order->get_meta( '_mkd_payments' );
+		return is_array( $p ) ? $p : array();
+	}
+
+	public static function paid_so_far( $order ) {
+		$s = 0;
+		foreach ( self::payments( $order ) as $p ) {
+			$s += (float) ( $p['amt'] ?? 0 );
+		}
+		return round( $s, 2 );
+	}
+
+	public static function balance( $order ) {
+		return self::is_paid( $order ) ? 0 : max( 0, round( (float) $order->get_total() - self::paid_so_far( $order ), 2 ) );
+	}
+
+	private static function add_payment( $order, $amt, $method, $ref, $note = '' ) {
+		$list   = self::payments( $order );
+		$list[] = array( 'amt' => round( (float) $amt, 2 ), 'm' => $method, 'ref' => $ref, 't' => current_time( 'mysql' ), 'u' => get_current_user_id(), 'note' => $note );
+		$order->update_meta_data( '_mkd_payments', $list );
+		if ( $ref ) {
+			$order->add_meta_data( '_mkd_part_ref', $ref, false );
+		}
+	}
+
 	public static function doc_url( $order, $type, $print = true ) {
 		// Raw URL (plain "&", not "&amp;"): it is also sent to the till as JSON and set as a link by
 		// JavaScript, where an escaped "&amp;" broke the security check ("The link you followed has expired").
@@ -240,6 +267,15 @@ class MKD_Desk_POS {
 			}
 		}
 
+		// A part still to be fetched from a neighbour shop on an unpaid invoice: we must be able to call the customer.
+		if ( ! $paid && '' === $phone ) {
+			foreach ( $raw['items'] as $it ) {
+				if ( ! empty( $it['src'] ) && is_array( $it['src'] ) && (float) ( $it['price'] ?? 0 ) > 0 ) {
+					wp_send_json_error( array( 'message' => 'This invoice has a part sourced from a neighbour shop. Add the customer\'s phone number so you can call them when it is ready.' ), 400 );
+				}
+			}
+		}
+
 		try {
 			$order = wc_create_order( array( 'customer_id' => $uid, 'created_via' => 'mkd_pos' ) );
 			if ( is_wp_error( $order ) ) {
@@ -250,6 +286,12 @@ class MKD_Desk_POS {
 				$p   = isset( $it['id'] ) ? wc_get_product( absint( $it['id'] ) ) : null;
 				$qty = isset( $it['qty'] ) ? max( 1, min( 999, absint( $it['qty'] ) ) ) : 1;
 				$pr  = isset( $it['price'] ) ? max( 0, round( (float) $it['price'], 2 ) ) : 0;
+				if ( $pr <= 0 ) {
+					if ( ! $p ) {
+						continue; // An empty KSh 0 custom line is dropped, not billed.
+					}
+					throw new Exception( $p->get_name() . ' has no price (KSh 0). Enter the price or remove it from the sale.' );
+				}
 				if ( $p && ! MKD_Staff::can( 'edit_price' ) && abs( $pr - (float) wc_get_price_to_display( $p ) ) > 0.5 ) {
 					MKD_Staff::log( 'blocked', 'Blocked: tried to sell ' . $p->get_name() . ' at ' . MKD_Desk::money( $pr ) . ' (shop price ' . MKD_Desk::money( wc_get_price_to_display( $p ) ) . ')', array( 'level' => 'warn' ) );
 					throw new Exception( 'Only the owner can change prices at the till. ' . $p->get_name() . ' must be sold at ' . MKD_Desk::money( wc_get_price_to_display( $p ) ) . '.' );
@@ -354,6 +396,14 @@ class MKD_Desk_POS {
 			}
 			$order->calculate_totals( false );
 			$total    = (float) $order->get_total();
+			if ( $apobj && (float) $apobj->deposit > 0 && ! MKD_Desk_Appts::deposit_used( $apobj ) ) {
+				$dep = min( (float) $apobj->deposit, $total );
+				$order->update_meta_data( '_mkd_dep_from', (string) $apobj->ref );
+				self::add_payment( $order, $dep, (string) $apobj->deposit_method, (string) $apobj->deposit_ref, 'Booking deposit ' . $apobj->ref );
+				if ( $paid && $total - $dep > 0 ) {
+					self::add_payment( $order, $total - $dep, $method, $ref, 'Balance at the till' );
+				}
+			}
 			$tendered = isset( $pay['tendered'] ) ? max( 0, (float) $pay['tendered'] ) : 0;
 			if ( $paid && 'cash' === $method && $tendered > 0 ) {
 				$order->update_meta_data( '_mkd_tendered', $tendered );
@@ -396,7 +446,7 @@ class MKD_Desk_POS {
 		if ( ! empty( $apobj ) ) {
 			global $wpdb;
 			$upd = array( 'updated_at' => current_time( 'mysql' ) );
-			if ( in_array( $apobj->status, array( 'request', 'confirmed' ), true ) ) {
+			if ( in_array( $apobj->status, array( 'request', 'confirmed', 'checked_in' ), true ) ) {
 				$upd['status'] = 'completed';
 			}
 			if ( ! empty( $job['mileage'] ) ) {
@@ -677,6 +727,8 @@ class MKD_Desk_POS {
 			'number'   => $order->get_order_number(),
 			'total'    => (float) $order->get_total(),
 			'paid'     => self::is_paid( $order ),
+			'paid_so_far' => self::paid_so_far( $order ),
+			'balance'  => self::balance( $order ),
 			'change'   => (float) $order->get_meta( '_mkd_change' ),
 			'name'     => trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ),
 			'email'    => $ct['email'],
@@ -738,7 +790,7 @@ class MKD_Desk_POS {
 
 		$band = $paid
 			? '<td style="' . $f . 'padding:16px 20px;background:#e7f4ec;border-radius:10px;"><span style="font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:700;color:#1f7a45;">Paid in full</span><br><span style="font-size:13px;color:#1f7a45;">' . esc_html( trim( $meth . ( $ref ? ' · ' . $ref : '' ) ) ) . '</span></td><td align="right" style="' . $f . 'padding:16px 20px;background:#e7f4ec;border-radius:10px;font-size:20px;font-weight:700;color:#1f7a45;white-space:nowrap;">' . $m( $order->get_total() ) . '</td>'
-			: '<td style="' . $f . 'padding:16px 20px;background:#0B0B0B;border-radius:10px 0 0 10px;"><span style="font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:700;color:#FF5A5F;">Amount due</span>' . ( $mpesa ? '<br><span style="font-size:13px;color:#e9e2d6;">M-Pesa: ' . esc_html( $mpesa ) . ' · Ref ' . esc_html( $num ) . '</span>' : '' ) . '</td><td align="right" style="' . $f . 'padding:16px 20px;background:#0B0B0B;border-radius:0 10px 10px 0;font-size:20px;font-weight:700;color:#ffffff;white-space:nowrap;">' . $m( $order->get_total() ) . '</td>';
+			: '<td style="' . $f . 'padding:16px 20px;background:#0B0B0B;border-radius:10px 0 0 10px;"><span style="font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:700;color:#FF5A5F;">Amount due</span>' . ( $mpesa ? '<br><span style="font-size:13px;color:#e9e2d6;">M-Pesa: ' . esc_html( $mpesa ) . ' · Ref ' . esc_html( $num ) . '</span>' : '' ) . '</td><td align="right" style="' . $f . 'padding:16px 20px;background:#0B0B0B;border-radius:0 10px 10px 0;font-size:20px;font-weight:700;color:#ffffff;white-space:nowrap;">' . $m( self::balance( $order ) ) . '</td>';
 
 		$brand = $logo
 			? '<img src="' . esc_url( $logo ) . '" alt="' . esc_attr( $b['name'] ) . '" width="220" style="display:block;margin:0 auto;width:220px;max-width:70%;height:auto;border:0;">'
@@ -832,7 +884,10 @@ class MKD_Desk_POS {
 		if ( $paid ) {
 			$l[] = '*PAID*' . ( $order->get_payment_method_title() ? ' via ' . $order->get_payment_method_title() : '' ) . ( $ref ? ' (' . $ref . ')' : '' );
 		} else {
-			$l[] = '*AMOUNT DUE: ' . MKD_Desk::money( $order->get_total() ) . '*';
+			if ( self::paid_so_far( $order ) > 0 ) {
+				$l[] = 'Paid so far: ' . MKD_Desk::money( self::paid_so_far( $order ) );
+			}
+			$l[] = '*' . ( self::paid_so_far( $order ) > 0 ? 'BALANCE DUE' : 'AMOUNT DUE' ) . ': ' . MKD_Desk::money( self::balance( $order ) ) . '*';
 			if ( $mpesa ) {
 				$l[] = 'Pay via M-Pesa: ' . $mpesa;
 				$l[] = 'Reference: ' . $num;
@@ -860,7 +915,7 @@ class MKD_Desk_POS {
 			wp_send_json_error( array( 'message' => 'Order not found.' ), 404 );
 		}
 		$voided = in_array( $order->get_status(), array( 'cancelled', 'refunded', 'failed' ), true );
-		if ( $voided && in_array( $op, array( 'paid', 'complete', 'email', 'wa', 'void' ), true ) ) {
+		if ( $voided && in_array( $op, array( 'paid', 'part', 'complete', 'email', 'wa', 'void' ), true ) ) {
 			wp_send_json_error( array( 'message' => 'Order #' . $order->get_order_number() . ' is ' . wc_get_order_status_name( $order->get_status() ) . ' - nothing to do.' ), 409 );
 		}
 		if ( 'void' === $op ) {
@@ -918,6 +973,61 @@ class MKD_Desk_POS {
 				wp_send_json_success( array( 'message' => 'Sent on WhatsApp to ' . MKD_Desk::phone_label( $ph ) ) );
 			}
 			wp_send_json_error( array( 'message' => 'WhatsApp did not accept the message (the customer may not have messaged you in the last 24 hours). Opening WhatsApp so you can send it from your phone.', 'link' => $link ), 500 );
+		}
+		if ( 'part' === $op ) {
+			if ( 'mkd_pos' !== $order->get_created_via() ) {
+				wp_send_json_error( array( 'message' => 'Part payments are for till invoices only.' ), 400 );
+			}
+			if ( self::is_paid( $order ) ) {
+				wp_send_json_error( array( 'message' => 'Order #' . $order->get_order_number() . ' is already paid.' ), 409 );
+			}
+			$bal    = self::balance( $order );
+			$amt    = isset( $_POST['amount'] ) ? round( (float) $_POST['amount'], 2 ) : 0;
+			$method = isset( $_POST['method'] ) && array_key_exists( wp_unslash( $_POST['method'] ), self::methods() ) ? sanitize_key( wp_unslash( $_POST['method'] ) ) : 'mpesa';
+			$ref    = isset( $_POST['ref'] ) ? MKD_Desk::norm_ref( wp_unslash( $_POST['ref'] ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			if ( $amt <= 0 ) {
+				wp_send_json_error( array( 'message' => 'Enter an amount above KSh 0.' ), 400 );
+			}
+			if ( $amt > $bal + 0.5 ) {
+				wp_send_json_error( array( 'message' => 'That is more than the balance of ' . MKD_Desk::money( $bal ) . '.' ), 400 );
+			}
+			if ( 'mpesa' === $method && $ref && ! MKD_Desk::mpesa_code_ok( $ref ) ) {
+				wp_send_json_error( array( 'message' => 'That does not look like an M-Pesa code (10 letters and numbers, e.g. SGH4K2LMNP).' ), 400 );
+			}
+			if ( $ref ) {
+				if ( ! MKD_Desk::ref_lock( $ref ) ) {
+					wp_send_json_error( array( 'message' => 'Another payment with code ' . $ref . ' is being saved right now. Wait a moment and try again.' ), 409 );
+				}
+				$used = MKD_Desk::ref_used( $ref, $order->get_id(), (int) $order->get_meta( '_mkd_wa_order' ) );
+				foreach ( self::payments( $order ) as $pp ) {
+					if ( ! empty( $pp['ref'] ) && MKD_Desk::norm_ref( $pp['ref'] ) === $ref ) {
+						$used = 'this invoice';
+					}
+				}
+				if ( '' !== $used ) {
+					MKD_Staff::log( 'blocked', 'Blocked: payment code ' . $ref . ' already used on ' . $used, array( 'level' => 'warn' ) );
+					wp_send_json_error( array( 'message' => 'Payment code ' . $ref . ' has already been used on ' . $used . '. Check the code with the customer.' ), 409 );
+				}
+			}
+			$amt = min( $amt, $bal );
+			self::add_payment( $order, $amt, $method, $ref );
+			$left = max( 0, round( (float) $order->get_total() - self::paid_so_far( $order ), 2 ) );
+			$order->add_order_note( 'Part payment ' . MKD_Desk::money( $amt ) . ' (' . self::methods()[ $method ] . ( $ref ? ' ' . $ref : '' ) . ') at MKauto Desk. Balance ' . MKD_Desk::money( $left ) . '.' );
+			$full = $left <= 0.5;
+			if ( $full ) {
+				$order->set_payment_method( 'mkd_pos_' . $method );
+				$order->set_payment_method_title( self::methods()[ $method ] );
+				$order->set_date_paid( time() );
+				$order->set_status( 'completed', 'Paid in full through part payments at MKauto Desk.' );
+			}
+			$order->save();
+			MKD_Staff::log( 'sale', 'Part payment ' . MKD_Desk::money( $amt ) . ' on invoice #' . $order->get_order_number() . ' - balance ' . MKD_Desk::money( $left ), array( 'object' => 'order', 'object_id' => $order->get_id(), 'amount' => $amt ) );
+			MKD_Desk::bust();
+			$sent        = $full ? self::deliver( $order ) : array();
+			$sum         = self::summary( $order );
+			$sum['sent'] = $sent;
+			$sum['message'] = $full ? 'Paid in full. Invoice #' . $order->get_order_number() . ' is now a receipt.' : MKD_Desk::money( $amt ) . ' recorded. Balance ' . MKD_Desk::money( $left ) . '.';
+			wp_send_json_success( $sum );
 		}
 		if ( 'paid' === $op && self::is_paid( $order ) ) {
 			wp_send_json_error( array( 'message' => 'Order #' . $order->get_order_number() . ' is already paid.' ), 409 );
@@ -1082,6 +1192,7 @@ class MKD_Desk_POS {
 				'customer' => array( 'name' => $a->customer_name, 'phone' => $a->phone, 'email' => $a->email, 'user_id' => (int) $a->user_id ),
 				'channel'  => 'garage',
 				'ref'      => $a->ref,
+				'deposit'  => ( (float) $a->deposit > 0 && ! MKD_Desk_Appts::deposit_used( $a ) ) ? (float) $a->deposit : 0,
 				'job'      => array( 'vehicle' => $a->vehicle, 'plate' => $a->plate, 'mileage' => $a->mileage, 'tech' => $a->staff, 'ref' => $a->ref, 'service' => $svc, 'work' => '', 'advice' => '', 'next' => '' ),
 			);
 		}
@@ -1402,7 +1513,7 @@ class MKD_Desk_POS {
 			echo '<td>' . MKD_Desk::badge( 'online' === $c ? 'released' : ( 'whatsapp' === $c ? 'confirmed' : 'muted' ), self::channels()[ $c ] ?? ucfirst( $c ) ) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			echo '<td><strong>' . esc_html( MKD_Desk::money( $o->get_total() ) ) . '</strong></td>';
 			$isv = in_array( $o->get_status(), array( 'cancelled', 'refunded', 'failed' ), true );
-			echo '<td>' . ( $isv ? MKD_Desk::badge( 'muted', 'Voided' ) : ( $p ? MKD_Desk::badge( 'confirmed', 'Paid' ) : MKD_Desk::badge( 'overdue', 'Unpaid' ) ) ) . '<small>' . esc_html( $o->get_payment_method_title() ) . '</small>' . ( $sinfo ? '<small class="nd-sent">' . esc_html( implode( ' · ', $sinfo ) ) . '</small>' : '' ) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			echo '<td>' . ( $isv ? MKD_Desk::badge( 'muted', 'Voided' ) : ( $p ? MKD_Desk::badge( 'confirmed', 'Paid' ) : ( self::paid_so_far( $o ) > 0 ? MKD_Desk::badge( 'due_soon', 'Part paid' ) . '<small>' . esc_html( MKD_Desk::money( self::paid_so_far( $o ) ) . ' paid, ' . MKD_Desk::money( self::balance( $o ) ) . ' left' ) . '</small>' : MKD_Desk::badge( 'overdue', 'Unpaid' ) ) ) ) . '<small>' . esc_html( $o->get_payment_method_title() ) . '</small>' . ( $sinfo ? '<small class="nd-sent">' . esc_html( implode( ' · ', $sinfo ) ) . '</small>' : '' ) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			echo '<td class="nd-col-act">';
 			echo '<a class="nd-ico-btn" target="_blank" rel="noopener" href="' . esc_url( self::doc_url( $o, 'receipt' ) ) . '">Receipt</a>';
 			echo '<a class="nd-ico-btn" target="_blank" rel="noopener" href="' . esc_url( self::doc_url( $o, 'invoice' ) ) . '">Invoice</a>';
@@ -1419,7 +1530,10 @@ class MKD_Desk_POS {
 			if ( $void ) {
 				echo '<span class="nd-mut nd-small">' . esc_html( wc_get_order_status_name( $o->get_status() ) . ( $o->get_meta( '_mkd_void_reason' ) ? ': ' . $o->get_meta( '_mkd_void_reason' ) : '' ) ) . '</span>';
 			} elseif ( ! $p ) {
-				echo '<button type="button" class="nd-ico-btn nd-ico-btn--ok" data-pos-paid="' . (int) $o->get_id() . '">Mark paid</button>';
+				if ( 'mkd_pos' === $o->get_created_via() ) {
+					echo '<button type="button" class="nd-ico-btn" data-pos-part="' . (int) $o->get_id() . '" data-bal="' . esc_attr( self::balance( $o ) ) . '">Part payment</button>';
+				}
+				echo '<button type="button" class="nd-ico-btn nd-ico-btn--ok" data-pos-paid="' . (int) $o->get_id() . '">' . ( self::paid_so_far( $o ) > 0 ? 'Paid balance' : 'Mark paid' ) . '</button>';
 			} elseif ( in_array( $o->get_status(), array( 'processing', 'on-hold' ), true ) ) {
 				echo '<button type="button" class="nd-ico-btn nd-ico-btn--ok" data-pos-complete="' . (int) $o->get_id() . '">Fulfilled</button>';
 			}
@@ -1599,9 +1713,12 @@ class MKD_Desk_POS {
 				$extra .= '<div class="ln"><span>Cash received</span><span>' . esc_html( MKD_Desk::money( $order->get_meta( '_mkd_tendered' ) ) ) . '</span></div><div class="ln"><span>Change</span><span>' . esc_html( MKD_Desk::money( $order->get_meta( '_mkd_change' ) ) ) . '</span></div>';
 			}
 		}
+		foreach ( self::payments( $order ) as $pp ) {
+			$extra .= '<div class="ln"><span>' . esc_html( ( ! empty( $pp['note'] ) ? $pp['note'] : 'Part payment' ) . ' - ' . ( self::methods()[ $pp['m'] ] ?? '' ) . ( ! empty( $pp['ref'] ) ? ' ' . $pp['ref'] : '' ) . ( ! empty( $pp['t'] ) ? ', ' . MKD_Desk::date_label( $pp['t'], 'j M' ) : '' ) ) . '</span><span>- ' . esc_html( MKD_Desk::money( $pp['amt'] ) ) . '</span></div>';
+		}
 		$due_box = $paid
 			? '<div class="due ok"><span>Balance due</span><strong>KSh 0</strong></div>'
-			: '<div class="due"><span>Amount due</span><strong>' . esc_html( MKD_Desk::money( $order->get_total() ) ) . '</strong></div>';
+			: '<div class="due"><span>' . ( self::paid_so_far( $order ) > 0 ? 'Balance due' : 'Amount due' ) . '</span><strong>' . esc_html( MKD_Desk::money( self::balance( $order ) ) ) . '</strong></div>';
 
 		$note    = $order->get_customer_note() ? esc_html( $order->get_customer_note() ) : '';
 		$footer  = '' !== trim( $b['note'] ) ? esc_html( $b['note'] ) : 'Thank you for choosing ' . esc_html( $b['name'] ) . '. Unfitted parts in their original packaging can be returned within 7 days of delivery with this document.';

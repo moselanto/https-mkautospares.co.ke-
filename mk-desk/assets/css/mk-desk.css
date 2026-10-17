@@ -749,3 +749,5 @@ a.nt-who:hover{color:#CA1D24}
 /* 1.6.0 - void button */
 .nd-ico-btn--danger{color:#b42318;border-color:#f3c3bd}
 .nd-ico-btn--danger:hover{background:#fdecea}
+
+.nd-badge--checked_in{background:#e8f0fe;color:#1a56b8}

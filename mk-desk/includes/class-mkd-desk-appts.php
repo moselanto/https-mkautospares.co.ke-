@@ -15,6 +15,7 @@ class MKD_Desk_Appts {
 		add_filter( 'rest_pre_serve_request', array( __CLASS__, 'cors' ), 20, 3 );
 		add_action( 'admin_post_mkd_appt_save', array( __CLASS__, 'h_save' ) );
 		add_action( 'admin_post_mkd_appt_status', array( __CLASS__, 'h_status' ) );
+		add_action( 'admin_post_mkd_appt_deposit', array( __CLASS__, 'h_deposit' ) );
 		add_action( 'rest_api_init', array( __CLASS__, 'routes' ) );
 	}
 
@@ -59,6 +60,7 @@ class MKD_Desk_Appts {
 		return array(
 			'request'   => 'Awaiting confirmation',
 			'confirmed' => 'Confirmed',
+			'checked_in' => 'Checked in (car at the garage)',
 			'completed' => 'Completed',
 			'no_show'   => 'No-show',
 			'cancelled' => 'Cancelled',
@@ -95,7 +97,7 @@ class MKD_Desk_Appts {
 	public static function for_customer( $user_id, $email, $phone ) {
 		global $wpdb;
 		$t = MKD_Desk::t_appts();
-		return (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $t WHERE appt_date >= %s AND status IN ('request','confirmed') AND ( user_id = %d OR ( email <> '' AND email = %s ) OR ( phone <> '' AND phone = %s ) ) ORDER BY appt_date ASC, appt_time ASC LIMIT 10", MKD_Desk::today(), (int) $user_id, (string) $email, (string) $phone ) ); // phpcs:ignore WordPress.DB.PreparedSQL
+		return (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $t WHERE appt_date >= %s AND status IN ('request','confirmed','checked_in') AND ( user_id = %d OR ( email <> '' AND email = %s ) OR ( phone <> '' AND phone = %s ) ) ORDER BY appt_date ASC, appt_time ASC LIMIT 10", MKD_Desk::today(), (int) $user_id, (string) $email, (string) $phone ) ); // phpcs:ignore WordPress.DB.PreparedSQL
 	}
 
 	public static function kpis() {
@@ -104,9 +106,9 @@ class MKD_Desk_Appts {
 		$today = MKD_Desk::today();
 		$in7   = gmdate( 'Y-m-d', strtotime( $today . ' +6 days' ) );
 		$k     = array( 'today' => 0, 'today_confirmed' => 0, 'week' => 0, 'requests' => 0 );
-		$k['today']           = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $t WHERE appt_date = %s AND status IN ('request','confirmed','completed')", $today ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$k['today_confirmed'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $t WHERE appt_date = %s AND status IN ('confirmed','completed')", $today ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$k['week']            = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $t WHERE appt_date >= %s AND appt_date <= %s AND status IN ('request','confirmed')", $today, $in7 ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$k['today']           = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $t WHERE appt_date = %s AND status IN ('request','confirmed','checked_in','completed')", $today ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$k['today_confirmed'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $t WHERE appt_date = %s AND status IN ('confirmed','checked_in','completed')", $today ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$k['week']            = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $t WHERE appt_date >= %s AND appt_date <= %s AND status IN ('request','confirmed','checked_in')", $today, $in7 ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$k['requests']        = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $t WHERE appt_date >= %s AND status = 'request'", $today ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		return $k;
 	}
@@ -137,7 +139,7 @@ class MKD_Desk_Appts {
 	public static function booked( $date, $time, $exclude = 0 ) {
 		global $wpdb;
 		$t = MKD_Desk::t_appts();
-		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $t WHERE appt_date = %s AND appt_time = %s AND status IN ('request','confirmed') AND id <> %d", $date, $time, (int) $exclude ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $t WHERE appt_date = %s AND appt_time = %s AND status IN ('request','confirmed','checked_in') AND id <> %d", $date, $time, (int) $exclude ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	}
 
 	public static function is_full( $date, $time, $exclude = 0 ) {
@@ -164,7 +166,7 @@ class MKD_Desk_Appts {
 			return '';
 		}
 		$t = MKD_Desk::t_appts();
-		return (string) $wpdb->get_var( $wpdb->prepare( "SELECT ref FROM $t WHERE phone = %s AND appt_date = %s AND status IN ('request','confirmed') AND id <> %d LIMIT 1", $phone, $date, (int) $exclude ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return (string) $wpdb->get_var( $wpdb->prepare( "SELECT ref FROM $t WHERE phone = %s AND appt_date = %s AND status IN ('request','confirmed','checked_in') AND id <> %d LIMIT 1", $phone, $date, (int) $exclude ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	}
 
 	/** Times still bookable online for a date: real slots, not passed, not full. */
@@ -324,7 +326,7 @@ class MKD_Desk_Appts {
 		$t     = MKD_Desk::t_appts();
 		$today = MKD_Desk::today();
 		$tabs  = array(
-			'upcoming'  => array( 'Upcoming', "appt_date >= %s AND status IN ('request','confirmed')", 'ASC' ),
+			'upcoming'  => array( 'Upcoming', "appt_date >= %s AND status IN ('request','confirmed','checked_in')", 'ASC' ),
 			'request'   => array( 'To confirm', "appt_date >= %s AND status = 'request'", 'ASC' ),
 			'today'     => array( 'Today', "appt_date = %s AND status <> 'cancelled'", 'ASC' ),
 			'past'      => array( 'Past', "appt_date < %s AND status <> 'cancelled'", 'DESC' ),
@@ -410,6 +412,12 @@ class MKD_Desk_Appts {
 			echo '<a class="nd-ico-btn nd-ico-btn--wa" target="_blank" rel="noopener" href="' . esc_url( MKD_Desk::wa( $a->phone, $txt ) ) . '"' . ( 'confirmed' === $a->status ? ' data-nd-remind="appt:' . (int) $a->id . '"' : '' ) . '>' . ( 'request' === $a->status ? 'WhatsApp' : 'Remind' ) . '</a>';
 		}
 		if ( 'confirmed' === $a->status && $a->appt_date <= $today ) {
+			self::status_btn( $a->id, 'checked_in', 'Check in', 'nd-ico-btn nd-ico-btn--ok' );
+		}
+		if ( 'checked_in' === $a->status ) {
+			self::status_btn( $a->id, 'completed', 'Done', 'nd-ico-btn nd-ico-btn--ok' );
+		}
+		if ( 'confirmed' === $a->status && $a->appt_date <= $today ) {
 			self::status_btn( $a->id, 'completed', 'Done', 'nd-ico-btn nd-ico-btn--ok' );
 			self::status_btn( $a->id, 'no_show', 'No-show', 'nd-ico-btn nd-ico-btn--danger' );
 		}
@@ -445,7 +453,7 @@ class MKD_Desk_Appts {
 		echo '<a class="nd-pill" href="' . esc_url( MKD_Desk::url( MKD_Desk::P_APPTS, array( 'view' => 'week', 'start' => $prev ) ) ) . '">&larr; Previous week</a>';
 		echo '<a class="nd-pill is-on" href="' . esc_url( MKD_Desk::url( MKD_Desk::P_APPTS, array( 'view' => 'week' ) ) ) . '">This week</a>';
 		echo '<a class="nd-pill" href="' . esc_url( MKD_Desk::url( MKD_Desk::P_APPTS, array( 'view' => 'week', 'start' => $next ) ) ) . '">Next week &rarr;</a>';
-		echo '</nav><div class="nd-legend">' . MKD_Desk::badge( 'request', 'To confirm' ) . MKD_Desk::badge( 'confirmed', 'Confirmed' ) . MKD_Desk::badge( 'completed', 'Completed' ) . MKD_Desk::badge( 'no_show', 'No-show' ) . '</div></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo '</nav><div class="nd-legend">' . MKD_Desk::badge( 'request', 'To confirm' ) . MKD_Desk::badge( 'confirmed', 'Confirmed' ) . MKD_Desk::badge( 'checked_in', 'Checked in' ) . MKD_Desk::badge( 'completed', 'Completed' ) . MKD_Desk::badge( 'no_show', 'No-show' ) . '</div></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		echo '<div class="nd-week">';
 		for ( $i = 0; $i < 7; $i++ ) {
 			$d      = gmdate( 'Y-m-d', strtotime( $mon . ' +' . $i . ' days' ) );
@@ -496,7 +504,7 @@ class MKD_Desk_Appts {
 				echo MKD_Desk::btn( MKD_Desk::wa( $a->phone, self::confirm_text( $a ) ), 'Re-send confirmation', 'nd-btn--ghost', 'target="_blank" rel="noopener"' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			}
 		}
-		if ( in_array( $a->status, array( 'confirmed', 'completed' ), true ) ) {
+		if ( in_array( $a->status, array( 'confirmed', 'checked_in', 'completed' ), true ) ) {
 			echo MKD_Desk::btn( MKD_Desk::url( MKD_Desk::P_POS, array( 'from_appt' => (int) $a->id ) ), 'Create invoice / receipt for this job', 'nd-btn--primary' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		}
 		echo '</div></div></section>';
@@ -549,11 +557,16 @@ class MKD_Desk_Appts {
 		if ( (float) $a->price > 0 ) {
 			echo '<div><dt>Price</dt><dd>' . esc_html( MKD_Desk::money( $a->price ) ) . '</dd></div>';
 		}
+		if ( ! empty( $a->checked_in_at ) ) {
+			echo '<div><dt>Checked in</dt><dd>' . esc_html( MKD_Desk::date_label( $a->checked_in_at, 'j M, H:i' ) ) . '</dd></div>';
+		}
 		echo '</dl></section>';
+		self::deposit_card( $a );
 		echo '<section class="nd-card"><header class="nd-card__h"><h2>Status</h2></header><div class="nd-stack">';
 		$opts = array(
 			'request'   => array( 'confirmed' => array( 'Confirm appointment', 'nd-btn--primary', '' ), 'cancelled' => array( 'Cancel', 'nd-btn--danger-ghost', 'Cancel this appointment?' ) ),
-			'confirmed' => array( 'completed' => array( 'Mark completed', 'nd-btn--primary', '' ), 'no_show' => array( 'Client did not come', 'nd-btn--ghost', '' ), 'cancelled' => array( 'Cancel', 'nd-btn--danger-ghost', 'Cancel this appointment?' ) ),
+			'confirmed' => array( 'checked_in' => array( 'Check in - the car has arrived', 'nd-btn--primary', '' ), 'completed' => array( 'Mark completed', 'nd-btn--ghost', '' ), 'no_show' => array( 'Client did not come', 'nd-btn--ghost', '' ), 'cancelled' => array( 'Cancel', 'nd-btn--danger-ghost', 'Cancel this appointment?' ) ),
+			'checked_in' => array( 'completed' => array( 'Mark completed', 'nd-btn--primary', '' ), 'confirmed' => array( 'Undo check-in', 'nd-btn--ghost', '' ) ),
 			'completed' => array( 'confirmed' => array( 'Undo - back to confirmed', 'nd-btn--ghost', '' ) ),
 			'no_show'   => array( 'confirmed' => array( 'Undo - back to confirmed', 'nd-btn--ghost', '' ) ),
 			'cancelled' => array( 'request' => array( 'Restore appointment', 'nd-btn--ghost', '' ) ),
@@ -579,6 +592,98 @@ class MKD_Desk_Appts {
 		}
 		echo '</aside></div>';
 		MKD_Desk::footer();
+	}
+
+	/** Deposit taken to hold a booking (M-Pesa code checked like every other payment). */
+	private static function deposit_card( $a ) {
+		$dep = isset( $a->deposit ) ? (float) $a->deposit : 0;
+		echo '<section class="nd-card"><header class="nd-card__h"><h2>Deposit</h2>' . ( $dep > 0 ? MKD_Desk::badge( 'confirmed', 'Paid' ) : '' ) . '</header>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		$form = function ( $op, $inner, $btn, $cls, $confirm = '' ) use ( $a ) {
+			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="nd-stack"' . ( $confirm ? ' data-nd-confirm="' . esc_attr( $confirm ) . '"' : '' ) . '><input type="hidden" name="action" value="mkd_appt_deposit"><input type="hidden" name="op" value="' . esc_attr( $op ) . '"><input type="hidden" name="appt_id" value="' . (int) $a->id . '">';
+			wp_nonce_field( 'mkd_appt_deposit' );
+			echo $inner . '<button type="submit" class="nd-btn nd-btn--block ' . esc_attr( $cls ) . '">' . esc_html( $btn ) . '</button></form>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		};
+		if ( $dep > 0 ) {
+			echo '<dl class="nd-dl"><div><dt>Amount</dt><dd><strong>' . esc_html( MKD_Desk::money( $dep ) ) . '</strong></dd></div><div><dt>Method</dt><dd>' . esc_html( ( MKD_Desk_POS::methods()[ $a->deposit_method ] ?? ucfirst( (string) $a->deposit_method ) ) . ( $a->deposit_ref ? ' - ' . $a->deposit_ref : '' ) ) . '</dd></div>' . ( $a->deposit_at ? '<div><dt>Received</dt><dd>' . esc_html( MKD_Desk::date_label( $a->deposit_at, 'j M Y, H:i' ) ) . '</dd></div>' : '' ) . '</dl>';
+			echo '<p class="nd-mut nd-small">It is taken off the invoice automatically when you bill this job.</p>';
+			if ( MKD_Staff::can( 'refunds' ) && ! self::deposit_used( $a ) ) {
+				$form( 'remove', '', 'Remove deposit (refunded / entered by mistake)', 'nd-btn--danger-ghost', 'Remove this deposit? Refund the customer if money was received.' );
+			}
+		} elseif ( ! in_array( $a->status, array( 'cancelled', 'completed', 'no_show' ), true ) ) {
+			$opts = '';
+			foreach ( MKD_Desk_POS::methods() as $k => $l ) {
+				$opts .= '<option value="' . esc_attr( $k ) . '">' . esc_html( $l ) . '</option>';
+			}
+			$form( 'add', '<label class="nd-field"><span class="nd-label">Amount (KSh)</span><input type="number" name="amount" min="1" step="1" required></label><label class="nd-field"><span class="nd-label">Paid by</span><select name="method">' . $opts . '</select></label><label class="nd-field"><span class="nd-label">M-Pesa code / reference</span><input type="text" name="ref" maxlength="40" autocomplete="off" placeholder="e.g. SGH4K2LMNP"></label>', 'Record deposit', 'nd-btn--primary' );
+		} else {
+			echo '<p class="nd-mut">No deposit.</p>';
+		}
+		echo '</section>';
+	}
+
+	/** True when the deposit has already been carried onto a live invoice for this job. */
+	public static function deposit_used( $a ) {
+		if ( ! class_exists( 'MKD_Desk_POS' ) ) {
+			return false;
+		}
+		foreach ( MKD_Desk_POS::orders_for_appt( $a->id ) as $o ) {
+			if ( $o->get_meta( '_mkd_dep_from' ) && ! in_array( $o->get_status(), array( 'cancelled', 'refunded', 'failed' ), true ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public static function h_deposit() {
+		MKD_Desk::guard( 'mkd_appt_deposit' );
+		global $wpdb;
+		$id   = isset( $_POST['appt_id'] ) ? absint( $_POST['appt_id'] ) : 0;
+		$op   = isset( $_POST['op'] ) ? sanitize_key( wp_unslash( $_POST['op'] ) ) : '';
+		$a    = self::get( $id );
+		$back = function ( $msg ) use ( $id ) {
+			wp_safe_redirect( MKD_Desk::url( MKD_Desk::P_APPTS, array( 'appt' => $id, 'nd_msg' => $msg ) ) );
+			exit;
+		};
+		if ( ! $a ) {
+			$back( 'notfound' );
+		}
+		if ( 'remove' === $op ) {
+			if ( ! MKD_Staff::can( 'refunds' ) || self::deposit_used( $a ) ) {
+				$back( 'dep_locked' );
+			}
+			$wpdb->update( MKD_Desk::t_appts(), array( 'deposit' => 0, 'deposit_method' => '', 'deposit_ref' => '', 'deposit_at' => null, 'updated_at' => current_time( 'mysql' ) ), array( 'id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			MKD_Desk::log( MKD_Desk::t_appts(), $id, 'Deposit of ' . MKD_Desk::money( $a->deposit ) . ' removed.' );
+			MKD_Staff::log( 'sale', 'Booking ' . $a->ref . ': deposit ' . MKD_Desk::money( $a->deposit ) . ' removed', array( 'level' => 'warn' ) );
+			MKD_Desk::bust();
+			$back( 'dep_removed' );
+		}
+		if ( (float) $a->deposit > 0 || in_array( $a->status, array( 'cancelled', 'completed', 'no_show' ), true ) ) {
+			$back( 'dep_locked' );
+		}
+		$amt    = isset( $_POST['amount'] ) ? round( (float) $_POST['amount'], 2 ) : 0;
+		$method = isset( $_POST['method'] ) && array_key_exists( wp_unslash( $_POST['method'] ), MKD_Desk_POS::methods() ) ? sanitize_key( wp_unslash( $_POST['method'] ) ) : 'mpesa';
+		$ref    = isset( $_POST['ref'] ) ? MKD_Desk::norm_ref( wp_unslash( $_POST['ref'] ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( $amt <= 0 || $amt > 10000000 ) {
+			$back( 'dep_amount' );
+		}
+		if ( 'mpesa' === $method && ( '' === $ref || ! MKD_Desk::mpesa_code_ok( $ref ) ) ) {
+			$back( 'dep_code' );
+		}
+		if ( $ref ) {
+			if ( ! MKD_Desk::ref_lock( $ref ) ) {
+				$back( 'dep_busy' );
+			}
+			$used = MKD_Desk::ref_used( $ref, 0, 0, 0, $id );
+			if ( '' !== $used ) {
+				MKD_Staff::log( 'blocked', 'Blocked: deposit code ' . $ref . ' already used on ' . $used, array( 'level' => 'warn' ) );
+				$back( 'dep_used' );
+			}
+		}
+		$wpdb->update( MKD_Desk::t_appts(), array( 'deposit' => $amt, 'deposit_method' => $method, 'deposit_ref' => $ref, 'deposit_at' => current_time( 'mysql' ), 'updated_at' => current_time( 'mysql' ) ), array( 'id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		MKD_Desk::log( MKD_Desk::t_appts(), $id, 'Deposit ' . MKD_Desk::money( $amt ) . ' received (' . MKD_Desk_POS::methods()[ $method ] . ( $ref ? ' ' . $ref : '' ) . ').' );
+		self::staff_log( $id, 'deposit ' . MKD_Desk::money( $amt ) . ' received' );
+		MKD_Desk::bust();
+		$back( 'dep_saved' );
 	}
 
 	private static function history( $a ) {
@@ -776,7 +881,11 @@ class MKD_Desk_Appts {
 			wp_safe_redirect( MKD_Desk::url( MKD_Desk::P_APPTS, array( 'nd_msg' => 'notfound' ) ) );
 			exit;
 		}
-		$wpdb->update( MKD_Desk::t_appts(), array( 'status' => $to, 'updated_at' => current_time( 'mysql' ) ), array( 'id' => $id ) );
+		$upd = array( 'status' => $to, 'updated_at' => current_time( 'mysql' ) );
+		if ( 'checked_in' === $to ) {
+			$upd['checked_in_at'] = current_time( 'mysql' );
+		}
+		$wpdb->update( MKD_Desk::t_appts(), $upd, array( 'id' => $id ) );
 		MKD_Desk::log( MKD_Desk::t_appts(), $id, 'Status changed to ' . self::status_label( $to ) . '.' );
 		self::staff_log( $id, 'Status changed to ' . self::status_label( $to ) );
 		MKD_Desk::bust();

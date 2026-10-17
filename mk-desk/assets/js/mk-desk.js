@@ -328,6 +328,30 @@
 				if (r && r.success) { var st = sentText(r.data); toast('Invoice marked paid' + (st ? '. ' + st : ''), 'ok'); setTimeout(function () { window.location.reload(); }, st ? 2200 : 600); } else { toast((r && r.data && r.data.message) || 'Could not update', 'err'); $b.removeClass('is-loading'); }
 			}).fail(function (x) { var m = x && x.responseJSON && x.responseJSON.data && x.responseJSON.data.message; toast(m || 'Could not update', 'err'); $b.removeClass('is-loading'); });
 		});
+		$d.on('click', '[data-pos-part]', function () {
+			var $b = $(this), bal = Number($b.attr('data-bal')) || 0, map = { '1': 'mpesa', '2': 'cash', '3': 'card', '4': 'bank' };
+			var amt = window.prompt('Part payment received (balance ' + ksh(bal) + '):', '');
+			if (amt === null) { return; }
+			amt = Number(String(amt).replace(/[^0-9.]/g, ''));
+			if (!(amt > 0)) { toast('Enter an amount above KSh 0.', 'err'); return; }
+			if (amt > bal + 0.5) { toast('That is more than the balance of ' + ksh(bal) + '.', 'err'); return; }
+			var pick = window.prompt('How did the customer pay?\n1 = M-Pesa\n2 = Cash\n3 = Card\n4 = Bank transfer', '1');
+			if (pick === null) { return; }
+			var method = map[$.trim(pick)];
+			if (!method) { toast('Type 1, 2, 3 or 4.', 'err'); return; }
+			var ref = '';
+			if (method !== 'cash') {
+				ref = window.prompt(method === 'mpesa' ? 'M-Pesa code (10 letters and numbers):' : 'Payment reference (optional):', '');
+				if (ref === null) { return; }
+				ref = $.trim(ref).toUpperCase().replace(/\s+/g, '');
+				if (method === 'mpesa' && ref && !/^[A-Z0-9]{10}$/.test(ref)) { toast('That does not look like an M-Pesa code (10 letters and numbers).', 'err'); return; }
+				if (method === 'mpesa' && !ref && !window.confirm('No M-Pesa code entered. Record it without the code?')) { return; }
+			}
+			$b.addClass('is-loading');
+			$.post(P.ajax, { action: 'mkd_pos_order', nonce: P.nonce, op: 'part', id: $b.attr('data-pos-part'), amount: amt, method: method, ref: ref }).done(function (r) {
+				if (r && r.success) { var st = sentText(r.data); toast(r.data.message + (st ? ' ' + st : ''), 'ok'); setTimeout(function () { window.location.reload(); }, st ? 2200 : 900); } else { toast((r && r.data && r.data.message) || 'Could not record the payment', 'err'); $b.removeClass('is-loading'); }
+			}).fail(function (x) { var m = x && x.responseJSON && x.responseJSON.data && x.responseJSON.data.message; toast(m || 'Could not record the payment', 'err'); $b.removeClass('is-loading'); });
+		});
 		$d.on('click', '[data-pos-void]', function () {
 			var $b = $(this), why = window.prompt('Void sale #' + $b.attr('data-num') + '? The parts go back into stock and it stays on record as voided.\n\nReason (required):', '');
 			if (why === null) { return; }
@@ -356,7 +380,7 @@
 	/* ================= Register ================= */
 	var $pos = $('[data-pos]');
 	if ($pos.length && P) {
-		var cart = [], method = 'mpesa', waOrder = 0, apptId = 0, last = null, custTimer, qTimer, cat = 0;
+		var cart = [], method = 'mpesa', waOrder = 0, apptId = 0, dep = 0, last = null, custTimer, qTimer, cat = 0;
 		var KEY = 'mkd_pos_cart';
 		function save() { try { sessionStorage.setItem(KEY, JSON.stringify({ cart: cart, cust: cust(), waOrder: waOrder })); } catch (e) {} }
 		function cust() { var c = {}; $('[data-pos-c]').each(function () { var k = $(this).attr('data-pos-c'); c[k] = this.type === 'checkbox' ? this.checked : $.trim(this.value); }); return c; }
@@ -403,13 +427,15 @@
 			}
 			var t = totals();
 			$('[data-pos-sub]').text(ksh(t.sub)); $('[data-pos-dsc]').text('- ' + ksh(t.disc)); $('[data-pos-dl]').text(ksh(t.del)); $('[data-pos-total]').text(ksh(t.total));
-			$('[data-pos-charge]').prop('disabled', !cart.length).text(cart.length ? 'Complete sale  ·  ' + ksh(t.total) + '  ·  ' + P.methods[method] : 'Add a part to start the sale');
+			var due = Math.max(0, t.total - dep);
+			$('[data-pos-charge]').prop('disabled', !cart.length).text(cart.length ? (dep > 0 ? 'Charge balance  ·  ' + ksh(due) + ' (deposit ' + ksh(dep) + ' paid)' : 'Complete sale  ·  ' + ksh(t.total)) + '  ·  ' + P.methods[method] : 'Add a part to start the sale');
 			var ms = []; if (t.disc > 0) { ms.push('- ' + ksh(t.disc)); } if (t.del > 0) { ms.push('+ ' + ksh(t.del) + ' delivery'); } $('[data-pos-more-sum]').text(ms.join(', '));
 			$('[data-pos-invoice]').prop('disabled', !cart.length);
 			change();
 		}
 		function change() {
 			var t = totals(), cash = method === 'cash', v = Number($('[data-pos-tender]').val()) || 0;
+			t.total = Math.max(0, t.total - dep);
 			$('[data-pos-tender]').prop('hidden', !cash); $('[data-pos-ref]').prop('hidden', cash);
 			var $c = $('[data-pos-change]');
 			if (cash && v > 0) { $c.prop('hidden', false).toggleClass('is-short', v < t.total).text(v < t.total ? 'Short by ' + ksh(t.total - v) : 'Change to give: ' + ksh(v - t.total)); } else { $c.prop('hidden', true); }
@@ -417,7 +443,7 @@
 		function job() { var o = {}; $('[data-pos-j]').each(function () { o[$(this).attr('data-pos-j')] = $.trim($(this).val()); }); return o; }
 		function showJob(on) { $('[data-pos-job]').prop('hidden', !on); }
 		function reset() {
-			apptId = 0; $('[data-pos-j]').val(''); $('[data-pos-job-ref]').text(''); showJob(false); if ($('[data-pos-channel]').val() === 'garage') { $('[data-pos-channel]').val('walk-in'); }
+			apptId = 0; dep = 0; $('[data-pos-j]').val(''); $('[data-pos-job-ref]').text(''); showJob(false); if ($('[data-pos-channel]').val() === 'garage') { $('[data-pos-channel]').val('walk-in'); }
 			cart = []; waOrder = 0; setCust({}); $('[data-pos-disc]').val(0); $('[data-pos-del]').val(0); $('[data-pos-delto], [data-pos-note], [data-pos-ref], [data-pos-tender], [data-pos-cq]').val('');
 			try { sessionStorage.removeItem(KEY); } catch (e) {}
 			draw();
@@ -425,10 +451,16 @@
 		function submit(paid) {
 			var t = totals(), c = cust();
 			if (!cart.length) { return; }
-			if (paid && method === 'cash' && (Number($('[data-pos-tender]').val()) || 0) > 0 && (Number($('[data-pos-tender]').val()) || 0) < t.total) { toast('Cash received is less than the total.', 'err'); return; }
+			if (paid && method === 'cash' && (Number($('[data-pos-tender]').val()) || 0) > 0 && (Number($('[data-pos-tender]').val()) || 0) < Math.max(0, t.total - dep)) { toast('Cash received is less than the total.', 'err'); return; }
 			if (!paid && !c.name && !c.phone) { toast('Add the customer name or phone for an invoice.', 'err'); return; }
+			var before = cart.length;
+			cart = cart.filter(function (l) { return !(l.custom && !(l.price > 0)); });
+			if (cart.length !== before) { draw(); toast('Removed ' + (before - cart.length) + ' empty KSh 0 line(s).', 'ok'); if (!cart.length) { return; } }
 			var zero = cart.filter(function (l) { return !(l.price > 0); });
-			if (zero.length && !window.confirm(zero.map(function (l) { return l.name; }).join(', ') + (zero.length > 1 ? ' are' : ' is') + ' priced at KSh 0. Continue anyway?')) { return; }
+			if (zero.length) { toast(zero.map(function (l) { return l.name; }).join(', ') + (zero.length > 1 ? ' have' : ' has') + ' no price. Enter the price or remove it (the x on the line).', 'err'); return; }
+			if (!paid && !c.phone && cart.some(function (l) { return !!l.src; })) { toast('This invoice has a part from a neighbour shop. Add the customer\'s phone number so you can call them when it is ready.', 'err'); $('[data-pos-c=phone]').trigger('focus'); return; }
+			var noSup = cart.filter(function (l) { return l.src && !l.src.paid && !l.src.phone; });
+			if (noSup.length && !window.confirm('You owe the neighbour shop for ' + noSup.map(function (l) { return l.name; }).join(', ') + ' but no shop phone is saved. Continue?')) { return; }
 			var loss = cart.filter(function (l) { return l.src && l.src.cost && l.price < l.src.cost; });
 			if (loss.length && !window.confirm(loss.map(function (l) { return l.name + ' (' + ksh(l.price) + ', cost ' + ksh(l.src.cost) + ')'; }).join(', ') + ' will be sold below what it cost us. Continue?')) { return; }
 			var code = $.trim($('[data-pos-ref]').val()).toUpperCase().replace(/\s+/g, '');
@@ -574,7 +606,8 @@
 		$d.on('change', '[data-pos-channel]', function () { showJob(this.value === 'garage' || !!apptId); });
 		if (P.pre && P.pre.appt) {
 			cart = []; P.pre.items.forEach(function (p) { add(p); });
-			setCust(P.pre.customer); apptId = P.pre.appt; $('[data-pos-channel]').val('garage');
+			setCust(P.pre.customer); apptId = P.pre.appt; dep = Number(P.pre.deposit) || 0; $('[data-pos-channel]').val('garage');
+			if (dep > 0) { toast('This booking has a deposit of ' + ksh(dep) + '. It will be taken off the bill.', 'ok'); }
 			$.each(P.pre.job || {}, function (k, v) { $('[data-pos-j="' + k + '"]').val(v || ''); });
 			$('[data-pos-job-ref]').text('Booking ' + (P.pre.ref || '')); showJob(true);
 			if (P.pre.billed) { window.alert('Note: this job already has ' + P.pre.billed + ' invoice(s). Only continue if this is extra work or parts - otherwise open the existing invoice from the booking page.'); }

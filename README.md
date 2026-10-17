@@ -12,7 +12,7 @@ Custom WordPress + WooCommerce storefront for **[mkautospares.co.ke](https://mka
 
 [![Theme](https://img.shields.io/badge/MK%20Auto%20Elite-v2.29.0-111316?style=for-the-badge)](mk-auto-elite)
 [![Plugin](https://img.shields.io/badge/MK%20Auto%20Core-v1.1.0-CA1D24?style=for-the-badge)](mk-auto-core)
-[![Desk](https://img.shields.io/badge/MKauto%20Desk-v1.6.4-0B0B0B?style=for-the-badge)](mk-desk)
+[![Desk](https://img.shields.io/badge/MKauto%20Desk-v1.7.0-0B0B0B?style=for-the-badge)](mk-desk)
 [![Status](https://img.shields.io/badge/Status-Live-25D366?style=for-the-badge)](https://mkautospares.co.ke/)
 
 ![WordPress](https://img.shields.io/badge/WordPress-6.4%2B-21759B?logo=wordpress&logoColor=white)
@@ -89,7 +89,7 @@ Production baseline, reviewed 17 Oct 2026 - full detail in [SECURITY-AUDIT.md](S
 | --- | --- | :---: | --- |
 | **MK Auto Elite** | [`mk-auto-elite/`](mk-auto-elite) | `2.29.0` | **Active theme.** Storefront, design system, vehicle-fitment engine, fitment tools, WooCommerce integration, Knowledge Centre, booking, chat, SEO schema, setup wizard |
 | **MK Auto Core** | [`mk-auto-core/`](mk-auto-core) | `1.1.0` | Plugin: branded staff sign-in screen, login guard and idle logout. Survives a theme change |
-| **MKauto Desk** | [`mk-desk/`](mk-desk) | `1.6.4` | Plugin: back office - till, invoices and receipts, WhatsApp orders, payment plans, sourcing ledger, garage bookings and job billing, reminders, marketing, social, team |
+| **MKauto Desk** | [`mk-desk/`](mk-desk) | `1.7.0` | Plugin: back office - till, invoices and receipts, WhatsApp orders, payment plans, sourcing ledger, garage bookings and job billing, reminders, marketing, social, team |
 
 > [!NOTE]
 > Nothing brand-specific is hard-coded. Phone, WhatsApp, email, address, hours, M-Pesa instruction, accent colour, map, analytics IDs and the Gemini key are edited under **Appearance > Customize > MK Auto Elite**, and the sign-in screen reads the same values.
@@ -413,7 +413,7 @@ AJAX actions (all nonce-checked with `mkae_nonce`): `mkae_get_terms`, `mkae_sear
 <sub>Designed, developed and maintained by <a href="https://github.com/moselanto"><b>Pimofy Digital</b></a>, Nairobi &nbsp;&bull;&nbsp; Licensed GPLv2 or later</sub>
 </div>
 
-## MKauto Desk (plugin `mk-desk/`, 1.6.4)
+## MKauto Desk (plugin `mk-desk/`, 1.7.0)
 
 The shop's back office under wp-admin > MKauto Desk: Overview, Point of sale, WhatsApp orders, Payment plans, Sourcing, Garage & service, Reminders, Marketing, Social, Settings and Team.
 

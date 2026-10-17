@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class MKD_Desk {
 
-	const DBV     = '1.0.0';
+	const DBV     = '1.1.0';
 	const DBV_OPT = 'mkd_desk_db';
 	const OPT     = 'mkd_desk';
 	const CAP     = 'manage_woocommerce';
@@ -186,6 +186,11 @@ class MKD_Desk {
   plate varchar(20) NOT NULL DEFAULT '',
   mileage varchar(20) NOT NULL DEFAULT '',
   price decimal(12,2) NOT NULL DEFAULT 0,
+  deposit decimal(12,2) NOT NULL DEFAULT 0,
+  deposit_method varchar(20) NOT NULL DEFAULT '',
+  deposit_ref varchar(40) NOT NULL DEFAULT '',
+  deposit_at datetime DEFAULT NULL,
+  checked_in_at datetime DEFAULT NULL,
   plan_id bigint(20) unsigned NOT NULL DEFAULT 0,
   notes text,
   source varchar(20) NOT NULL DEFAULT 'admin',
@@ -462,7 +467,7 @@ class MKD_Desk {
 	 * "sgh4 k2lmnp" matches "SGH4K2LMNP". Voided / cancelled records do not count.
 	 * Returns a description such as "sale #53449", or '' if the code is free.
 	 */
-	public static function ref_used( $ref, $ex_order = 0, $ex_wa = 0, $ex_pay = 0 ) {
+	public static function ref_used( $ref, $ex_order = 0, $ex_wa = 0, $ex_pay = 0, $ex_appt = 0 ) {
 		global $wpdb;
 		$ref = self::norm_ref( $ref );
 		if ( strlen( $ref ) < 4 ) {
@@ -479,6 +484,7 @@ class MKD_Desk {
 			$base = array( 'limit' => 5, 'return' => 'ids', 'type' => 'shop_order', 'status' => array_keys( wc_get_order_statuses() ) );
 			$ids  = array_merge( $ids, (array) wc_get_orders( $base + array( 'meta_key' => '_mkd_pay_ref', 'meta_value' => $ref ) ) ); // phpcs:ignore WordPress.DB.SlowDBQuery
 			$ids  = array_merge( $ids, (array) wc_get_orders( $base + array( 'transaction_id' => $ref ) ) );
+			$ids  = array_merge( $ids, (array) wc_get_orders( $base + array( 'meta_key' => '_mkd_part_ref', 'meta_value' => $ref ) ) ); // phpcs:ignore WordPress.DB.SlowDBQuery
 			// Codes saved before 1.6.1 may still contain a space or dash.
 			$legacy = $wpdb->get_col( $wpdb->prepare( "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key IN ('_mkd_pay_ref','_transaction_id') AND " . self::sql_norm( 'meta_value' ) . ' = %s LIMIT 5', $ref ) ); // phpcs:ignore WordPress.DB
 			$ids    = array_merge( $ids, (array) $legacy );
@@ -494,6 +500,14 @@ class MKD_Desk {
 						return ( 'mkd_pos' === $o->get_created_via() ? 'sale #' : 'website order #' ) . $o->get_order_number();
 					}
 				}
+			}
+		}
+		$bk = $wpdb->get_var( $wpdb->prepare( 'SELECT ref FROM ' . self::t_appts() . " WHERE status <> 'cancelled' AND deposit > 0 AND " . self::sql_norm( 'deposit_ref' ) . ' = %s AND id <> %d LIMIT 1', $ref, (int) $ex_appt ) ); // phpcs:ignore WordPress.DB
+		if ( $bk ) {
+			// A booking deposit carried onto its own invoice is the same payment, not a reuse.
+			$carried = $ex_order ? (string) wc_get_order( $ex_order )?->get_meta( '_mkd_dep_from' ) : '';
+			if ( $carried !== (string) $bk ) {
+				return 'booking deposit ' . $bk;
 			}
 		}
 		$was = $wpdb->get_col( $wpdb->prepare( "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_mkdwo_pay_ref' AND " . self::sql_norm( 'meta_value' ) . ' = %s AND post_id <> %d LIMIT 5', $ref, (int) $ex_wa ) ); // phpcs:ignore WordPress.DB
@@ -599,6 +613,13 @@ class MKD_Desk {
 			'dup_init'  => array( 'warning', 'Plan saved, but the deposit was NOT recorded: that payment reference is already used on another payment. Check the code and record the deposit again.' ),
 			'badcode'   => array( 'error', 'That does not look like an M-Pesa code (10 letters and numbers, e.g. SGH4K2LMNP). Nothing was saved.' ),
 			'notfound'  => array( 'error', 'That record could not be found.' ),
+			'dep_saved'   => array( 'success', 'Deposit recorded. It will be taken off the invoice for this job.' ),
+			'dep_removed' => array( 'success', 'Deposit removed.' ),
+			'dep_locked'  => array( 'error', 'The deposit cannot be changed: it is already recorded, already on an invoice, or you do not have permission.' ),
+			'dep_amount'  => array( 'error', 'Enter a deposit amount above KSh 0.' ),
+			'dep_code'    => array( 'error', 'Enter the M-Pesa code (10 letters and numbers, e.g. SGH4K2LMNP).' ),
+			'dep_busy'    => array( 'error', 'That payment code is being saved somewhere else right now. Wait a moment and try again.' ),
+			'dep_used'    => array( 'error', 'That payment code has already been used. Check the code with the customer.' ),
 			'deleted'   => array( 'success', 'Deleted.' ),
 			'synced'    => array( 'success', 'Audience refreshed from the shop, accounts, WhatsApp orders, plans and appointments.' ),
 			'tested'    => array( 'success', 'Test e-mail sent. Check your inbox (and spam folder).' ),
