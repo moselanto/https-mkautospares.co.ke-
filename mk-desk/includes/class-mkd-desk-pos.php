@@ -60,7 +60,14 @@ class MKD_Desk_POS {
 	}
 
 	public static function doc_url( $order, $type, $print = true ) {
-		return wp_nonce_url( admin_url( 'admin-post.php?action=mkd_desk_doc&type=' . $type . '&order=' . $order->get_id() . ( $print ? '&print=1' : '' ) ), 'mkd_doc_' . $order->get_id() );
+		// Raw URL (plain "&", not "&amp;"): it is also sent to the till as JSON and set as a link by
+		// JavaScript, where an escaped "&amp;" broke the security check ("The link you followed has expired").
+		$args = array( 'action' => 'mkd_desk_doc', 'type' => $type, 'order' => $order->get_id() );
+		if ( $print ) {
+			$args['print'] = 1;
+		}
+		$args['_wpnonce'] = wp_create_nonce( 'mkd_doc_' . $order->get_id() );
+		return add_query_arg( $args, admin_url( 'admin-post.php' ) );
 	}
 
 	public static function public_url( $order, $type = 'invoice' ) {

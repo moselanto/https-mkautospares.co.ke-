@@ -3,7 +3,7 @@ Contributors: pimofy
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 1.5.0
+Stable tag: 1.5.1
 License: GPLv2 or later
 
 The back office for MK Auto Spares, Kirinyaga Road, Nairobi.
@@ -27,6 +27,9 @@ One black and red desk under wp-admin > MKauto Desk:
 3. Add shop managers under Users > Add New (role Shop manager), then set their limits under MKauto Desk > Team.
 
 == Changelog ==
+= 1.5.1 =
+* Fix: "Print receipt" and "Print A4 invoice" after a sale showed "The link you followed has expired". The print links are now built without HTML-escaped "&amp;", so the security check passes.
+
 = 1.5.0 =
 * Garage & service billing: "Create invoice / receipt for this job" on every confirmed or completed booking opens the till with the customer, vehicle and booked labour already filled in.
 * Vehicle & job card at the till: vehicle, reg. no., odometer, technician, work carried out, technician's advice and next service due.

@@ -431,8 +431,8 @@
 				$m.find('[data-pos-done-title]').text((r.data.paid ? 'Sale complete' : 'Invoice saved') + ' - #' + r.data.number);
 				$m.find('[data-pos-done-amt]').text(ksh(r.data.total) + (r.data.paid ? ' paid' : ' due'));
 				$m.find('[data-pos-done-chg]').prop('hidden', !(r.data.change > 0)).text('Change: ' + ksh(r.data.change));
-				$m.find('[data-pos-done-receipt]').attr('href', r.data.receipt);
-				$m.find('[data-pos-done-invoice]').attr('href', r.data.invoice);
+				$m.find('[data-pos-done-receipt]').attr('href', String(r.data.receipt || '').replace(/&amp;/g, '&'));
+				$m.find('[data-pos-done-invoice]').attr('href', String(r.data.invoice || '').replace(/&amp;/g, '&'));
 				$m.find('[data-pos-done-wa]').attr('href', r.data.wa || '#').toggle(!!r.data.wa).text(r.data.phone ? 'WhatsApp ' + r.data.phone : 'Send on WhatsApp');
 				$m.find('[data-pos-done-sent]').text(sentText(r.data)).prop('hidden', !sentText(r.data));
 				$m.prop('hidden', false).addClass('is-open');
