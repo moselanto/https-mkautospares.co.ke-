@@ -301,7 +301,7 @@ class MKD_Desk_Mkt {
 			'appointment'=> 'Appointment clients',
 			'whatsapp'   => 'WhatsApp order customers',
 			'account'    => 'Registered on the website',
-			'newsletter' => 'Join The House subscribers',
+			'newsletter' => 'Newsletter subscribers',
 			'consent'    => 'Opted in to offers',
 			'tag'        => 'Has tag...',
 		);
@@ -698,7 +698,7 @@ class MKD_Desk_Mkt {
 		MKD_Desk::kpi( 'Reachable by e-mail', (string) $em, 'subscribed' );
 		MKD_Desk::kpi( 'Reachable on WhatsApp', (string) $wa, 'with a phone number' );
 		$ss = MKD_Desk_Sub::stats();
-		MKD_Desk::kpi( 'Join The House', (string) $ss['total'], '+' . $ss['week'] . ' this week, ' . $ss['wa'] . ' with WhatsApp', 'gold', MKD_Desk::url( MKD_Desk::P_MKT, array( 'view' => 'contacts', 'seg' => 'newsletter' ) ) );
+		MKD_Desk::kpi( 'Subscribers', (string) $ss['total'], '+' . $ss['week'] . ' this week, ' . $ss['wa'] . ' with WhatsApp', 'gold', MKD_Desk::url( MKD_Desk::P_MKT, array( 'view' => 'contacts', 'seg' => 'newsletter' ) ) );
 		MKD_Desk::kpi( 'Average open rate', ( $st && $st->s ? round( $st->o / $st->s * 100 ) : 0 ) . '%', 'across e-mail campaigns', 'gold' );
 		echo '</div>';
 		if ( ! $all ) {

@@ -3,7 +3,7 @@ Contributors: pimofy
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 1.6.3
+Stable tag: 1.6.4
 License: GPLv2 or later
 
 The back office for MK Auto Spares, Kirinyaga Road, Nairobi.
@@ -27,6 +27,10 @@ One black and red desk under wp-admin > MKauto Desk:
 3. Add shop managers under Users > Add New (role Shop manager), then set their limits under MKauto Desk > Team.
 
 == Changelog ==
+= 1.6.4 =
+* Subscribe pop-up: smaller, cleaner layout (680px card, tighter spacing, MK red buttons and ticks; benefit lists hidden on phones).
+* Subscribe pop-up: leftover NURA wording removed ("Quality-checked hair", "Join The House", "Welcome to the house"); new copy written for a parts store. Old default texts saved in settings are swapped for the new ones automatically.
+
 = 1.6.3 =
 * Security: rate limits use a trusted-IP helper (respects MKAC_TRUSTED_PROXY_HEADER; spoofed proxy headers ignored).
 * Security: public REST route mkd/v1/slots rate-limited (120 per 5 minutes per IP) with a declared, sanitised date argument.

@@ -249,9 +249,9 @@ class MKD_Desk {
 			'sub_delay'     => 12,
 			'sub_scroll'    => 40,
 			'sub_days'      => 21,
-			'sub_title'     => 'Join The House',
-			'sub_text'      => 'Be first to hear about new stock, restocks and members-only offers. Calm, useful e-mails - unsubscribe anytime.',
-			'sub_perks'     => "First look at new drops and restocks\nMembers-only offers and Lipa Mdogo Mdogo deals\nService and maintenance tips from our mechanics",
+			'sub_title'     => 'Get parts deals first',
+			'sub_text'      => 'New stock, restocks and member-only prices, sent once or twice a month.',
+			'sub_perks'     => "Restock alerts on the parts you need\nMember-only prices and Lipa Mdogo Mdogo\nMaintenance tips from our mechanics",
 			'sub_coupon'    => 0,
 			'sub_min'       => 0,
 			'sub_image'     => '',
@@ -860,7 +860,7 @@ class MKD_Desk {
 		self::field_check( 'mkt_soft_optin', 'Include past customers who have not unsubscribed', $s['mkt_soft_optin'], 'Untick to message only people who explicitly agreed to offers. Every e-mail has an unsubscribe link and every WhatsApp has "Reply STOP to opt out".' );
 		echo '</section>';
 
-		echo '<section class="nd-card" id="nd-house"><header class="nd-card__h"><h2>Join The House - subscribe pop-up</h2></header><div class="nd-fields nd-fields--2">';
+		echo '<section class="nd-card" id="nd-house"><header class="nd-card__h"><h2>Subscribe pop-up</h2></header><div class="nd-fields nd-fields--2">';
 		self::field_check( 'sub_popup', 'Show the pop-up to new visitors', $s['sub_popup'], 'Once per visitor. Never on cart, checkout or account pages, never to staff, never over another pop-up.' );
 		self::field_num( 'sub_delay', 'Show after (seconds)', $s['sub_delay'], 'Or earlier if the visitor scrolls far or (on computers) moves to leave.' );
 		self::field_num( 'sub_scroll', 'Or after scrolling (% of page)', $s['sub_scroll'], '' );
@@ -1003,7 +1003,7 @@ class MKD_Desk {
 		$out['sub_delay']  = isset( $in['sub_delay'] ) ? max( 4, absint( $in['sub_delay'] ) ) : 12;
 		$out['sub_scroll'] = isset( $in['sub_scroll'] ) ? min( 90, max( 10, absint( $in['sub_scroll'] ) ) ) : 40;
 		$out['sub_days']   = isset( $in['sub_days'] ) ? max( 1, absint( $in['sub_days'] ) ) : 21;
-		$out['sub_title']  = isset( $in['sub_title'] ) ? mb_substr( sanitize_text_field( $in['sub_title'] ), 0, 80 ) : 'Join The House';
+		$out['sub_title']  = isset( $in['sub_title'] ) ? mb_substr( sanitize_text_field( $in['sub_title'] ), 0, 80 ) : 'Get parts deals first';
 		$out['sub_text']   = isset( $in['sub_text'] ) ? mb_substr( sanitize_textarea_field( $in['sub_text'] ), 0, 300 ) : '';
 		$out['sub_perks']  = isset( $in['sub_perks'] ) ? mb_substr( sanitize_textarea_field( $in['sub_perks'] ), 0, 400 ) : '';
 		$out['sub_image']  = isset( $in['sub_image'] ) ? esc_url_raw( $in['sub_image'] ) : '';

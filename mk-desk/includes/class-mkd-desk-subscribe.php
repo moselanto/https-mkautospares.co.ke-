@@ -81,6 +81,7 @@ class MKD_Desk_Sub {
 		if ( '' === $img ) {
 			$img = MKD_URL . 'assets/img/mk-house.jpg';
 		}
+		$s['sub_perks'] = 0 === strpos( (string) $s['sub_perks'], 'First look at new drops' ) ? "Restock alerts on the parts you need\nMember-only prices and Lipa Mdogo Mdogo\nMaintenance tips from our mechanics" : $s['sub_perks'];
 		$perks  = array_filter( array_map( 'trim', explode( "\n", (string) $s['sub_perks'] ) ) );
 		?>
 		<div class="nhs" data-nhs hidden>
@@ -88,31 +89,31 @@ class MKD_Desk_Sub {
 			<div class="nhs__card" role="dialog" aria-modal="true" aria-labelledby="nhs-title" tabindex="-1">
 				<button type="button" class="nhs__x" data-nhs-close aria-label="<?php esc_attr_e( 'Close', 'mk-desk' ); ?>"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
 				<div class="nhs__art"><img class="nhs__photo" src="<?php echo esc_url( $img ); ?>" alt="" loading="lazy" decoding="async">
-					<div class="nhs__brand"><span>MK AUTO</span><small>Genuine parts, honest prices</small></div>
+					<div class="nhs__brand"><span>MK AUTO SPARES</span><small>Kirinyaga Road, Nairobi</small></div>
 					<?php if ( $coupon > 0 ) : ?><div class="nhs__badge"><small><?php esc_html_e( 'Welcome gift', 'mk-desk' ); ?></small><strong><?php echo esc_html( MKD_Desk::money( $coupon ) ); ?></strong><small><?php esc_html_e( 'off your first order', 'mk-desk' ); ?></small></div><?php endif; ?>
-					<ul class="nhs__trust"><li><?php esc_html_e( 'Same-day Nairobi delivery', 'mk-desk' ); ?></li><li><?php esc_html_e( 'Lipa Mdogo Mdogo', 'mk-desk' ); ?></li><li><?php esc_html_e( 'Quality-checked hair', 'mk-desk' ); ?></li></ul>
+					<ul class="nhs__trust"><li><?php esc_html_e( 'Same-day Nairobi delivery', 'mk-desk' ); ?></li><li><?php esc_html_e( 'Lipa Mdogo Mdogo', 'mk-desk' ); ?></li><li><?php esc_html_e( 'Genuine, quality-checked parts', 'mk-desk' ); ?></li></ul>
 				</div>
 				<div class="nhs__body">
 					<div class="nhs__step is-on" data-nhs-step="1">
-						<p class="nhs__eyebrow"><?php esc_html_e( 'The MK Auto Spares parts list', 'mk-desk' ); ?></p>
-						<h2 class="nhs__title" id="nhs-title"><?php echo esc_html( $s['sub_title'] ); ?></h2>
-						<p class="nhs__text"><?php echo esc_html( $s['sub_text'] ); ?></p>
+						<p class="nhs__eyebrow"><?php esc_html_e( 'MK Auto Spares updates', 'mk-desk' ); ?></p>
+						<h2 class="nhs__title" id="nhs-title"><?php echo esc_html( 'Join The House' === $s['sub_title'] ? __( 'Get parts deals first', 'mk-desk' ) : $s['sub_title'] ); ?></h2>
+						<p class="nhs__text"><?php echo esc_html( 0 === strpos( (string) $s['sub_text'], 'Be first to hear about new stock' ) ? __( 'New stock, restocks and member-only prices, sent once or twice a month.', 'mk-desk' ) : $s['sub_text'] ); ?></p>
 						<?php if ( $perks ) : ?><ul class="nhs__perks"><?php foreach ( array_slice( $perks, 0, 4 ) as $pk ) : ?><li><?php echo esc_html( $pk ); ?></li><?php endforeach; ?></ul><?php endif; ?>
 						<form class="nhs__form" data-nhs-form novalidate>
 							<input type="text" name="name" autocomplete="given-name" placeholder="<?php esc_attr_e( 'First name', 'mk-desk' ); ?>" aria-label="<?php esc_attr_e( 'First name', 'mk-desk' ); ?>">
 							<input type="email" name="email" autocomplete="email" inputmode="email" placeholder="<?php esc_attr_e( 'Your e-mail address', 'mk-desk' ); ?>" aria-label="<?php esc_attr_e( 'E-mail address', 'mk-desk' ); ?>" required>
 							<input type="text" name="website" class="nhs__hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-							<button type="submit" class="nhs__btn"><?php echo esc_html( $coupon > 0 ? __( 'Unlock my gift', 'mk-desk' ) : __( 'Join The House', 'mk-desk' ) ); ?></button>
+							<button type="submit" class="nhs__btn"><?php echo esc_html( $coupon > 0 ? __( 'Unlock my gift', 'mk-desk' ) : __( 'Subscribe', 'mk-desk' ) ); ?></button>
 							<p class="nhs__err" data-nhs-err role="alert" hidden></p>
 						</form>
-						<p class="nhs__legal"><?php echo wp_kses_post( sprintf( __( 'By joining you agree to receive offers from MK Auto Spares. Unsubscribe anytime. <a href="%s">Privacy</a>', 'mk-desk' ), esc_url( home_url( '/privacy-policy/' ) ) ) ); ?></p>
-						<button type="button" class="nhs__later" data-nhs-close><?php esc_html_e( 'No thanks, maybe later', 'mk-desk' ); ?></button>
+						<p class="nhs__legal"><?php echo wp_kses_post( sprintf( __( 'No spam. Unsubscribe anytime. <a href="%s">Privacy policy</a>', 'mk-desk' ), esc_url( home_url( '/privacy-policy/' ) ) ) ); ?></p>
+						<button type="button" class="nhs__later" data-nhs-close><?php esc_html_e( 'No thanks', 'mk-desk' ); ?></button>
 					</div>
 
 					<div class="nhs__step" data-nhs-step="2">
-						<p class="nhs__eyebrow"><?php esc_html_e( 'Welcome to the house', 'mk-desk' ); ?></p>
+						<p class="nhs__eyebrow"><?php esc_html_e( 'You are on the list', 'mk-desk' ); ?></p>
 						<h2 class="nhs__title"><?php esc_html_e( 'One last touch', 'mk-desk' ); ?></h2>
-						<p class="nhs__text"><?php esc_html_e( 'Get new drops and restock alerts on WhatsApp too, and tell us what you love so we only send what you want.', 'mk-desk' ); ?></p>
+						<p class="nhs__text"><?php esc_html_e( 'Add your WhatsApp number for restock alerts, and pick what you drive or need so we only send what is relevant.', 'mk-desk' ); ?></p>
 						<form class="nhs__form" data-nhs-more novalidate>
 							<div class="nhs__phone"><span>+254</span><input type="tel" name="phone" autocomplete="tel" inputmode="tel" placeholder="<?php esc_attr_e( 'WhatsApp number (optional)', 'mk-desk' ); ?>"></div>
 							<div class="nhs__chips" role="group" aria-label="<?php esc_attr_e( 'What do you love?', 'mk-desk' ); ?>">
@@ -133,7 +134,7 @@ class MKD_Desk_Sub {
 				</div>
 			</div>
 		</div>
-		<button type="button" class="nhs-tab" data-nhs-tab hidden><span class="nhs-tab__dot" aria-hidden="true"></span><?php echo esc_html( $coupon > 0 ? sprintf( __( 'Get %s off', 'mk-desk' ), MKD_Desk::money( $coupon ) ) : __( 'Join The House', 'mk-desk' ) ); ?></button>
+		<button type="button" class="nhs-tab" data-nhs-tab hidden><span class="nhs-tab__dot" aria-hidden="true"></span><?php echo esc_html( $coupon > 0 ? sprintf( __( 'Get %s off', 'mk-desk' ), MKD_Desk::money( $coupon ) ) : __( 'Parts deals', 'mk-desk' ) ); ?></button>
 		<?php
 	}
 
@@ -221,16 +222,16 @@ class MKD_Desk_Sub {
 
 	private static function welcome( $c, $email, $code ) {
 		$s    = MKD_Desk::settings();
-		$body = "Hi {first},\n\nWelcome to the house. You will be the first to hear about new stock, restocks and members-only offers - and we promise to keep it worth opening.\n\n";
+		$body = "Hi {first},\n\nThanks for subscribing to MK Auto Spares. You will be the first to hear about new stock, restocks and members-only offers - and we promise to keep it worth opening.\n\n";
 		if ( $code ) {
 			$body .= "Your welcome gift: *" . MKD_Desk::money( $s['sub_coupon'] ) . " off your first order* with the code *" . $code . "*" . ( (float) $s['sub_min'] > 0 ? ' on orders from ' . MKD_Desk::money( $s['sub_min'] ) : '' ) . ". It is valid for 30 days.\n\n";
 		}
 		$body .= "Not sure where to start? Use our Vehicle Finder, or message us on WhatsApp with your chassis number and we will match the right part.";
 		$k = (object) array(
 			'name'      => 'welcome',
-			'subject'   => 'Welcome to the house',
+			'subject'   => 'Welcome to MK Auto Spares',
 			'preheader' => $code ? 'Your welcome gift is inside' : 'New stock, offers and service tips - first',
-			'heading'   => 'Welcome to the house',
+			'heading'   => 'Welcome to MK Auto Spares',
 			'body'      => $body,
 			'btn_text'  => 'Shop the collection',
 			'btn_url'   => function_exists( 'wc_get_page_permalink' ) ? wc_get_page_permalink( 'shop' ) : home_url( '/shop/' ),

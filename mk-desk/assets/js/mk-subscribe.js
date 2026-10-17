@@ -14,7 +14,7 @@ function mkdHouseInit() {
 	}
 	function track(where) {
 		try { if (window.gtag) { window.gtag('event', 'sign_up', { method: 'newsletter_' + where }); } } catch (e) {}
-		try { if (window.fbq) { window.fbq('track', 'Lead', { content_name: 'Join The House' }); } } catch (e) {}
+		try { if (window.fbq) { window.fbq('track', 'Lead', { content_name: 'MK Auto Spares newsletter' }); } } catch (e) {}
 		try { if (window.ttq) { window.ttq.track('Subscribe'); } } catch (e) {}
 	}
 	function post(data) {
@@ -36,7 +36,7 @@ function mkdHouseInit() {
 			post({ email: v, website: hp ? hp.value : '' }).then(function (r) {
 				var ok = r && r.success, msg = d.createElement('p');
 				msg.className = 'nhs-foot-msg' + (ok ? '' : ' is-err');
-				msg.textContent = ok ? ((r.data && r.data.code) ? 'Welcome to the house! Your code: ' + r.data.code + ' (also sent to your inbox).' : 'Welcome to the house! Check your inbox.') : ((r && r.data && r.data.message) || 'Please try again.');
+				msg.textContent = ok ? ((r.data && r.data.code) ? 'Thanks for subscribing! Your code: ' + r.data.code + ' (also sent to your inbox).' : 'Thanks for subscribing! Check your inbox.') : ((r && r.data && r.data.message) || 'Please try again.');
 				if (ok) { f.replaceWith(msg); setC(KEY, 'sub', 365); track('footer'); hideAll(); } else { f.appendChild(msg); if (btn) { btn.disabled = false; btn.textContent = 'Subscribe'; } }
 			}).catch(function () { f.submit(); });
 		});
