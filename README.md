@@ -10,7 +10,7 @@ Custom WordPress + WooCommerce storefront for **[mkautospares.co.ke](https://mka
 
 <br>
 
-[![Theme](https://img.shields.io/badge/MK%20Auto%20Elite-v2.28.0-111316?style=for-the-badge)](mk-auto-elite)
+[![Theme](https://img.shields.io/badge/MK%20Auto%20Elite-v2.29.0-111316?style=for-the-badge)](mk-auto-elite)
 [![Plugin](https://img.shields.io/badge/MK%20Auto%20Core-v1.1.0-CA1D24?style=for-the-badge)](mk-auto-core)
 [![Desk](https://img.shields.io/badge/MKauto%20Desk-v1.6.4-0B0B0B?style=for-the-badge)](mk-desk)
 [![Status](https://img.shields.io/badge/Status-Live-25D366?style=for-the-badge)](https://mkautospares.co.ke/)
@@ -87,7 +87,7 @@ Production baseline, reviewed 17 Oct 2026 - full detail in [SECURITY-AUDIT.md](S
 
 | Package | Folder | Version | Role |
 | --- | --- | :---: | --- |
-| **MK Auto Elite** | [`mk-auto-elite/`](mk-auto-elite) | `2.28.0` | **Active theme.** Storefront, design system, vehicle-fitment engine, fitment tools, WooCommerce integration, Knowledge Centre, booking, chat, SEO schema, setup wizard |
+| **MK Auto Elite** | [`mk-auto-elite/`](mk-auto-elite) | `2.29.0` | **Active theme.** Storefront, design system, vehicle-fitment engine, fitment tools, WooCommerce integration, Knowledge Centre, booking, chat, SEO schema, setup wizard |
 | **MK Auto Core** | [`mk-auto-core/`](mk-auto-core) | `1.1.0` | Plugin: branded staff sign-in screen, login guard and idle logout. Survives a theme change |
 | **MKauto Desk** | [`mk-desk/`](mk-desk) | `1.6.4` | Plugin: back office - till, invoices and receipts, WhatsApp orders, payment plans, sourcing ledger, garage bookings and job billing, reminders, marketing, social, team |
 

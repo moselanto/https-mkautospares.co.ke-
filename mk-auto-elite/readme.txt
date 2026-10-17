@@ -3,7 +3,7 @@ Contributors: mkautospares
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 2.28.0
+Stable tag: 2.29.0
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -37,6 +37,11 @@ ships with:
 5. Set your contact details and WhatsApp number in Appearance > Customize > MK Auto Elite.
 
 == Changelog ==
+
+= 2.29.0 =
+* Knowledge Centre: 16 new guides targeting high-demand Kenyan searches (hybrid battery prices, spare parts prices, Kirinyaga Road, ordering online with M-Pesa, Fielder/Axio, Demio, Honda Fit, Probox, check engine light, overheating, CVT, AC, NTSA inspection, ex-Japan engines, spark plugs, fuel consumption). 31 guides in total.
+* Knowledge Centre: new topics "Model Guides" and "Prices & Costs".
+* SEO: FAQPage schema generated from each guide's FAQ section; "Related guides" internal links on every guide; styled price tables.
 
 = 2.28.0 =
 * Security: rate limits on bookings, chat and WhatsApp orders use Security::client_ip() (fake CF-Connecting-IP headers no longer bypass them).

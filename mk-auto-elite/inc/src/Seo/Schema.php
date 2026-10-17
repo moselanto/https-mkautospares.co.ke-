@@ -697,6 +697,14 @@ class Schema {
 				array( __( 'Can I order on WhatsApp?', 'mk-auto-elite' ), __( 'Yes. Every product has a WhatsApp button that pre-fills the part details so we can confirm price and availability fast.', 'mk-auto-elite' ) ),
 				array( __( 'Do you deliver countrywide?', 'mk-auto-elite' ), __( 'Yes, we deliver across Kenya through trusted couriers.', 'mk-auto-elite' ) ),
 			);
+		} elseif ( is_singular( 'mkae_guide' ) ) {
+			// Knowledge Centre guides: questions written as <p><strong>Question?</strong> Answer</p>.
+			$html = (string) get_post_field( 'post_content', get_queried_object_id() );
+			if ( preg_match_all( '#<p>\s*<strong>([^<]{5,200}\?)</strong>\s*(.+?)</p>#s', $html, $m, PREG_SET_ORDER ) ) {
+				foreach ( array_slice( $m, 0, 10 ) as $row ) {
+					$faqs[] = array( html_entity_decode( $row[1], ENT_QUOTES ), html_entity_decode( wp_strip_all_tags( $row[2] ), ENT_QUOTES ) );
+				}
+			}
 		} elseif ( is_singular( 'mkae_landing' ) ) {
 			$raw = (string) get_post_meta( get_queried_object_id(), '_mkae_l_faq', true );
 			foreach ( array_filter( array_map( 'trim', explode( "\n", $raw ) ) ) as $line ) {

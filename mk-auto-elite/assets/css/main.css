@@ -1748,3 +1748,16 @@ table { max-width: 100%; }
 .mkrm { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--mk-line); border-radius: 12px; background: #F6F7F9; font-size: .9rem; }
 .mkrm__label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; line-height: 1.45; }
 .mkrm__label input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--mk-red); flex: 0 0 18px; }
+
+/* 2.29.0 Knowledge Centre: related guides and tables */
+.mkae-related{margin-top:36px;padding:22px;border:1px solid var(--mk-line,#e5e5e5);border-radius:14px;background:#fafafa}
+.mkae-related h2{font-size:1.1rem;margin:0 0 10px}
+.mkae-related ul{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.mkae-related li a{display:block;padding:8px 0;border-bottom:1px solid #eee;font-weight:600;text-decoration:none;color:inherit}
+.mkae-related li a:hover{color:#CA1D24}
+.mkae-related__all{display:inline-block;margin-top:10px;font-weight:700;color:#CA1D24}
+.mkae-article__content table{width:100%;border-collapse:collapse;margin:16px 0 22px;font-size:.95rem}
+.mkae-article__content th,.mkae-article__content td{padding:10px 12px;border:1px solid #e5e5e5;text-align:left}
+.mkae-article__content thead th{background:#111;color:#fff}
+.mkae-article__content tbody tr:nth-child(even){background:#fafafa}
+@media (max-width:640px){.mkae-article__content table{display:block;overflow-x:auto;white-space:nowrap}}

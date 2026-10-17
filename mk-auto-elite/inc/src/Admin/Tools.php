@@ -55,6 +55,22 @@ class Tools {
 		'alternator-charging-system-guide'       => array( 'Alternator and Charging System: A Simple Guide', 'alternator-charging-system-guide.html', 'Maintenance', 'battery.jpg' ),
 		'radiator-cooling-system-guide'          => array( 'Radiator and Cooling System: Preventing Overheating', 'radiator-cooling-system-guide.html', 'Maintenance', 'radiator.jpg' ),
 		'car-service-maintenance-schedule-kenya' => array( 'Car Service and Maintenance Schedule for Kenyan Drivers', 'car-service-maintenance-schedule-kenya.html', 'Maintenance', 'workshop.jpg' ),
+		'hybrid-battery-price-kenya'            => array( 'Hybrid Battery Price in Kenya: Fielder, Axio, Aqua, Fit and Prius (2026)', 'hybrid-battery-price-kenya.html', 'Prices & Costs', 'battery.jpg' ),
+		'car-spare-parts-prices-kenya'          => array( 'Car Spare Parts Prices in Kenya: A 2026 Buyer\'s Guide', 'car-spare-parts-prices-kenya.html', 'Prices & Costs', 'parts-counter.jpg' ),
+		'ex-japan-engine-price-kenya'           => array( 'Ex-Japan Engines and Gearboxes in Kenya: Prices and How to Buy Safely', 'ex-japan-engine-price-kenya.html', 'Prices & Costs', 'timing.jpg' ),
+		'kirinyaga-road-spare-parts-guide'      => array( 'Buying Spare Parts on Kirinyaga Road, Nairobi: A Smart Buyer\'s Guide', 'kirinyaga-road-spare-parts-guide.html', 'Buying Guides', 'parts-counter.jpg' ),
+		'order-car-parts-online-kenya'          => array( 'How to Order Car Parts Online in Kenya: M-Pesa, WhatsApp and Delivery', 'order-car-parts-online-kenya.html', 'Buying Guides', 'parts-counter.jpg' ),
+		'toyota-fielder-axio-common-problems'   => array( 'Toyota Fielder and Axio: Common Problems and the Parts That Fix Them', 'toyota-fielder-axio-common-problems.html', 'Model Guides', 'workshop.jpg' ),
+		'mazda-demio-common-problems'           => array( 'Mazda Demio Common Problems in Kenya (and How to Fix Them)', 'mazda-demio-common-problems.html', 'Model Guides', 'workshop.jpg' ),
+		'honda-fit-common-problems'             => array( 'Honda Fit and Fit Hybrid: Common Problems in Kenya', 'honda-fit-common-problems.html', 'Model Guides', 'workshop.jpg' ),
+		'toyota-probox-succeed-parts-guide'     => array( 'Toyota Probox and Succeed Parts Guide for Owners and Fleets', 'toyota-probox-succeed-parts-guide.html', 'Model Guides', 'suspension.jpg' ),
+		'check-engine-light-meaning'            => array( 'Check Engine Light On? Causes, Codes and What to Do', 'check-engine-light-meaning.html', 'Common Problems', 'workshop.jpg' ),
+		'car-overheating-causes-kenya'          => array( 'Why Is My Car Overheating? Causes and Fixes for Kenyan Drivers', 'car-overheating-causes-kenya.html', 'Common Problems', 'radiator.jpg' ),
+		'cvt-gearbox-problems-kenya'            => array( 'CVT Gearbox Problems: Signs, Causes and Care', 'cvt-gearbox-problems-kenya.html', 'Common Problems', 'workshop.jpg' ),
+		'car-ac-not-cooling'                    => array( 'Car AC Not Cooling? The 7 Most Common Causes', 'car-ac-not-cooling.html', 'Common Problems', 'workshop.jpg' ),
+		'ntsa-inspection-checklist-kenya'       => array( 'NTSA Motor Vehicle Inspection Checklist: How to Pass First Time', 'ntsa-inspection-checklist-kenya.html', 'Maintenance', 'brakes.jpg' ),
+		'spark-plugs-ignition-coils-guide'      => array( 'Spark Plugs and Ignition Coils: When to Replace Them', 'spark-plugs-ignition-coils-guide.html', 'Maintenance', 'timing.jpg' ),
+		'fuel-consumption-tips-kenya'           => array( 'High Fuel Consumption? Causes and Ways to Save Fuel in Kenya', 'fuel-consumption-tips-kenya.html', 'Maintenance', 'oil.jpg' ),
 	);
 
 	/**
@@ -231,7 +247,7 @@ class Tools {
 		// Make sure the topic terms exist up front so the /knowledge/topic/ URLs
 		// resolve as soon as the rewrite rules are flushed below.
 		if ( taxonomy_exists( 'mkae_guide_topic' ) ) {
-			foreach ( array( 'Buying Guides', 'Common Problems', 'Maintenance' ) as $mkae_topic ) {
+			foreach ( array( 'Buying Guides', 'Common Problems', 'Maintenance', 'Model Guides', 'Prices & Costs' ) as $mkae_topic ) {
 				if ( ! term_exists( $mkae_topic, 'mkae_guide_topic' ) ) {
 					wp_insert_term( $mkae_topic, 'mkae_guide_topic' );
 				}

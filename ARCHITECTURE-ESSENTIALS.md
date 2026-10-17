@@ -6,7 +6,7 @@ One-page summary. Full detail in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 | Package | Type | Version | Owns |
 | --- | --- | :---: | --- |
-| `mk-auto-elite/` | Theme (active) | 2.28.0 | Storefront, design system, fitment engine and tools, WooCommerce integration, Knowledge Centre, locations, fitment landing pages, booking, chat, schema, analytics, front-end hardening, setup wizard |
+| `mk-auto-elite/` | Theme (active) | 2.29.0 | Storefront, design system, fitment engine and tools, WooCommerce integration, Knowledge Centre, locations, fitment landing pages, booking, chat, schema, analytics, front-end hardening, setup wizard |
 | `mk-auto-core/` | Plugin | 1.1.0 | Branded staff sign-in screen, login guard |
 | `mk-desk/` | Plugin | 1.6.4 | MKauto Desk back office: POS with neighbour sourcing and supplier ledger, WhatsApp cart orders (plus theme leads), payment plans, garage and service bookings, reminders, follow-ups, marketing, social feeds, team permissions and activity log, encrypted contacts, Excel reports |
 
