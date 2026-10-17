@@ -6,9 +6,9 @@ One-page summary. Full detail in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 | Package | Type | Version | Owns |
 | --- | --- | :---: | --- |
-| `mk-auto-elite/` | Theme (active) | 2.19.0 | Storefront, design system, fitment engine and tools, WooCommerce integration, Knowledge Centre, locations, fitment landing pages, booking, chat, schema, analytics, front-end hardening, setup wizard |
-| `mk-auto-core/` | Plugin | 1.0.0 | Branded staff sign-in screen, login guard |
-| `mk-desk/` | Plugin | 1.6.2 | MKauto Desk back office: POS with neighbour sourcing and supplier ledger, WhatsApp cart orders (plus theme leads), payment plans, garage and service bookings, reminders, follow-ups, marketing, social feeds, team permissions and activity log, encrypted contacts, Excel reports |
+| `mk-auto-elite/` | Theme (active) | 2.28.0 | Storefront, design system, fitment engine and tools, WooCommerce integration, Knowledge Centre, locations, fitment landing pages, booking, chat, schema, analytics, front-end hardening, setup wizard |
+| `mk-auto-core/` | Plugin | 1.1.0 | Branded staff sign-in screen, login guard |
+| `mk-desk/` | Plugin | 1.6.3 | MKauto Desk back office: POS with neighbour sourcing and supplier ledger, WhatsApp cart orders (plus theme leads), payment plans, garage and service bookings, reminders, follow-ups, marketing, social feeds, team permissions and activity log, encrypted contacts, Excel reports |
 
 ## Boot
 
@@ -35,7 +35,9 @@ One-page summary. Full detail in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 - AJAX (`admin-ajax.php`, nonce `mkae_nonce`): `mkae_get_terms`, `mkae_search_suggest`, `mkae_vehicle_parts`, `mkae_check_fit`, `mkae_submit_booking`, `mkae_chat`.
 - Admin posts: setup wizard tools and `mkae_generate_landings` (capability + nonce).
-- External: Google Gemini (server-side), WhatsApp links, GA4 / Meta Pixel (only when IDs set), Google Maps embed.
+- REST: `GET /wp-json/mkd/v1/slots?date=` (public, read-only, rate-limited).
+- Desk AJAX / admin posts: `mkd_pos_*`, `mkd_appt_*`, `mkd_lmm_*`, `mkd_src_*`, `mkd_mkt*` (capability + nonce); public `mkd_garage_book`, `mkd_lmm_request`, `mkd_subscribe`, `mkd_wa_order` (honeypot + rate limit).
+- External: Google Gemini (server-side, key in header), WhatsApp Cloud API (optional), WhatsApp links, GA4 / Meta Pixel (only when IDs set), Google Maps embed.
 
 ## SEO
 
@@ -43,9 +45,10 @@ Rank Math (live, outside this repo) owns titles, meta, canonicals, sitemaps and 
 
 ## Security layers
 
-1. Theme `Security`: XML-RPC off, author/REST-user enumeration blocked, head clean-up, generic login errors, front-end headers, comments only on products, robots.txt.
+1. Theme `Security`: HTTPS redirect, XML-RPC off, author/REST-user enumeration blocked, head clean-up, generic login errors, front-end headers incl. HSTS, trusted-IP and secrets helpers, comments only on products, robots.txt.
 2. Theme `Ajax\Handlers`: nonces, sanitisation, honeypot + timing + rate limits on bookings, chat throttle.
-3. Plugin `MKAC_Login_Guard`: lockout, bot traps, registration/reset limits, password policy, staff session expiry, login/admin headers, app passwords for admins.
+3. Plugin `MKAC_Login_Guard`: lockout, bot traps, registration/reset limits, password policy, staff session expiry and 60-minute idle logout, login/admin headers, app passwords for admins.
+4. Plugin `mk-desk`: capability + nonce on every action, staff permissions, one-use payment codes with DB lock, void instead of delete, encrypted customer contacts, rate-limited public forms and REST, no CORS for other sites, `no-store` on Desk screens.
 
 ## Release
 

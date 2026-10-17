@@ -10,8 +10,9 @@ Custom WordPress + WooCommerce storefront for **[mkautospares.co.ke](https://mka
 
 <br>
 
-[![Theme](https://img.shields.io/badge/MK%20Auto%20Elite-v2.19.0-111316?style=for-the-badge)](mk-auto-elite)
-[![Plugin](https://img.shields.io/badge/MK%20Auto%20Core-v1.0.0-CA1D24?style=for-the-badge)](mk-auto-core)
+[![Theme](https://img.shields.io/badge/MK%20Auto%20Elite-v2.28.0-111316?style=for-the-badge)](mk-auto-elite)
+[![Plugin](https://img.shields.io/badge/MK%20Auto%20Core-v1.1.0-CA1D24?style=for-the-badge)](mk-auto-core)
+[![Desk](https://img.shields.io/badge/MKauto%20Desk-v1.6.3-0B0B0B?style=for-the-badge)](mk-desk)
 [![Status](https://img.shields.io/badge/Status-Live-25D366?style=for-the-badge)](https://mkautospares.co.ke/)
 
 ![WordPress](https://img.shields.io/badge/WordPress-6.4%2B-21759B?logo=wordpress&logoColor=white)
@@ -65,22 +66,30 @@ Custom WordPress + WooCommerce storefront for **[mkautospares.co.ke](https://mka
 | [PRD.md](PRD.md) | Product requirements and status |
 | [SECURITY-AUDIT.md](SECURITY-AUDIT.md) | Security review, fixes and maintenance checklist |
 
-## Security (theme 2.19.0 / plugin 1.0.0)
+## Security (theme 2.28.0 / core 1.1.0 / desk 1.6.3)
 
-- Login lockout after repeated failures (5 per IP in 15 minutes, 10 per username in an hour, 30-minute lockout) and bot traps on login, registration and password reset
-- Limits: 3 registrations and 5 password resets per IP per hour; 8 bookings per IP per hour; chat throttled per IP
-- Minimum 10-character passwords; staff sessions expire after 8 hours (3 days with "Remember me")
-- XML-RPC off, author and REST user enumeration blocked, generic login errors, security headers on the storefront, login and admin
-- Optional `wp-config.php` setting: `MKAC_TRUSTED_PROXY_HEADER` (behind Cloudflare)
+Production baseline, reviewed 17 Oct 2026 - full detail in [SECURITY-AUDIT.md](SECURITY-AUDIT.md).
 
-Full details: [SECURITY-AUDIT.md](SECURITY-AUDIT.md).
+| Control | How |
+| --- | --- |
+| Rate limiting | Login, registration, reset, every public form, theme lookups and the Desk REST route; trusted-IP helper so fake proxy headers cannot bypass it |
+| Input sanitisation / output escaping | Every field sanitised by type; every output escaped |
+| Passwords | Hashed by WordPress core; 10-character policy; never stored or logged by this code |
+| Secrets | From environment or `wp-config.php` (`GEMINI_API_KEY`, `WHATSAPP_TOKEN`, `MKD_DATA_KEY`); none in the repository |
+| CORS | No cross-site permission on Desk REST routes |
+| SQL injection | Prepared queries throughout |
+| Sessions | Staff 8 h (3 days with Remember me) and 60-minute idle logout |
+| HTTPS | http to https redirect; HSTS |
+| Headers | nosniff, SAMEORIGIN, Referrer-Policy, Permissions-Policy, cross-domain policy, COOP; `no-store` on Desk screens |
+| Business rules | One-use payment codes, price/discount permissions, void instead of delete, full activity log |
 
 ## Packages
 
 | Package | Folder | Version | Role |
 | --- | --- | :---: | --- |
-| **MK Auto Elite** | [`mk-auto-elite/`](mk-auto-elite) | `2.19.0` | **Active theme.** Storefront, design system, vehicle-fitment engine, fitment tools, WooCommerce integration, Knowledge Centre, booking, chat, SEO schema, setup wizard |
-| **MK Auto Core** | [`mk-auto-core/`](mk-auto-core) | `1.0.0` | Plugin: branded staff sign-in screen and login guard. Survives a theme change |
+| **MK Auto Elite** | [`mk-auto-elite/`](mk-auto-elite) | `2.28.0` | **Active theme.** Storefront, design system, vehicle-fitment engine, fitment tools, WooCommerce integration, Knowledge Centre, booking, chat, SEO schema, setup wizard |
+| **MK Auto Core** | [`mk-auto-core/`](mk-auto-core) | `1.1.0` | Plugin: branded staff sign-in screen, login guard and idle logout. Survives a theme change |
+| **MKauto Desk** | [`mk-desk/`](mk-desk) | `1.6.3` | Plugin: back office - till, invoices and receipts, WhatsApp orders, payment plans, sourcing ledger, garage bookings and job billing, reminders, marketing, social, team |
 
 > [!NOTE]
 > Nothing brand-specific is hard-coded. Phone, WhatsApp, email, address, hours, M-Pesa instruction, accent colour, map, analytics IDs and the Gemini key are edited under **Appearance > Customize > MK Auto Elite**, and the sign-in screen reads the same values.
@@ -373,6 +382,7 @@ AJAX actions (all nonce-checked with `mkae_nonce`): `mkae_get_terms`, `mkae_sear
 
 | Theme | Plugin | Highlights |
 | :---: | :---: | --- |
+| `2.28.0` | `1.1.0` | Security: trusted-IP rate limits (fake proxy headers no longer bypass limits), Gemini key from environment and sent in a header, rate limit on public lookups, HTTPS redirect, HSTS and extra headers; core: 60-minute staff idle logout, extra admin headers. Desk 1.6.3: REST rate limit, no CORS for other sites, `no-store` on Desk screens |
 | `2.19.0` | - | SEO: schema de-duplicated against Rank Math and enriched (AutoPartsStore, part brand, MPN, condition, compatible vehicles, shipping, 7-day returns); no Offer on price-on-request items; Knowledge Centre Article schema; new Seo\Meta titles/descriptions fallbacks; empty /fitment/ and /locations/ noindexed; Customizer SEO & Local Business section |
 | - | `1.0.0` | New MK Auto Core plugin: branded split-screen staff sign-in (logo, Welcome back, WhatsApp help, secure note) and login guard (lockout, bot traps, rate limits, 10-character passwords, 8-hour staff sessions, login/admin headers). Full documentation set added |
 | `2.18.0` | - | Current live theme: vehicle finder, fitment tools, fitment landing pages, Knowledge Centre, booking, Gemini chat, GA4/Meta Pixel, security hardening, setup wizard |
@@ -403,7 +413,7 @@ AJAX actions (all nonce-checked with `mkae_nonce`): `mkae_get_terms`, `mkae_sear
 <sub>Designed, developed and maintained by <a href="https://github.com/moselanto"><b>Pimofy Digital</b></a>, Nairobi &nbsp;&bull;&nbsp; Licensed GPLv2 or later</sub>
 </div>
 
-## MKauto Desk (plugin `mk-desk/`, 1.6.2)
+## MKauto Desk (plugin `mk-desk/`, 1.6.3)
 
 The shop's back office under wp-admin > MKauto Desk: Overview, Point of sale, WhatsApp orders, Payment plans, Sourcing, Garage & service, Reminders, Marketing, Social, Settings and Team.
 

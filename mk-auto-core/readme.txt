@@ -3,7 +3,7 @@ Contributors: pimofydigital
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,6 +22,10 @@ Site-owned features for MK Auto Spares (mkautospares.co.ke) that must survive a 
 4. Behind Cloudflare? Add define( 'MKAC_TRUSTED_PROXY_HEADER', 'HTTP_CF_CONNECTING_IP' ); to wp-config.php.
 
 == Changelog ==
+
+= 1.1.0 =
+* Security: staff are logged out after 60 minutes without activity in wp-admin (filter mkac_staff_idle); the background heartbeat does not count.
+* Security: Permissions-Policy and X-Permitted-Cross-Domain-Policies headers on login and admin screens.
 
 = 1.0.0 =
 * First release: branded sign-in screen and login guard.

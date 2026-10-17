@@ -379,7 +379,7 @@ class MKD_Garage {
 		if ( '' !== self::field( 'website', 50 ) || (int) self::field( 'elapsed', 10 ) < 4 ) {
 			wp_send_json_success( array( 'ref' => 'APT', 'wa' => '', 'summary' => '' ) );
 		}
-		$ip  = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$ip  = MKD_Desk::ip();
 		$key = 'mkd_gb_' . md5( $ip );
 		$n   = (int) get_transient( $key );
 		if ( $n >= 6 ) {

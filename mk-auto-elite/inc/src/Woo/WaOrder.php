@@ -297,7 +297,9 @@ class WaOrder {
 
 	/** Visitor IP for rate limiting (hashed, never stored). */
 	private static function ip_key(): string {
-		$ip = isset( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ? (string) wp_unslash( $_SERVER['HTTP_CF_CONNECTING_IP'] ) : ( isset( $_SERVER['REMOTE_ADDR'] ) ? (string) wp_unslash( $_SERVER['REMOTE_ADDR'] ) : '' );
+		// CF-Connecting-IP is only trusted when wp-config says the site is behind that proxy;
+		// otherwise any visitor could send a fake header and dodge the limit.
+		$ip = \MKAutoElite\Security::client_ip();
 		return 'mkae_wo_' . md5( $ip );
 	}
 

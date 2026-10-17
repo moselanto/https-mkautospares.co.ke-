@@ -246,7 +246,7 @@ class MKD_Desk_Sub {
 		if ( ! empty( $_POST['website'] ) ) {
 			wp_send_json_success( array( 'code' => '' ) );
 		}
-		$ip   = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$ip   = MKD_Desk::ip();
 		$key  = 'mkd_sub_' . md5( $ip );
 		$hits = (int) get_transient( $key );
 		if ( $hits >= 8 ) {

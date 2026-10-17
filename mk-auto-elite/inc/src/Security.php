@@ -54,6 +54,7 @@ class Security {
 
 		// Security response headers on front-end requests.
 		add_action( 'send_headers', array( $this, 'security_headers' ) );
+		add_action( 'template_redirect', array( $this, 'force_https' ), 0 );
 
 		// Comment / ping spam surface: keep WooCommerce reviews, close the rest.
 		add_filter( 'comments_open', array( $this, 'restrict_comments' ), 10, 2 );
@@ -162,7 +163,63 @@ class Security {
 		header( 'X-Content-Type-Options: nosniff' );
 		header( 'X-Frame-Options: SAMEORIGIN' );
 		header( 'Referrer-Policy: strict-origin-when-cross-origin' );
-		header( 'Permissions-Policy: geolocation=(), microphone=(), camera=()' );
+		header( 'Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(self)' );
+		header( 'X-Permitted-Cross-Domain-Policies: none' );
+		header( 'Cross-Origin-Opener-Policy: same-origin-allow-popups' );
+		if ( is_ssl() ) {
+			header( 'Strict-Transport-Security: max-age=31536000; includeSubDomains' );
+		}
+	}
+
+	/**
+	 * HTTPS everywhere: when the site address is https, any plain-http page
+	 * request is sent to the https address (301). Skipped for CLI, cron and
+	 * when MKAE_NO_HTTPS_REDIRECT is defined (e.g. local development).
+	 */
+	public function force_https(): void {
+		if ( is_ssl() || defined( 'MKAE_NO_HTTPS_REDIRECT' ) || ( defined( 'WP_CLI' ) && WP_CLI ) || wp_doing_cron() ) {
+			return;
+		}
+		if ( 0 !== strpos( home_url(), 'https://' ) || empty( $_SERVER['HTTP_HOST'] ) ) {
+			return;
+		}
+		$uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '/'; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- path only, host comes from home_url().
+		wp_safe_redirect( set_url_scheme( home_url( $uri ), 'https' ), 301 );
+		exit;
+	}
+
+	/**
+	 * Visitor IP for rate limits. Only REMOTE_ADDR unless wp-config.php defines
+	 * MKAC_TRUSTED_PROXY_HEADER (e.g. 'HTTP_CF_CONNECTING_IP') for a real proxy.
+	 */
+	public static function client_ip(): string {
+		$ip = '';
+		if ( defined( 'MKAC_TRUSTED_PROXY_HEADER' ) && ! empty( $_SERVER[ MKAC_TRUSTED_PROXY_HEADER ] ) ) {
+			$raw = explode( ',', (string) wp_unslash( $_SERVER[ MKAC_TRUSTED_PROXY_HEADER ] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- validated below.
+			$ip  = trim( $raw[0] );
+		} elseif ( isset( $_SERVER['REMOTE_ADDR'] ) ) {
+			$ip = (string) wp_unslash( $_SERVER['REMOTE_ADDR'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- validated below.
+		}
+		return filter_var( $ip, FILTER_VALIDATE_IP ) ? $ip : '0.0.0.0';
+	}
+
+	/**
+	 * Read a secret from the server environment, then a wp-config.php constant.
+	 * Secrets are never hard-coded in the theme.
+	 *
+	 * @param string[] $names Environment / constant names, in order of preference.
+	 */
+	public static function secret( array $names ): string {
+		foreach ( $names as $n ) {
+			$v = getenv( $n );
+			if ( is_string( $v ) && '' !== trim( $v ) ) {
+				return trim( $v );
+			}
+			if ( defined( $n ) && is_string( constant( $n ) ) && '' !== trim( constant( $n ) ) ) {
+				return trim( constant( $n ) );
+			}
+		}
+		return '';
 	}
 
 	/**

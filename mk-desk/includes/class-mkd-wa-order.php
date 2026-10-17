@@ -770,7 +770,7 @@ class MKD_WA_Order {
 		if ( preg_match_all( '#https?://#i', $note ) > 0 ) {
 			wp_send_json_success( array( 'ok' => 1 ) ); // Link spam: quietly ignore.
 		}
-		$ip  = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$ip  = MKD_Desk::ip();
 		$rk  = 'mkd_wo_rl_' . md5( $ip );
 		$cnt = (int) get_transient( $rk );
 		if ( $cnt >= 12 ) {

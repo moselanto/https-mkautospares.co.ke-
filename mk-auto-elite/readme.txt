@@ -3,7 +3,7 @@ Contributors: mkautospares
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 2.27.1
+Stable tag: 2.28.0
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -37,6 +37,12 @@ ships with:
 5. Set your contact details and WhatsApp number in Appearance > Customize > MK Auto Elite.
 
 == Changelog ==
+
+= 2.28.0 =
+* Security: rate limits on bookings, chat and WhatsApp orders use Security::client_ip() (fake CF-Connecting-IP headers no longer bypass them).
+* Security: Gemini API key read from GEMINI_API_KEY / MKAE_GEMINI_API_KEY first and sent in the x-goog-api-key header, not the URL.
+* Security: per-IP ceiling on public lookups (search, fitment, terms).
+* Security: http to https redirect on the front end; HSTS, X-Permitted-Cross-Domain-Policies and Cross-Origin-Opener-Policy headers.
 
 = 2.27.1 =
 * Fix: self-healing scheduler. WP-Cron is disabled on the server and loopback requests are blocked, which left cart reminders and WooCommerce's scheduled actions (unpaid-order cancelling, cleanup, Action Scheduler migration) stuck since 25 July. A backup runner now runs anything overdue after a page has been sent to the visitor, at most once every 5 minutes, with a lock.

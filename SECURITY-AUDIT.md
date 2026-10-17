@@ -2,92 +2,114 @@
 
 | | |
 | --- | --- |
-| **Scope** | `mk-auto-elite` theme 2.19.0, `mk-auto-core` plugin 1.0.0 |
-| **Date** | 14 Oct 2026 |
-| **Method** | Manual code review of every PHP file and front-end script in this repository |
-| **Out of scope** | WordPress core, WooCommerce, third-party plugins, hosting and server configuration |
+| **Scope** | `mk-auto-elite` theme 2.28.0, `mk-auto-core` plugin 1.1.0, `mk-desk` plugin 1.6.3 |
+| **Date** | 17 Oct 2026 (supersedes the 14 Oct 2026 review) |
+| **Method** | Manual review of every PHP file and front-end script, plus automated searches for raw SQL, unescaped output, dangerous functions, uploads, redirects, remote calls, REST routes and hard-coded secrets. All PHP passes `php -l`; all Desk JavaScript passes a parse check |
+| **Out of scope** | WordPress core, WooCommerce, third-party plugins, hosting, DNS, Cloudflare and server configuration |
 
 ## 1. Summary
 
-The theme was already in reasonable shape: AJAX endpoints use a shared nonce
-and sanitise input, the booking form has a honeypot, timing check and per-IP
-rate limit, the Gemini key is never sent to the browser, and the front end
-blocks XML-RPC and user enumeration. The biggest gap was the staff login,
-which had no brute-force protection, no password policy, no session limit and
-no security headers on `wp-login.php` / `wp-admin`. MK Auto Core 1.0.0 closes it.
+No critical or high-severity vulnerability was found in the current code. Every
+staff action checks both the user's capability and a security token (nonce),
+database queries with user input are prepared, output is escaped, there is no
+`eval`, `unserialize`, shell call or open redirect, and no API key is committed.
 
-## 2. Controls in place
+This review closed the remaining medium and low gaps: rate limits that a fake
+proxy header could bypass, an API key that travelled in a URL, a public REST
+route with no rate limit and open CORS, missing HTTPS redirect and front-end
+HSTS, no idle timeout for staff sessions, and Desk screens that browsers could
+cache. The payment safeguards added in Desk 1.4.0 to 1.6.2 are recorded here too.
 
-### Theme (`MKAutoElite\Security`)
+## 2. Requested controls - status
 
-| Control | Detail |
-| --- | --- |
-| XML-RPC | `xmlrpc_enabled` false, pingback methods removed, direct `xmlrpc.php` requests get 403 |
-| User enumeration | `?author=N` and author archives 301 home for guests; users removed from sitemap; `/wp/v2/users` hidden from guests |
-| Information leakage | Generator, RSD, WLW, shortlink, REST and oEmbed discovery links removed |
-| Login errors | One generic message; never reveals whether a username exists |
-| Headers (front end) | `X-Content-Type-Options`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy`, `Permissions-Policy` |
-| Comment spam | Comments only on products (reviews); pings off |
-| robots.txt | AI/scraper bots blocked; cart, checkout, account and faceted URLs disallowed |
+| Control | Status | Where |
+| --- | --- | --- |
+| **Rate limiting** | In place on every public write form and lookup; login, registration and password reset limited | `MKAC_Login_Guard`, `Ajax\Handlers::guard()`, `MKD_Desk::throttled()`, each public form |
+| **Input sanitisation** | Every field sanitised by type (`sanitize_text_field`, `sanitize_email`, `absint`, allow-lists, length caps); output escaped at the point of output | All packages |
+| **Password hashing** | Handled by WordPress core (bcrypt on WP 6.8+, phpass before). The code never stores, logs or e-mails a password. 10-character policy, not the username or e-mail | `MKAC_Login_Guard` |
+| **Environment variables, no hard-coded keys** | WhatsApp token, Gemini key and data-encryption key read from the server environment or `wp-config.php` constants. No secrets in the repository | `MKD_WhatsApp`, `Security::secret()`, `MKD_Vault` |
+| **CORS** | WordPress reflects any Origin on REST responses; the Desk's `mkd/v1` routes now send no CORS permission to other sites | `MKD_Desk_Appts::cors()` |
+| **SQL / NoSQL injection** | All queries with input use `$wpdb->prepare()` or WooCommerce APIs. Remaining interpolation is fixed table names only. There is no NoSQL store | All packages |
+| **Session expiry** | Staff: 8 h (3 days with Remember me) plus a new 60-minute idle logout. Customers: WordPress defaults | `MKAC_Login_Guard::session_length()`, `idle_logout()` |
+| **HTTPS everywhere** | New 301 redirect from http to https on the front end when the site address is https; HSTS on front end, login and admin | `Security::force_https()`, both header hooks |
+| **Security headers** | nosniff, X-Frame-Options SAMEORIGIN, Referrer-Policy, Permissions-Policy, X-Permitted-Cross-Domain-Policies, Cross-Origin-Opener-Policy (front end), HSTS on HTTPS; `no-store` on Desk screens and invoice links | `Security`, `MKAC_Login_Guard`, `MKD_Desk::no_store()` |
+| **Regular dependency updates** | The code has no Composer or npm dependencies and bundles no third-party JavaScript library. Risk sits in WordPress, WooCommerce and plugins - see section 6 | Hosting routine |
 
-### Theme (`Ajax\Handlers`, admin tools)
+## 3. Findings and fixes in this review
 
-| Control | Detail |
-| --- | --- |
-| Nonces | Every AJAX action checks `mkae_nonce`; admin tools check capability + action nonce |
-| Input | `sanitize_text_field`, `sanitize_email`, `absint`, taxonomy allow-list |
-| Booking abuse | Honeypot `mkae_hp`, minimum fill time, 8 submissions per IP per hour |
-| Chat abuse / cost | Per-IP throttle per 5 minutes; key stored server-side; model filterable |
-| Landing generator | Creates drafts only, capped at 120 per run |
-| Analytics | Nothing loads until an ID is entered |
-
-### Plugin (`MKAC_Login_Guard`) - new in 1.0.0
-
-| Control | Detail |
-| --- | --- |
-| Brute-force lockout | 5 failures per IP in 15 min, or 10 per username in 1 hour, lock for 30 min. Filters `mkac_login_ip_max`, `mkac_login_user_max` |
-| Lockout notice | Shown even though the theme genericises errors, only when the request was refused for a lockout |
-| Bot traps | Honeypot `mkac_hp` + minimum fill time on wp-login, register, lost password and WooCommerce account forms |
-| Rate limits | 3 registrations and 5 password resets per IP per hour |
-| Password policy | 10+ characters, not the username or email, on reset, profile and My Account |
-| Staff sessions | `edit_posts` and up: 8 h, or 3 days with Remember me. Customers unchanged |
-| Headers (login/admin) | nosniff, SAMEORIGIN, Referrer-Policy, HSTS on HTTPS |
-| Application passwords | Administrators only |
-| Sign-in screen | Presentation only: no field, nonce or redirect changes; outputs escaped |
-
-## 3. Findings
-
-| # | Severity | Finding | Status |
+| # | Severity | Finding | Fix |
 | --- | --- | --- | --- |
-| F1 | High | No brute-force protection on staff login | **Fixed** - MK Auto Core lockout |
-| F2 | Medium | No bot protection on login / registration / reset | **Fixed** - honeypot + timing |
-| F3 | Medium | No minimum password length beyond WordPress's strength meter | **Fixed** - 10-character policy |
-| F4 | Medium | Long-lived staff sessions (14 days) | **Fixed** - 8 h / 3 days |
-| F5 | Low | No security headers on login and admin screens | **Fixed** |
-| F6 | Low | Application passwords available to every role | **Fixed** - admins only |
-| F7 | Medium | Rate limits key on `REMOTE_ADDR`; behind Cloudflare every visitor shares an IP | **Mitigated** - define `MKAC_TRUSTED_PROXY_HEADER`. Theme booking/chat limits still use `REMOTE_ADDR` - open |
-| F8 | Low | No HSTS on front-end responses from the theme | Open - set at host / Cloudflare or add to `Security::security_headers()` |
-| F9 | Low | No Content-Security-Policy | Open - needs an inventory of GA4, Pixel, Maps and Gemini origins first |
-| F10 | Low | Paybill numbers hard-coded in the checkout notice | Open - integrity rather than security; move to Customizer |
-| F11 | Info | No automated tests, lint or CI | Open |
-| F12 | Info | 2.19.0 SEO changes: schema outputs only public business data from the Customizer (no order or customer data); JSON-LD encoded with `JSON_HEX_TAG`; meta output escaped with `esc_attr` | Reviewed |
+| S1 | Medium | Theme WhatsApp-order rate limit trusted the `CF-Connecting-IP` header from anyone, so a bot could send a fake value and never be limited | Uses `Security::client_ip()`: `REMOTE_ADDR`, or the proxy header only when `MKAC_TRUSTED_PROXY_HEADER` is defined |
+| S2 | Medium | Booking, chat and Desk public-form limits used `REMOTE_ADDR` directly, so behind Cloudflare every visitor shared one limit | All use the trusted-proxy helper (`Security::client_ip()`, `MKD_Desk::ip()`) |
+| S3 | Medium | Gemini API key only stored in the database and sent in the request URL (visible in proxy / server logs) | Read from `GEMINI_API_KEY` / `MKAE_GEMINI_API_KEY` first; sent in the `x-goog-api-key` header |
+| S4 | Low | Public REST route `mkd/v1/slots` had no rate limit | 120 requests per 5 minutes per IP; `date` argument declared and sanitised |
+| S5 | Low | WordPress reflected any Origin with CORS headers on Desk REST routes | CORS headers removed for other origins on `mkd/v1` |
+| S6 | Low | Public theme lookups (search, fitment, terms) could be scraped without limit | 300 requests per 5 minutes per IP in the shared AJAX guard |
+| S7 | Low | No HTTP-to-HTTPS redirect or HSTS on front-end pages | `force_https()` redirect and HSTS added |
+| S8 | Low | Staff sessions had no idle timeout; an unattended counter PC stayed logged in for 8 hours | 60-minute idle logout (filter `mkac_staff_idle`); the background heartbeat does not count |
+| S9 | Low | Desk screens with customer data could be kept in browser or proxy caches | `Cache-Control: no-store` on all Desk screens |
+| S10 | Info | Missing `Permissions-Policy` / `X-Permitted-Cross-Domain-Policies` on login and admin | Added |
 
-## 4. Configuration checklist (hosting)
+### Business-logic safeguards (Desk 1.4.0 to 1.6.2)
 
-- [ ] HTTPS everywhere; `define( 'FORCE_SSL_ADMIN', true );`
-- [ ] Behind Cloudflare: `define( 'MKAC_TRUSTED_PROXY_HEADER', 'HTTP_CF_CONNECTING_IP' );`
-- [ ] `define( 'DISALLOW_FILE_EDIT', true );`
-- [ ] Unique, strong passwords for every admin; remove unused admin accounts
-- [ ] 2FA plugin for administrators (compatible with the branded sign-in)
-- [ ] Daily off-site backups of database and uploads
-- [ ] WordPress, WooCommerce and plugins kept updated
+| Risk | Control |
+| --- | --- |
+| Same M-Pesa / transaction code used twice | One code, one use across till sales, invoices, plans, WhatsApp and website orders; spaces, dashes and capitals ignored; database lock against simultaneous saves; duplicate website payments put on hold |
+| Staff changing prices or over-discounting | Price lock without permission; discount ceiling per role; every attempt logged |
+| Marking an invoice paid without payment | "Fulfilled" only on paid website orders; no re-marking paid; payment method recorded |
+| Deleting evidence of a sale | Sales are voided, not deleted: reason required, owner-only by default, stock restored, logged |
+| Double charging | A WhatsApp order cannot be rung up twice; garage jobs warn before a second invoice |
+| Double booking | One open booking per phone per day; database lock on the last slot; past / invented times refused |
+| Customer data at rest | Phone and e-mail in the marketing table encrypted with AES-256-GCM (`MKD_Vault`); blind index for search |
+| Invoice links | Public links require the WooCommerce order key (`hash_equals`), are `noindex` and not cached |
 
-## 5. Maintenance checklist (every release)
+## 4. Vulnerability classes checked
 
-- [ ] `grep -rn '\\!'` on changed PHP (escaping bug that broke a live site before)
-- [ ] Every new AJAX action checks `mkae_nonce` and sanitises input
-- [ ] Every new public write endpoint has honeypot + rate limit
-- [ ] Every output escaped at the point of output
-- [ ] No keys or secrets committed
-- [ ] Sign in at `/wp-admin` in a private window after deploying
-- [ ] This document updated if a control changed
+| Class | Result |
+| --- | --- |
+| SQL injection | No user input reaches SQL without `prepare()` |
+| XSS | Output escaped (`esc_html`, `esc_attr`, `esc_url`, `wp_kses`); JSON-LD encoded with `JSON_HEX_TAG`; no raw superglobal echoed |
+| CSRF | Every admin form and AJAX action verifies a nonce; public forms on cached pages use honeypot, fill-time and rate limits instead |
+| Broken authentication | Lockout, bot traps, password policy, generic login errors, session and idle expiry, application passwords for admins only |
+| Insecure file upload | No visitor upload. The only upload writes images bundled with the theme, admin only (capability + nonce) |
+| Unauthorised access | Desk pages and actions require `manage_woocommerce`; sensitive actions (void, refunds, deletes, settings, encryption) require the owner or an explicit permission |
+| Session hijacking | WordPress HttpOnly auth cookies, Secure on HTTPS; HSTS; short staff sessions; idle logout |
+| API vulnerabilities | REST route read-only, rate-limited, no CORS for other sites; AJAX nonce-checked and rate-limited; keys server-side only |
+| Data exposure | User REST endpoint hidden from guests; author enumeration blocked; Desk screens `no-store`; exports nonce + capability checked; personal data encrypted at rest |
+
+## 5. Still open (by design or needs hosting)
+
+| # | Item | Recommendation |
+| --- | --- | --- |
+| O1 | No Content-Security-Policy | Needs an inventory of GA4, Meta Pixel, Maps, Gemini and payment origins; start in report-only mode |
+| O2 | Paybill numbers hard-coded in the checkout notice | Integrity issue, not security; move to the Customizer |
+| O3 | No automated tests or CI | Add `php -l` and PHPCS (WordPress ruleset) on every push |
+| O4 | Two-factor login for administrators | Install a 2FA plugin compatible with the branded sign-in |
+
+## 6. Hosting configuration checklist
+
+```php
+// wp-config.php
+define( 'FORCE_SSL_ADMIN', true );
+define( 'DISALLOW_FILE_EDIT', true );
+define( 'MKAC_TRUSTED_PROXY_HEADER', 'HTTP_CF_CONNECTING_IP' ); // only if behind Cloudflare
+define( 'MKD_DATA_KEY', '...64 random hex characters...' );     // Desk encryption key
+define( 'WHATSAPP_TOKEN', '...' );                               // or set as an environment variable
+define( 'WHATSAPP_PHONE_NUMBER_ID', '...' );
+define( 'GEMINI_API_KEY', '...' );
+```
+
+- [ ] Valid SSL certificate; site and home URLs start with https
+- [ ] Unique strong passwords; remove unused administrator accounts; one login per staff member
+- [ ] Daily off-site backups of database and uploads; test a restore
+- [ ] Update WordPress, WooCommerce, plugins and PHP monthly (security releases at once); remove unused plugins and themes
+- [ ] Keep `wp-config.php` and backups out of the web root and out of Git
+
+## 7. Release checklist
+
+- [ ] `php -l` on every changed PHP file; parse-check changed JavaScript
+- [ ] New AJAX / admin actions: capability + nonce; every field sanitised
+- [ ] New public write endpoints: honeypot + rate limit via the trusted-IP helper
+- [ ] Every output escaped where it is printed
+- [ ] No keys, passwords or customer data committed
+- [ ] This document updated when a control changes

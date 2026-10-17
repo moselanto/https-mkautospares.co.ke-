@@ -47,8 +47,15 @@ WordPress core, WooCommerce, third-party plugins, uploads and the database are
    (copy `submit_booking`).
 6. **Never weaken a security control to make something work.** Read
    `SECURITY-AUDIT.md` first, then solve it another way or raise it explicitly.
-7. **Never put an API key in the browser.** The Gemini key stays server-side;
-   the chat is proxied through `Ajax\Handlers::chat()`.
+7. **Never put an API key in the browser or the repository.** Secrets come from
+   the server environment or `wp-config.php` constants (`GEMINI_API_KEY`,
+   `WHATSAPP_TOKEN`, `MKD_DATA_KEY`); read them with `Security::secret()` or
+   the package's own helper. The chat is proxied through `Ajax\Handlers::chat()`.
+9. **Rate limits use the trusted-IP helper** (`Security::client_ip()` in the
+   theme, `MKD_Desk::ip()` / `MKD_Desk::throttled()` in the Desk). Never read
+   `X-Forwarded-For` or `CF-Connecting-IP` directly.
+10. **Payment codes go through `MKD_Desk::norm_ref()`, `ref_lock()` and
+   `ref_used()`** before they are saved anywhere.
 8. **The sign-in screen changes presentation only.** Do not rename login
    fields, remove nonces or change redirects in `MKAC_Login_Brand`.
 
@@ -94,7 +101,9 @@ WordPress core, WooCommerce, third-party plugins, uploads and the database are
 | MKauto Desk shell, menu, settings, exports | `mk-desk/includes/class-mkd-desk.php` |
 | Till, invoices, neighbour-sourced lines | `mk-desk/includes/class-mkd-desk-pos.php`, `class-mkd-desk-source.php`, `assets/js/mk-desk.js` |
 | Garage and service bookings | `mk-desk/includes/class-mkd-desk-appts.php` |
-| Lockout, password policy, sessions | `mk-auto-core/includes/class-mkac-login-guard.php` |
+| Payment-code checks, trusted IP, rate limiter | `mk-desk/includes/class-mkd-desk.php` (`norm_ref`, `ref_lock`, `ref_used`, `ip`, `throttled`) |
+| HTTPS redirect, front-end headers, secrets helper | `mk-auto-elite/inc/src/Security.php` |
+| Lockout, password policy, sessions, idle logout | `mk-auto-core/includes/class-mkac-login-guard.php` |
 
 `functions.php` stays thin: environment guard, constants, autoloader, boot.
 
@@ -104,8 +113,8 @@ WordPress core, WooCommerce, third-party plugins, uploads and the database are
   `!` into `\!` more than once and broke the live soundcreationsltd.com site
   (parse error). Before committing or zipping any PHP run
   `grep -rn '\\!' <changed files>` and fix every hit.
-- **There is no `php -l` in the agent sandbox.** Re-read every changed PHP file
-  by eye; a fatal error takes the store down.
+- **Lint every changed PHP file with `php -l`** (and parse-check changed
+  JavaScript) before committing; a fatal error takes the store down.
 - **Minified assets are committed.** Edit the source file and regenerate the
   `.min` file, or the change will not ship.
 - **Paybill numbers are duplicated.** `mkae_mpesa` in the Customizer drives the

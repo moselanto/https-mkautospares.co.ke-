@@ -27,6 +27,7 @@ flowchart TB
 | --- | --- | --- |
 | `mk-auto-elite` (theme) | Everything customers see and the store logic that grew with it: fitment engine, tools, CPTs, AJAX, schema | Original single-package build |
 | `mk-auto-core` (plugin) | Staff sign-in screen and login guard | Must keep working if the store is re-themed |
+| `mk-desk` (plugin) | MKauto Desk back office: till, invoices and receipts, sourcing ledger, WhatsApp orders, payment plans, garage bookings and job billing, reminders, marketing, social, team permissions and activity log | Shop operations must survive a re-theme and stay separate from the storefront |
 
 Direction of dependency: the plugin reads the theme's Customizer values
 (`get_theme_mod( 'mkae_*' )`) and the theme's hero image and fonts *if present*,
@@ -171,18 +172,44 @@ search lookups. The sign-in stylesheet loads only on `wp-login.php`.
 ## 9. Release process
 
 1. Change code on `main`.
-2. Bump versions (theme: `style.css` + `MK_AUTO_ELITE_VERSION`; plugin: header + `MKAC_VERSION`).
+2. Bump versions (theme: `style.css` + `MK_AUTO_ELITE_VERSION`; core: header + `MKAC_VERSION`; desk: header + `MKD_VERSION`).
 3. Update `readme.txt` changelog, README badges/Security line/Release history, and any affected doc.
-4. `grep -rn '\\!'` on changed PHP.
+4. `php -l` on changed PHP and `grep -rn '\\!'` for the escaping bug.
 5. Zip and upload the changed folder; clear caches; check versions; smoke test.
 
 ## 10. SEO stack
 
 Rank Math (installed on the live site, not in this repo) owns titles, meta, canonicals, sitemaps and the base schema. The theme adds automotive detail and fills gaps; it must never print a second Organization, WebSite, Product or BreadcrumbList. Each entity type appears once per page. Business values used in schema come from *Customize > MK Auto Elite > SEO & Local Business* and *Contact & Utility Bar*.
 
-## 11. Known debt
+## 11. Security architecture
+
+Defence in depth, documented control by control in [SECURITY-AUDIT.md](SECURITY-AUDIT.md):
+
+| Layer | Controls |
+| --- | --- |
+| Transport | HTTPS redirect (`Security::force_https`), HSTS, Secure cookies |
+| Headers | nosniff, SAMEORIGIN framing, Referrer-Policy, Permissions-Policy, cross-domain policy, COOP, `no-store` on Desk screens |
+| Identity | Lockout, bot traps, password policy, 8 h staff sessions, 60-minute idle logout, admin-only application passwords |
+| Requests | Nonce + capability on every staff action; honeypot, fill-time and trusted-IP rate limits on public forms; rate-limited REST without CORS for other sites |
+| Data | Prepared SQL, escaped output, AES-256-GCM for marketing contacts, secrets from environment / `wp-config.php` |
+| Business rules | One-use payment codes with DB lock, price and discount permissions, void instead of delete, full activity log |
+
+## 12. MKauto Desk flows
+
+```mermaid
+flowchart LR
+    B[Garage booking] --> J[Create invoice for this job] --> T[Till with job card]
+    W[WhatsApp order] --> T
+    T -->|Charge| R[Receipt: e-mail + WhatsApp]
+    T -->|Save unpaid| I[Invoice: stock reduced] -->|Mark paid, code checked| R
+    T -->|Wrong sale| V[Void: stock back, logged]
+    T -->|Neighbour part| S[Sourcing ledger: owed / paid]
+```
+
+## 13. Known debt
 
 - Business logic (CPTs, taxonomies, booking, chat, schema) lives in the theme.
 - Paybill numbers hard-coded in the checkout notice.
 - `readme.txt` in the theme had a stale stable tag (fixed to 2.18.0).
-- No automated tests, linting or CI.
+- No automated tests or CI (manual `php -l` only).
+- No Content-Security-Policy yet.

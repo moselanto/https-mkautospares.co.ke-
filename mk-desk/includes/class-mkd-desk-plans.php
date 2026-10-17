@@ -417,7 +417,7 @@ class MKD_Desk_Plans {
 		if ( ! empty( $_POST['website'] ) ) {
 			wp_send_json_success( array( 'ok' => 1 ) );
 		}
-		$ip   = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$ip   = MKD_Desk::ip();
 		$key  = 'mkd_lmmr_' . md5( $ip );
 		$hits = (int) get_transient( $key );
 		if ( $hits >= 8 ) {

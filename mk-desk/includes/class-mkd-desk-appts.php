@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class MKD_Desk_Appts {
 
 	public static function hooks() {
+		add_filter( 'rest_pre_serve_request', array( __CLASS__, 'cors' ), 20, 3 );
 		add_action( 'admin_post_mkd_appt_save', array( __CLASS__, 'h_save' ) );
 		add_action( 'admin_post_mkd_appt_status', array( __CLASS__, 'h_status' ) );
 		add_action( 'rest_api_init', array( __CLASS__, 'routes' ) );
@@ -181,11 +182,31 @@ class MKD_Desk_Appts {
 		return $out;
 	}
 
+	/**
+	 * CORS: WordPress reflects any Origin on REST responses. Our mkd/v1 routes are
+	 * only for this website, so other sites' browsers get no CORS permission.
+	 */
+	public static function cors( $served, $result, $request ) {
+		if ( 0 === strpos( (string) $request->get_route(), '/mkd/v1' ) ) {
+			$origin = get_http_origin();
+			$home   = wp_parse_url( home_url(), PHP_URL_HOST );
+			if ( $origin && wp_parse_url( $origin, PHP_URL_HOST ) !== $home && ! headers_sent() ) {
+				header_remove( 'Access-Control-Allow-Origin' );
+				header_remove( 'Access-Control-Allow-Credentials' );
+			}
+		}
+		return $served;
+	}
+
 	public static function routes() {
 		register_rest_route( 'mkd/v1', '/slots', array(
 			'methods'             => 'GET',
 			'permission_callback' => '__return_true',
+			'args'                => array( 'date' => array( 'type' => 'string', 'required' => true, 'sanitize_callback' => 'sanitize_text_field' ) ),
 			'callback'            => function ( WP_REST_Request $req ) {
+				if ( MKD_Desk::throttled( 'slots', 120, 5 * MINUTE_IN_SECONDS ) ) {
+					return new WP_Error( 'mkd_rate', 'Too many requests. Please wait a moment.', array( 'status' => 429 ) );
+				}
 				$date = MKD_Desk::valid_date( (string) $req->get_param( 'date' ) );
 				if ( '' === $date ) {
 					return new WP_Error( 'mkd_date', 'Invalid date', array( 'status' => 400 ) );

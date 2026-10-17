@@ -48,13 +48,20 @@ the way Kenyans prefer: WhatsApp, phone or M-Pesa.
 | R18 | One schema entity per type per page (no Rank Math duplicates); automotive Product data (part brand, MPN, condition, compatible vehicles, shipping, returns) | Done - theme 2.19.0, verify live |
 | R19 | Meaningful titles/descriptions on shop, categories, vehicle archives and guides; thin archives noindexed | Done - theme 2.19.0, verify live |
 | R20 | Product categories in the XML sitemap | Open - Rank Math setting |
+| R21 | MKauto Desk back office: till, invoices, receipts, WhatsApp orders, plans, sourcing, garage, reminders, marketing, social, team | Done - Desk 1.0.0 to 1.6.2 |
+| R22 | Garage job billing with vehicle and job card; automatic e-mail / WhatsApp sending | Done - Desk 1.4.3 / 1.5.0 |
+| R23 | One payment code, one use; void instead of delete; staff permissions and activity log | Done - Desk 1.4.0 to 1.6.2 |
+| R24 | Production security baseline: rate limits, sanitisation, secrets from environment, CORS, prepared SQL, session and idle expiry, HTTPS everywhere, security headers | Done - theme 2.28.0, core 1.1.0, Desk 1.6.3 |
+| R25 | Content-Security-Policy and administrator 2FA | Open |
 
 ## 5. Non-functional requirements
 
 - PHP 8.1+, WordPress 6.4+, WooCommerce 8.0+ (HPOS compatible).
 - Mobile first; Core Web Vitals-oriented loading.
 - Accessible: labelled forms, visible focus, reduced-motion respected.
-- No secrets in the browser; every AJAX call nonce-checked.
+- No secrets in the browser or repository; secrets from environment / `wp-config.php`.
+- Every AJAX call nonce-checked; every staff action capability-checked; public endpoints rate-limited.
+- HTTPS only, security headers on every response, staff sessions expire after 60 minutes idle.
 - Every editable business value in the Customizer.
 
 ## 6. Next

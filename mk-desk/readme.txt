@@ -3,7 +3,7 @@ Contributors: pimofy
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 1.6.2
+Stable tag: 1.6.3
 License: GPLv2 or later
 
 The back office for MK Auto Spares, Kirinyaga Road, Nairobi.
@@ -27,6 +27,12 @@ One black and red desk under wp-admin > MKauto Desk:
 3. Add shop managers under Users > Add New (role Shop manager), then set their limits under MKauto Desk > Team.
 
 == Changelog ==
+= 1.6.3 =
+* Security: rate limits use a trusted-IP helper (respects MKAC_TRUSTED_PROXY_HEADER; spoofed proxy headers ignored).
+* Security: public REST route mkd/v1/slots rate-limited (120 per 5 minutes per IP) with a declared, sanitised date argument.
+* Security: no CORS permission for other websites on mkd/v1 routes.
+* Security: Desk screens sent with Cache-Control no-store so customer data is not kept in browser or proxy caches.
+
 = 1.6.2 =
 * Fix: a payment code typed on an unpaid invoice was saved without the duplicate check. Codes are now saved only on paid sales; an unpaid invoice is checked when it is marked paid.
 * Fix: "Fulfilled" could be sent for an unpaid invoice, which marked it completed (counted as paid) without any payment. It now only works for paid website orders waiting to be packed.

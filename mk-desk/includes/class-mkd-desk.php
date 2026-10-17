@@ -62,6 +62,7 @@ class MKD_Desk {
 		add_action( 'admin_enqueue_scripts', array( $this, 'assets' ), 20 );
 		add_action( 'admin_post_mkd_desk_settings', array( $this, 'save_settings' ) );
 		add_action( 'admin_post_mkd_desk_export', array( $this, 'export' ) );
+		add_action( 'admin_init', array( __CLASS__, 'no_store' ) );
 		add_action( 'woocommerce_order_status_processing', array( __CLASS__, 'check_online_ref' ), 5 );
 		add_action( 'woocommerce_order_status_completed', array( __CLASS__, 'check_online_ref' ), 5 );
 		add_action( 'wp_dashboard_setup', array( $this, 'widget' ) );
@@ -380,6 +381,43 @@ class MKD_Desk {
 	 * Checks plan payments, till sales and WhatsApp orders. Returns a short
 	 * description of where it was used, or '' when it is free.
 	 */
+	/**
+	 * Visitor IP for rate limits. Uses REMOTE_ADDR unless the site defines a
+	 * trusted proxy header (MKAC_TRUSTED_PROXY_HEADER, e.g. HTTP_CF_CONNECTING_IP)
+	 * in wp-config.php. Headers sent by the visitor are never trusted otherwise,
+	 * so a spoofed X-Forwarded-For cannot be used to dodge a limit.
+	 */
+	public static function ip() {
+		if ( class_exists( 'MKAC_Login_Guard' ) && method_exists( 'MKAC_Login_Guard', 'ip' ) ) {
+			return MKAC_Login_Guard::ip();
+		}
+		$ip = '';
+		if ( defined( 'MKAC_TRUSTED_PROXY_HEADER' ) && ! empty( $_SERVER[ MKAC_TRUSTED_PROXY_HEADER ] ) ) {
+			$raw = explode( ',', (string) wp_unslash( $_SERVER[ MKAC_TRUSTED_PROXY_HEADER ] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- validated below.
+			$ip  = trim( $raw[0] );
+		} elseif ( isset( $_SERVER['REMOTE_ADDR'] ) ) {
+			$ip = (string) wp_unslash( $_SERVER['REMOTE_ADDR'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- validated below.
+		}
+		return filter_var( $ip, FILTER_VALIDATE_IP ) ? $ip : '0.0.0.0';
+	}
+
+	/** Simple per-IP limiter. Returns true when the caller is over $max hits in $ttl seconds. */
+	public static function throttled( $bucket, $max, $ttl ) {
+		$k = 'mkd_rl_' . $bucket . '_' . md5( self::ip() );
+		$n = (int) get_transient( $k ) + 1;
+		set_transient( $k, $n, $ttl );
+		return $n > $max;
+	}
+
+	/** Desk screens hold customer data: tell browsers and proxies not to keep a copy. */
+	public static function no_store() {
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( 0 === strpos( $page, 'mkd' ) && ! headers_sent() ) {
+			nocache_headers();
+			header( 'Cache-Control: no-store, no-cache, must-revalidate, private', true );
+		}
+	}
+
 	/** Payment code in one standard form: capitals, letters and digits only ("sgh4 k2-lmnp" -> "SGH4K2LMNP"). */
 	public static function norm_ref( $ref ) {
 		return mb_substr( strtoupper( preg_replace( '/[^A-Za-z0-9]/', '', (string) $ref ) ), 0, 40 );

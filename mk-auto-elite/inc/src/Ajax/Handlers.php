@@ -83,6 +83,14 @@ class Handlers {
 		if ( ! check_ajax_referer( 'mkae_nonce', 'nonce', false ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'mk-auto-elite' ) ), 403 );
 		}
+		// Per-IP ceiling on all public lookups (search, fitment, terms) so they
+		// cannot be used to scrape the catalogue or load the server.
+		$rk = 'mkae_ajax_rl_' . md5( \MKAutoElite\Security::client_ip() );
+		$n  = (int) get_transient( $rk ) + 1;
+		set_transient( $rk, $n, 5 * MINUTE_IN_SECONDS );
+		if ( $n > 300 ) {
+			wp_send_json_error( array( 'message' => __( 'Too many requests. Please wait a moment.', 'mk-auto-elite' ) ), 429 );
+		}
 	}
 
 	/**
@@ -101,7 +109,7 @@ class Handlers {
 		}
 
 		// Per-IP rate limit to stop flooding (max 8 bookings per hour per IP).
-		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : 'anon';
+		$ip = \MKAutoElite\Security::client_ip();
 		$rk = 'mkae_book_rl_' . md5( $ip );
 		if ( (int) get_transient( $rk ) > 8 ) {
 			wp_send_json_error( array( 'message' => __( 'Too many requests right now. Please WhatsApp us to book.', 'mk-auto-elite' ) ), 429 );
@@ -183,13 +191,19 @@ class Handlers {
 	public function chat(): void {
 		$this->guard();
 
-		$key = trim( \MKAutoElite\Customizer::get( 'gemini_api_key', '' ) );
+		// The key is read from the server environment / wp-config.php first
+		// (GEMINI_API_KEY or MKAE_GEMINI_API_KEY) so it never has to live in the
+		// database; the Customizer field remains as a fallback.
+		$key = \MKAutoElite\Security::secret( array( 'GEMINI_API_KEY', 'MKAE_GEMINI_API_KEY' ) );
+		if ( '' === $key ) {
+			$key = trim( \MKAutoElite\Customizer::get( 'gemini_api_key', '' ) );
+		}
 		if ( '' === $key ) {
 			wp_send_json_error( array( 'message' => __( 'The AI assistant is not configured yet. Please continue on WhatsApp.', 'mk-auto-elite' ) ), 200 );
 		}
 
 		// Basic per-IP rate limit to protect the free quota.
-		$ip   = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : 'anon';
+		$ip   = \MKAutoElite\Security::client_ip();
 		$rk   = 'mkae_chat_rl_' . md5( $ip );
 		$hits = (int) get_transient( $rk );
 		if ( $hits > 30 ) {
@@ -241,13 +255,14 @@ class Handlers {
 		$data = null;
 		$body = '';
 		foreach ( $models as $try_model ) {
-			$url = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode( $try_model ) . ':generateContent?key=' . rawurlencode( $key );
+			$url = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode( $try_model ) . ':generateContent';
 
 			$response = wp_remote_post(
 				$url,
 				array(
 					'timeout' => 25,
-					'headers' => array( 'Content-Type' => 'application/json' ),
+					// Key sent as a header, not in the URL, so it never appears in proxy or server logs.
+					'headers' => array( 'Content-Type' => 'application/json', 'x-goog-api-key' => $key ),
 					'body'    => wp_json_encode( $payload ),
 				)
 			);
