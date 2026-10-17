@@ -334,7 +334,7 @@
 	/* ================= Register ================= */
 	var $pos = $('[data-pos]');
 	if ($pos.length && P) {
-		var cart = [], method = 'mpesa', waOrder = 0, last = null, custTimer, qTimer, cat = 0;
+		var cart = [], method = 'mpesa', waOrder = 0, apptId = 0, last = null, custTimer, qTimer, cat = 0;
 		var KEY = 'mkd_pos_cart';
 		function save() { try { sessionStorage.setItem(KEY, JSON.stringify({ cart: cart, cust: cust(), waOrder: waOrder })); } catch (e) {} }
 		function cust() { var c = {}; $('[data-pos-c]').each(function () { var k = $(this).attr('data-pos-c'); c[k] = this.type === 'checkbox' ? this.checked : $.trim(this.value); }); return c; }
@@ -392,7 +392,10 @@
 			var $c = $('[data-pos-change]');
 			if (cash && v > 0) { $c.prop('hidden', false).toggleClass('is-short', v < t.total).text(v < t.total ? 'Short by ' + ksh(t.total - v) : 'Change to give: ' + ksh(v - t.total)); } else { $c.prop('hidden', true); }
 		}
+		function job() { var o = {}; $('[data-pos-j]').each(function () { o[$(this).attr('data-pos-j')] = $.trim($(this).val()); }); return o; }
+		function showJob(on) { $('[data-pos-job]').prop('hidden', !on); }
 		function reset() {
+			apptId = 0; $('[data-pos-j]').val(''); $('[data-pos-job-ref]').text(''); showJob(false); if ($('[data-pos-channel]').val() === 'garage') { $('[data-pos-channel]').val('walk-in'); }
 			cart = []; waOrder = 0; setCust({}); $('[data-pos-disc]').val(0); $('[data-pos-del]').val(0); $('[data-pos-delto], [data-pos-note], [data-pos-ref], [data-pos-tender], [data-pos-cq]').val('');
 			try { sessionStorage.removeItem(KEY); } catch (e) {}
 			draw();
@@ -416,7 +419,8 @@
 				customer: { name: c.name, phone: c.phone, email: c.email, consent: c.consent, user_id: $pos.data('uid') || 0 },
 				discount: Number($('[data-pos-disc]').val()) || 0, discount_pct: $('[data-pos-disctype]').val() === 'pct' ? 1 : 0,
 				delivery: t.del, delivery_to: $.trim($('[data-pos-delto]').val()), note: $.trim($('[data-pos-note]').val()),
-				channel: $('[data-pos-channel]').val(), wa_order: waOrder,
+				channel: $('[data-pos-channel]').val(), wa_order: waOrder, appt: apptId,
+				job: ($('[data-pos-channel]').val() === 'garage' || apptId) ? job() : null,
 				payment: { method: method, paid: paid ? 1 : 0, ref: $.trim($('[data-pos-ref]').val()), tendered: Number($('[data-pos-tender]').val()) || 0 }
 			};
 			var $b = $(paid ? '[data-pos-charge]' : '[data-pos-invoice]').prop('disabled', true).addClass('is-loading');
@@ -545,7 +549,14 @@
 		$d.on('keydown', function (e) { if (e.key === '/' && !$(e.target).is('input, textarea, select')) { e.preventDefault(); $('[data-pos-q]').trigger('focus'); } if (e.key === 'F9' && cart.length) { e.preventDefault(); submit(true); } });
 
 		/* Start */
-		if (P.pre && P.pre.items) {
+		$d.on('change', '[data-pos-channel]', function () { showJob(this.value === 'garage' || !!apptId); });
+		if (P.pre && P.pre.appt) {
+			cart = []; P.pre.items.forEach(function (p) { add(p); });
+			setCust(P.pre.customer); apptId = P.pre.appt; $('[data-pos-channel]').val('garage');
+			$.each(P.pre.job || {}, function (k, v) { $('[data-pos-j="' + k + '"]').val(v || ''); });
+			$('[data-pos-job-ref]').text('Booking ' + (P.pre.ref || '')); showJob(true);
+			toast('Garage job loaded - add the parts fitted and labour, write the work done, then charge or save as invoice.', 'ok');
+		} else if (P.pre && P.pre.items) {
 			cart = []; P.pre.items.forEach(function (p) { add(p); });
 			setCust(P.pre.customer); $('[data-pos-del]').val(P.pre.delivery || 0); $('[data-pos-delto]').val(P.pre.delivery_to || '');
 			$('[data-pos-channel]').val('whatsapp'); waOrder = P.pre.wa_order || 0; $('[data-pos-note]').val(P.pre.ref ? 'WhatsApp order ' + P.pre.ref : '');

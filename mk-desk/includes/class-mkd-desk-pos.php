@@ -43,7 +43,7 @@ class MKD_Desk_POS {
 	}
 
 	public static function channels() {
-		return array( 'walk-in' => 'Walk-in', 'whatsapp' => 'WhatsApp', 'phone' => 'Phone', 'instagram' => 'Instagram / TikTok', 'online' => 'Online shop', 'admin' => 'Added in WooCommerce' );
+		return array( 'walk-in' => 'Walk-in', 'whatsapp' => 'WhatsApp', 'phone' => 'Phone', 'instagram' => 'Instagram / TikTok', 'garage' => 'Garage & service', 'online' => 'Online shop', 'admin' => 'Added in WooCommerce' );
 	}
 
 	public static function channel( $order ) {
@@ -316,6 +316,18 @@ class MKD_Desk_POS {
 				$order->set_customer_note( mb_substr( sanitize_textarea_field( $raw['note'] ), 0, 500 ) );
 			}
 			$order->update_meta_data( '_mkd_channel', $channel );
+			$job   = self::clean_job( isset( $raw['job'] ) ? $raw['job'] : null );
+			$appt  = isset( $raw['appt'] ) ? absint( $raw['appt'] ) : 0;
+			$apobj = $appt && class_exists( 'MKD_Desk_Appts' ) ? MKD_Desk_Appts::get( $appt ) : null;
+			if ( $apobj ) {
+				$order->update_meta_data( '_mkd_appt', (int) $apobj->id );
+				if ( ! $job ) {
+					$job = self::clean_job( array( 'ref' => $apobj->ref, 'vehicle' => $apobj->vehicle, 'plate' => $apobj->plate, 'mileage' => $apobj->mileage, 'tech' => $apobj->staff, 'service' => MKD_Desk_Appts::service_label( $apobj->service ) ) );
+				}
+			}
+			if ( $job && ( 'garage' === $channel || $apobj ) ) {
+				$order->update_meta_data( '_mkd_job', $job );
+			}
 			$order->update_meta_data( '_mkd_cashier', get_current_user_id() );
 			if ( $ref ) {
 				$order->update_meta_data( '_mkd_pay_ref', $ref );
@@ -356,11 +368,109 @@ class MKD_Desk_POS {
 			MKD_Desk_Mkt::upsert( array( 'name' => $name, 'phone' => $phone, 'email' => $email, 'user_id' => $uid, 'source' => 'pos', 'consent' => ! empty( $cust['consent'] ), 'spent' => $paid ? $total : 0 ) );
 		}
 		MKD_Desk::bust();
+		if ( ! empty( $apobj ) ) {
+			global $wpdb;
+			$upd = array( 'updated_at' => current_time( 'mysql' ) );
+			if ( in_array( $apobj->status, array( 'request', 'confirmed' ), true ) ) {
+				$upd['status'] = 'completed';
+			}
+			if ( ! empty( $job['mileage'] ) ) {
+				$upd['mileage'] = $job['mileage'];
+			}
+			if ( ! empty( $job['plate'] ) && '' === (string) $apobj->plate ) {
+				$upd['plate'] = $job['plate'];
+			}
+			$wpdb->update( MKD_Desk::t_appts(), $upd, array( 'id' => (int) $apobj->id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			MKD_Desk_Appts::staff_log( $apobj, ( $paid ? 'receipt #' : 'invoice #' ) . $order->get_order_number() . ' created (' . MKD_Desk::money( $order->get_total() ) . ')' );
+		}
 		$sent = self::deliver( $order );
 		MKD_Staff::log( 'sale', ( $paid ? 'Sale #' : 'Unpaid invoice #' ) . $order->get_order_number() . ' - ' . ( $name ? $name : 'walk-in' ) . ' - ' . self::methods()[ $method ] . ( $disc > 0 ? ' - discount ' . MKD_Desk::money( $disc ) : '' ), array( 'object' => 'order', 'object_id' => $order->get_id(), 'amount' => (float) $order->get_total() ) );
 		$sum         = self::summary( $order );
 		$sum['sent'] = $sent;
 		wp_send_json_success( $sum );
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Garage job card                                                     */
+	/* ------------------------------------------------------------------ */
+
+	/** Clean job-card fields posted from the till. */
+	public static function clean_job( $j ) {
+		$j   = is_array( $j ) ? $j : array();
+		$out = array();
+		foreach ( array( 'vehicle' => 120, 'plate' => 20, 'mileage' => 20, 'tech' => 80, 'ref' => 20, 'service' => 80, 'next' => 120 ) as $k => $len ) {
+			$out[ $k ] = isset( $j[ $k ] ) ? mb_substr( sanitize_text_field( (string) $j[ $k ] ), 0, $len ) : '';
+		}
+		foreach ( array( 'work' => 2000, 'advice' => 1000 ) as $k => $len ) {
+			$out[ $k ] = isset( $j[ $k ] ) ? mb_substr( sanitize_textarea_field( (string) $j[ $k ] ), 0, $len ) : '';
+		}
+		$out['plate'] = strtoupper( $out['plate'] );
+		return '' === implode( '', $out ) ? array() : $out;
+	}
+
+	/** Job card saved on an order (garage work), or an empty array. */
+	public static function job( $order ) {
+		$j = $order->get_meta( '_mkd_job' );
+		return is_array( $j ) && $j ? $j : array();
+	}
+
+	/** Parts versus labour and services on an order. */
+	public static function job_split( $order ) {
+		$parts = 0;
+		$lab   = 0;
+		foreach ( $order->get_items() as $it ) {
+			$parts += (float) $it->get_total();
+		}
+		foreach ( $order->get_fees() as $fe ) {
+			if ( (float) $fe->get_total() > 0 ) {
+				$lab += (float) $fe->get_total();
+			}
+		}
+		return array( 'parts' => $parts, 'labour' => $lab );
+	}
+
+	/** Orders billed for a garage booking. */
+	public static function orders_for_appt( $appt_id ) {
+		if ( ! function_exists( 'wc_get_orders' ) || ! $appt_id ) {
+			return array();
+		}
+		return wc_get_orders( array( 'limit' => 20, 'meta_key' => '_mkd_appt', 'meta_value' => (int) $appt_id, 'orderby' => 'date', 'order' => 'DESC' ) ); // phpcs:ignore WordPress.DB.SlowDBQuery
+	}
+
+	/** Job card block for the A4 invoice (inline styles so it prints the same everywhere). */
+	private static function job_html( $order, $compact = false ) {
+		$j = self::job( $order );
+		if ( ! $j ) {
+			return '';
+		}
+		$sp  = self::job_split( $order );
+		$veh = trim( $j['vehicle'] . ( $j['plate'] ? ' - ' . $j['plate'] : '' ) );
+		if ( $compact ) {
+			$h = '<p class="ctr small"><strong>Garage &amp; service</strong>' . ( $j['ref'] ? ' · Job ' . esc_html( $j['ref'] ) : '' ) . ( $veh ? '<br>' . esc_html( $veh ) : '' ) . ( $j['mileage'] ? '<br>Odometer: ' . esc_html( $j['mileage'] ) . ' km' : '' ) . ( $j['tech'] ? '<br>Technician: ' . esc_html( $j['tech'] ) : '' ) . '</p>';
+			if ( $j['work'] ) {
+				$h .= '<p class="small"><strong>Work done:</strong><br>' . nl2br( esc_html( $j['work'] ) ) . '</p>';
+			}
+			if ( $j['advice'] || $j['next'] ) {
+				$h .= '<p class="small"><strong>Advice:</strong> ' . nl2br( esc_html( $j['advice'] ) ) . ( $j['next'] ? '<br>Next service: ' . esc_html( $j['next'] ) : '' ) . '</p>';
+			}
+			return $h . '<hr>';
+		}
+		$kv  = '';
+		foreach ( array( 'Job ref.' => $j['ref'], 'Service' => $j['service'], 'Vehicle' => $j['vehicle'], 'Reg. no.' => $j['plate'], 'Odometer' => $j['mileage'] ? $j['mileage'] . ' km' : '', 'Technician' => $j['tech'] ) as $k => $v ) {
+			if ( '' !== (string) $v ) {
+				$kv .= '<div style="min-width:120px"><div style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#5b6169;font-weight:700">' . esc_html( $k ) . '</div><div style="font-weight:600;color:#0B0B0B">' . esc_html( $v ) . '</div></div>';
+			}
+		}
+		$h  = '<div style="margin:0 0 18px;border:1px solid #ECE4D6;border-left:4px solid #CA1D24;border-radius:10px;padding:14px 18px">';
+		$h .= '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><strong style="font-size:13px;letter-spacing:.08em;text-transform:uppercase">Vehicle &amp; job card</strong><span style="font-size:11px;color:#5b6169">Parts ' . esc_html( MKD_Desk::money( $sp['parts'] ) ) . ' · Labour &amp; services ' . esc_html( MKD_Desk::money( $sp['labour'] ) ) . '</span></div>';
+		$h .= '<div style="display:flex;flex-wrap:wrap;gap:12px 28px">' . $kv . '</div>';
+		if ( $j['work'] ) {
+			$h .= '<div style="margin-top:12px"><div style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#5b6169;font-weight:700">Work carried out</div><div style="margin-top:3px">' . nl2br( esc_html( $j['work'] ) ) . '</div></div>';
+		}
+		if ( $j['advice'] || $j['next'] ) {
+			$h .= '<div style="margin-top:10px"><div style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#5b6169;font-weight:700">Technician\'s advice</div><div style="margin-top:3px">' . nl2br( esc_html( $j['advice'] ) ) . ( $j['next'] ? ( $j['advice'] ? '<br>' : '' ) . '<strong>Next service:</strong> ' . esc_html( $j['next'] ) : '' ) . '</div></div>';
+		}
+		return $h . '</div>';
 	}
 
 	/* ------------------------------------------------------------------ */
@@ -624,6 +734,11 @@ class MKD_Desk_POS {
 		$html .= '<p style="margin:0 0 6px;font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:700;color:#CA1D24;">' . ( $paid ? 'Receipt' : 'Invoice' ) . ' #' . esc_html( $num ) . ' · ' . esc_html( $date ) . '</p>';
 		$html .= '<h1 style="margin:0 0 12px;font-family:Georgia,\'Times New Roman\',serif;font-size:28px;line-height:1.2;font-weight:600;color:#0B0B0B;">' . esc_html( $title ) . '</h1>';
 		$html .= '<p style="margin:0;font-size:15px;line-height:1.6;color:#4a443c;">' . $intro . '</p></td></tr>';
+		$jb = self::job( $order );
+		if ( $jb ) {
+			$jl = array_filter( array( $jb['ref'] ? 'Job ' . $jb['ref'] : '', trim( $jb['vehicle'] . ( $jb['plate'] ? ' - ' . $jb['plate'] : '' ) ), $jb['mileage'] ? $jb['mileage'] . ' km' : '', $jb['tech'] ? 'Technician: ' . $jb['tech'] : '' ) );
+			$html .= '<tr><td style="padding:18px 32px 0;"><div style="border:1px solid #ECE4D6;border-left:4px solid #CA1D24;border-radius:8px;padding:12px 16px;font-family:Arial,sans-serif;font-size:13px;line-height:1.5;color:#1b1b1b;"><strong style="text-transform:uppercase;letter-spacing:1px;font-size:11px;color:#CA1D24;">Vehicle &amp; job card</strong><br>' . esc_html( implode( ' · ', $jl ) ) . ( $jb['work'] ? '<br><br><strong>Work carried out</strong><br>' . nl2br( esc_html( $jb['work'] ) ) : '' ) . ( $jb['advice'] || $jb['next'] ? '<br><br><strong>Advice</strong><br>' . nl2br( esc_html( $jb['advice'] ) ) . ( $jb['next'] ? ( $jb['advice'] ? '<br>' : '' ) . 'Next service: ' . esc_html( $jb['next'] ) : '' ) : '' ) . '</div></td></tr>';
+		}
 		$html .= '<tr><td style="padding:18px 32px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">' . $rows . '</table></td></tr>';
 		$html .= '<tr><td style="padding:12px 32px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">' . $tot . '</table></td></tr>';
 		$html .= '<tr><td style="padding:18px 32px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>' . $band . '</tr></table></td></tr>';
@@ -648,6 +763,24 @@ class MKD_Desk_POS {
 		$l[]   = $paid ? 'Thank you for shopping with *' . $b['name'] . '*. Here is your receipt.' : 'Here is your invoice from *' . $b['name'] . '*.';
 		$l[]   = '';
 		$l[]   = '*' . ( $paid ? 'RECEIPT' : 'INVOICE' ) . ' #' . $num . '*' . ( $date ? '  ·  ' . $date : '' );
+		$jb    = self::job( $order );
+		if ( $jb ) {
+			$veh = trim( $jb['vehicle'] . ( $jb['plate'] ? ' - ' . $jb['plate'] : '' ) );
+			$l[] = '_Garage & service' . ( $jb['ref'] ? ' · Job ' . $jb['ref'] : '' ) . '_';
+			if ( $veh ) {
+				$l[] = 'Vehicle: ' . $veh . ( $jb['mileage'] ? ' (' . $jb['mileage'] . ' km)' : '' );
+			}
+			if ( $jb['work'] ) {
+				$l[] = '';
+				$l[] = '*Work carried out*';
+				foreach ( preg_split( '/\r\n|\n/', $jb['work'] ) as $w ) {
+					if ( '' !== trim( $w ) ) {
+						$l[] = '✓ ' . trim( $w );
+					}
+				}
+			}
+			$l[] = '';
+		}
 		$l[]   = '━━━━━━━━━━━━━━';
 		foreach ( $order->get_items() as $it ) {
 			$l[] = '• ' . $it->get_name() . ( $it->get_quantity() > 1 ? ' × ' . $it->get_quantity() : '' );
@@ -684,6 +817,10 @@ class MKD_Desk_POS {
 		$l[] = 'View or download your ' . ( $paid ? 'receipt' : 'invoice' ) . ':';
 		$l[] = self::public_url( $order, $paid ? 'receipt' : 'invoice' );
 		$l[] = '';
+		if ( $jb && ( $jb['advice'] || $jb['next'] ) ) {
+			$l[] = '*Technician\'s advice:* ' . trim( $jb['advice'] . ( $jb['next'] ? ( $jb['advice'] ? ' ' : '' ) . 'Next service: ' . $jb['next'] . '.' : '' ) );
+			$l[] = '';
+		}
 		$l[] = 'Thank you for choosing MK Auto Spares.';
 		$l[] = '_' . $b['name'] . ' · ' . $b['phone'] . '_';
 		return implode( "\n", $l );
@@ -856,6 +993,24 @@ class MKD_Desk_POS {
 				'ref'      => $d['ref'],
 			);
 		}
+		// Pre-load a finished garage booking (job card + labour line).
+		$ap = isset( $_GET['from_appt'] ) ? absint( $_GET['from_appt'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$a  = $ap && class_exists( 'MKD_Desk_Appts' ) ? MKD_Desk_Appts::get( $ap ) : null;
+		if ( $a ) {
+			$svc   = MKD_Desk_Appts::service_label( $a->service );
+			$items = array();
+			if ( (float) $a->price > 0 ) {
+				$items[] = array( 'id' => 'appt-' . (int) $a->id, 'name' => $svc . ' - labour', 'price' => (float) $a->price, 'qty' => 1, 'custom' => true );
+			}
+			$pre = array(
+				'appt'     => (int) $a->id,
+				'items'    => $items,
+				'customer' => array( 'name' => $a->customer_name, 'phone' => $a->phone, 'email' => $a->email, 'user_id' => (int) $a->user_id ),
+				'channel'  => 'garage',
+				'ref'      => $a->ref,
+				'job'      => array( 'vehicle' => $a->vehicle, 'plate' => $a->plate, 'mileage' => $a->mileage, 'tech' => $a->staff, 'ref' => $a->ref, 'service' => $svc, 'work' => '', 'advice' => '', 'next' => '' ),
+			);
+		}
 		wp_localize_script( 'mkd-desk', 'MKD_POS', array(
 			'ajax'     => admin_url( 'admin-ajax.php' ),
 			'nonce'    => wp_create_nonce( 'mkd_pos' ),
@@ -918,6 +1073,20 @@ class MKD_Desk_POS {
 					<label>Discount <span class="pos__disc"><input type="number" min="0" step="1" value="0" data-pos-disc><select data-pos-disctype><option value="amt">KSh</option><option value="pct">%</option></select></span></label>
 					<label>Delivery fee <input type="number" min="0" step="1" value="0" data-pos-del></label>
 					<input type="text" placeholder="Deliver to (optional)" data-pos-delto class="pos__wide">
+					<div class="pos-job pos__wide" data-pos-job hidden>
+						<div class="pos-job__h"><strong>Vehicle &amp; job card</strong><small data-pos-job-ref></small></div>
+						<div class="pos-job__g">
+							<input type="text" placeholder="Vehicle (make, model, year)" data-pos-j="vehicle" maxlength="120">
+							<input type="text" placeholder="Reg. no. e.g. KDA 123A" data-pos-j="plate" maxlength="20">
+							<input type="text" placeholder="Odometer (km)" data-pos-j="mileage" maxlength="20">
+							<input type="text" placeholder="Technician" data-pos-j="tech" maxlength="80">
+						</div>
+						<textarea rows="3" placeholder="Work carried out (one job per line, e.g. Replaced front brake pads; Skimmed discs; Road test OK)" data-pos-j="work"></textarea>
+						<textarea rows="2" placeholder="Technician's advice for the customer (optional)" data-pos-j="advice"></textarea>
+						<input type="text" placeholder="Next service due (e.g. at 95,000 km or March 2027)" data-pos-j="next" maxlength="120">
+						<input type="hidden" data-pos-j="ref"><input type="hidden" data-pos-j="service">
+						<p class="pos-job__tip">Add the parts fitted from the grid (or "+ Sourced part") and labour with "+ Custom item". Everything prints on one itemised invoice and receipt.</p>
+					</div>
 					<textarea rows="2" placeholder="Note on invoice (optional)" data-pos-note class="pos__wide"></textarea>
 				</div>
 				</details>
@@ -1461,6 +1630,7 @@ td.n{width:34px;color:#b4a58a;font-weight:600}
 	<p class="tt"><?php echo esc_html( $paid ? 'Receipt' : 'Invoice' ); ?></p>
 	<p class="ctr small">#<?php echo esc_html( $num ); ?> · <?php echo esc_html( $date . ' ' . $time ); ?><?php echo $cash ? '<br>Served by ' . esc_html( $cash->display_name ) : ''; ?><?php echo $name ? '<br>Customer: ' . esc_html( $name ) : ''; ?></p>
 	<hr>
+	<?php echo self::job_html( $order, true ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 	<table><thead><tr><th>Item</th><th class="c">Qty</th><th class="r">Amount</th></tr></thead><tbody>
 	<?php foreach ( $order->get_items() as $it ) : ?><tr><td><?php echo esc_html( $it->get_name() ); ?></td><td class="c"><?php echo (int) $it->get_quantity(); ?></td><td class="r"><?php echo esc_html( MKD_Desk::money( $it->get_total() ) ); ?></td></tr><?php endforeach; ?>
 	<?php foreach ( $order->get_fees() as $f ) : if ( (float) $f->get_total() < 0 ) { continue; } ?><tr><td><?php echo esc_html( $f->get_name() ); ?></td><td class="c">1</td><td class="r"><?php echo esc_html( MKD_Desk::money( $f->get_total() ) ); ?></td></tr><?php endforeach; ?>
@@ -1480,7 +1650,7 @@ td.n{width:34px;color:#b4a58a;font-weight:600}
 	<div class="pad">
 		<div class="hd">
 			<div><?php echo $brand; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
-			<div class="doc-t"><h1><?php echo esc_html( $title ); ?></h1><div class="no">No. <b><?php echo esc_html( $num ); ?></b></div><span class="pill <?php echo $paid ? 'paid' : 'due'; ?>"><?php echo $paid ? 'Paid' : 'Payment due'; ?></span></div>
+			<div class="doc-t"><h1><?php echo esc_html( $title ); ?></h1><div class="no">No. <b><?php echo esc_html( $num ); ?></b></div><?php if ( self::job( $order ) ) : ?><div class="no" style="margin-top:2px">Garage &amp; service</div><?php endif; ?><span class="pill <?php echo $paid ? 'paid' : 'due'; ?>"><?php echo $paid ? 'Paid' : 'Payment due'; ?></span></div>
 		</div>
 		<div class="rule"><span></span></div>
 		<div class="parties">
@@ -1495,6 +1665,7 @@ td.n{width:34px;color:#b4a58a;font-weight:600}
 				<?php if ( $cash ) : ?><dt>Served by</dt><dd><?php echo esc_html( $cash->display_name ); ?></dd><?php endif; ?>
 			</dl></div>
 		</div>
+		<?php echo self::job_html( $order ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 		<table><thead><tr><th>#</th><th>Description</th><th class="c">Qty</th><th class="r">Unit price</th><th class="r">Amount</th></tr></thead><tbody><?php echo $rows; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></tbody></table>
 		<div class="lower">
 			<div class="info">

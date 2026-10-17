@@ -475,7 +475,28 @@ class MKD_Desk_Appts {
 				echo MKD_Desk::btn( MKD_Desk::wa( $a->phone, self::confirm_text( $a ) ), 'Re-send confirmation', 'nd-btn--ghost', 'target="_blank" rel="noopener"' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			}
 		}
+		if ( in_array( $a->status, array( 'confirmed', 'completed' ), true ) ) {
+			echo MKD_Desk::btn( MKD_Desk::url( MKD_Desk::P_POS, array( 'from_appt' => (int) $a->id ) ), 'Create invoice / receipt for this job', 'nd-btn--primary' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		}
 		echo '</div></div></section>';
+		$bills = class_exists( 'MKD_Desk_POS' ) ? MKD_Desk_POS::orders_for_appt( $a->id ) : array();
+		if ( $bills ) {
+			echo '<section class="nd-card"><header class="nd-card__h"><h2>Invoices and receipts for this job</h2></header><div class="nd-table-wrap"><table class="nd-table nd-jobinv"><tbody>';
+			foreach ( $bills as $o ) {
+				$pd = MKD_Desk_POS::is_paid( $o );
+				$ct = MKD_Desk_POS::contacts( $o );
+				$si = MKD_Desk_POS::sent_info( $o );
+				echo '<tr><td><strong>#' . esc_html( $o->get_order_number() ) . '</strong><small>' . esc_html( $o->get_date_created() ? $o->get_date_created()->date_i18n( 'j M Y, H:i' ) : '' ) . '</small></td>';
+				echo '<td><strong>' . esc_html( MKD_Desk::money( $o->get_total() ) ) . '</strong></td>';
+				echo '<td>' . ( $pd ? MKD_Desk::badge( 'confirmed', 'Paid' ) : MKD_Desk::badge( 'overdue', 'Unpaid' ) ) . ( $si ? '<small class="nd-sent">' . esc_html( implode( ' · ', $si ) ) . '</small>' : '' ) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				echo '<td class="nd-col-act"><a class="nd-ico-btn" target="_blank" rel="noopener" href="' . esc_url( MKD_Desk_POS::doc_url( $o, 'invoice' ) ) . '">A4 invoice</a><a class="nd-ico-btn" target="_blank" rel="noopener" href="' . esc_url( MKD_Desk_POS::doc_url( $o, 'receipt' ) ) . '">Receipt</a>';
+				if ( $ct['phone'] ) {
+					echo '<a class="nd-ico-btn nd-ico-btn--wa" target="_blank" rel="noopener" href="' . esc_url( MKD_Desk::wa( $ct['phone'], MKD_Desk_POS::wa_text( $o ) ) ) . '">WhatsApp</a>';
+				}
+				echo '<a class="nd-ico-btn" href="' . esc_url( MKD_Desk::url( MKD_Desk::P_POS, array( 'view' => 'sales' ) ) ) . '">' . ( $pd ? 'E-mail' : 'Mark paid / e-mail' ) . '</a></td></tr>';
+			}
+			echo '</tbody></table></div></section>';
+		}
 		if ( $a->notes ) {
 			echo '<section class="nd-card"><header class="nd-card__h"><h2>Notes</h2></header><p class="nd-note">' . nl2br( esc_html( $a->notes ) ) . '</p></section>';
 		}

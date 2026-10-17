@@ -3,7 +3,7 @@ Contributors: pimofy
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 1.4.3
+Stable tag: 1.5.0
 License: GPLv2 or later
 
 The back office for MK Auto Spares, Kirinyaga Road, Nairobi.
@@ -27,6 +27,14 @@ One black and red desk under wp-admin > MKauto Desk:
 3. Add shop managers under Users > Add New (role Shop manager), then set their limits under MKauto Desk > Team.
 
 == Changelog ==
+= 1.5.0 =
+* Garage & service billing: "Create invoice / receipt for this job" on every confirmed or completed booking opens the till with the customer, vehicle and booked labour already filled in.
+* Vehicle & job card at the till: vehicle, reg. no., odometer, technician, work carried out, technician's advice and next service due.
+* Parts fitted (from stock or sourced from a neighbour) and labour lines go on one itemised invoice and receipt, with a Parts / Labour split.
+* The A4 invoice, 80 mm receipt, e-mail and WhatsApp message all show the job card; sending follows the automatic e-mail and WhatsApp rules from 1.4.3.
+* Billing a job marks the booking completed, saves the odometer reading, logs it, and lists the job's invoices and receipts on the booking page.
+* New sale channel "Garage & service"; choosing it on any sale shows the job card.
+
 = 1.4.3 =
 * Invoices and receipts are sent automatically after every till sale and when an invoice is marked paid (new setting, on by default).
 * The customer's e-mail and WhatsApp number are taken from the sale, then their website account, then the WhatsApp order, then the customer list.
