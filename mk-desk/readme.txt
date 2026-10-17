@@ -3,7 +3,7 @@ Contributors: pimofy
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 1.6.1
+Stable tag: 1.6.2
 License: GPLv2 or later
 
 The back office for MK Auto Spares, Kirinyaga Road, Nairobi.
@@ -27,6 +27,11 @@ One black and red desk under wp-admin > MKauto Desk:
 3. Add shop managers under Users > Add New (role Shop manager), then set their limits under MKauto Desk > Team.
 
 == Changelog ==
+= 1.6.2 =
+* Fix: a payment code typed on an unpaid invoice was saved without the duplicate check. Codes are now saved only on paid sales; an unpaid invoice is checked when it is marked paid.
+* Fix: "Fulfilled" could be sent for an unpaid invoice, which marked it completed (counted as paid) without any payment. It now only works for paid website orders waiting to be packed.
+* Fix: an invoice that is already paid cannot be marked paid again (which could overwrite its payment code and send a second receipt).
+
 = 1.6.1 =
 * One payment code, one use: an M-Pesa, card, bank or other transaction code can only be used once across till sales, invoices marked paid, payment plans, WhatsApp orders and website orders.
 * Codes are compared in one standard form, so spaces, dashes and small letters no longer let the same code through ("sgh4 k2-lmnp" = "SGH4K2LMNP"). Older saved codes are matched the same way.

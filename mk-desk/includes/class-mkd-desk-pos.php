@@ -346,7 +346,9 @@ class MKD_Desk_POS {
 				$order->update_meta_data( '_mkd_job', $job );
 			}
 			$order->update_meta_data( '_mkd_cashier', get_current_user_id() );
-			if ( $ref ) {
+			// A code is only saved on a paid sale (where it has been checked). An unpaid
+			// invoice gets its code when it is marked paid, so it is checked then.
+			if ( $paid && $ref ) {
 				$order->update_meta_data( '_mkd_pay_ref', $ref );
 				$order->set_transaction_id( $ref );
 			}
@@ -916,6 +918,12 @@ class MKD_Desk_POS {
 				wp_send_json_success( array( 'message' => 'Sent on WhatsApp to ' . MKD_Desk::phone_label( $ph ) ) );
 			}
 			wp_send_json_error( array( 'message' => 'WhatsApp did not accept the message (the customer may not have messaged you in the last 24 hours). Opening WhatsApp so you can send it from your phone.', 'link' => $link ), 500 );
+		}
+		if ( 'paid' === $op && self::is_paid( $order ) ) {
+			wp_send_json_error( array( 'message' => 'Order #' . $order->get_order_number() . ' is already paid.' ), 409 );
+		}
+		if ( 'complete' === $op && ! in_array( $order->get_status(), array( 'processing', 'on-hold' ), true ) ) {
+			wp_send_json_error( array( 'message' => 'Only paid website orders waiting to be packed can be marked fulfilled. Use Mark paid for an unpaid invoice.' ), 409 );
 		}
 		if ( 'paid' === $op ) {
 			$method = isset( $_POST['method'] ) && array_key_exists( wp_unslash( $_POST['method'] ), self::methods() ) ? sanitize_key( wp_unslash( $_POST['method'] ) ) : 'mpesa';
