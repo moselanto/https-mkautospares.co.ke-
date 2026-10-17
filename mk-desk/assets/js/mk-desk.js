@@ -278,6 +278,17 @@
 
 	/* ================= Sales list actions (also used after a sale) ================= */
 	var P = window.MKD_POS || null;
+	function sentText(d) {
+		var s = d && d.sent, out = [];
+		if (!s) { return ''; }
+		if (s.email) { out.push((d.paid ? 'Receipt' : 'Invoice') + ' e-mailed to ' + s.email); }
+		if (s.wa) { out.push('sent on WhatsApp'); }
+		if (s.failed && s.failed.length) { out.push('could not send ' + s.failed.join(', ')); }
+		if (!out.length && s.auto && !d.email && !d.phone) { return 'No e-mail or phone on this sale - print the receipt or add the customer next time.'; }
+		if (!out.length && s.auto && d.phone && !d.api) { return 'Tap WhatsApp below to send it to ' + d.phone + '.'; }
+		var t = out.join(', ');
+		return t ? t.charAt(0).toUpperCase() + t.slice(1) + '.' : '';
+	}
 	if (P) {
 		$d.on('click', '[data-pos-email]', function () {
 			var $b = $(this), saved = $b.attr('data-email') || '';
@@ -290,11 +301,20 @@
 				toast(r && r.data && r.data.message ? r.data.message : (r && r.success ? 'Sent' : 'Not sent'), r && r.success ? 'ok' : 'err');
 			}).always(function () { $b.removeClass('is-loading'); });
 		});
+		$d.on('click', '[data-pos-wasend]', function () {
+			var $b = $(this);
+			$b.addClass('is-loading');
+			$.post(P.ajax, { action: 'mkd_pos_order', nonce: P.nonce, op: 'wa', id: $b.attr('data-pos-wasend') }).done(function (r) {
+				toast(r && r.data && r.data.message ? r.data.message : 'Done', r && r.success ? 'ok' : 'err');
+				if (!(r && r.success) && $b.attr('data-link')) { window.open($b.attr('data-link'), '_blank', 'noopener'); }
+			}).fail(function () { if ($b.attr('data-link')) { window.open($b.attr('data-link'), '_blank', 'noopener'); } })
+			.always(function () { $b.removeClass('is-loading'); });
+		});
 		$d.on('click', '[data-pos-paid]', function () {
 			var $b = $(this), ref = window.prompt('Mark as paid. M-Pesa code (optional):', '');
 			if (ref === null) { return; }
 			$.post(P.ajax, { action: 'mkd_pos_order', nonce: P.nonce, op: 'paid', id: $b.attr('data-pos-paid'), method: 'mpesa', ref: ref }).done(function (r) {
-				if (r && r.success) { toast('Invoice marked paid', 'ok'); setTimeout(function () { window.location.reload(); }, 600); } else { toast('Could not update', 'err'); }
+				if (r && r.success) { var st = sentText(r.data); toast('Invoice marked paid' + (st ? '. ' + st : ''), 'ok'); setTimeout(function () { window.location.reload(); }, st ? 2200 : 600); } else { toast('Could not update', 'err'); }
 			});
 		});
 		$d.on('click', '[data-pos-complete]', function () {
@@ -409,7 +429,8 @@
 				$m.find('[data-pos-done-chg]').prop('hidden', !(r.data.change > 0)).text('Change: ' + ksh(r.data.change));
 				$m.find('[data-pos-done-receipt]').attr('href', r.data.receipt);
 				$m.find('[data-pos-done-invoice]').attr('href', r.data.invoice);
-				$m.find('[data-pos-done-wa]').attr('href', r.data.wa || '#').toggle(!!r.data.wa);
+				$m.find('[data-pos-done-wa]').attr('href', r.data.wa || '#').toggle(!!r.data.wa).text(r.data.phone ? 'WhatsApp ' + r.data.phone : 'Send on WhatsApp');
+				$m.find('[data-pos-done-sent]').text(sentText(r.data)).prop('hidden', !sentText(r.data));
 				$m.prop('hidden', false).addClass('is-open');
 				reset();
 			}).fail(function () { toast('Network problem - the sale was not saved. Please try again.', 'err'); })

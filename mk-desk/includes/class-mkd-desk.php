@@ -231,6 +231,9 @@ class MKD_Desk {
 			'biz_phone'     => '',
 			'biz_email'     => '',
 			'invoice_note'  => '',
+			'auto_send'     => 1,
+			'wa_doc_tpl'    => '',
+			'wa_doc_lang'   => 'en',
 			'invoice_logo'  => '',
 			'mkt_from_name' => 'MK Auto Spares',
 			'mkt_from_email'=> '',
@@ -722,6 +725,11 @@ class MKD_Desk {
 		self::field_text( 'biz_email', 'E-mail on invoices', $s['biz_email'], '', 'email' );
 		self::logo_field( $s['invoice_logo'] );
 		echo '</div><label class="nd-field"><span class="nd-label">Footer note on invoices and receipts</span><textarea name="invoice_note" rows="2" placeholder="Thank you for choosing MK Auto Spares. Unused parts in original packaging can be returned within 7 days with this receipt.">' . esc_textarea( $s['invoice_note'] ) . '</textarea></label></section>';
+		echo '<section class="nd-card" id="nd-send"><header class="nd-card__h"><h2>Sending invoices and receipts</h2></header><div class="nd-fields">';
+		self::field_check( 'auto_send', 'Send invoices and receipts automatically', $s['auto_send'], 'After every till sale, and when an invoice is marked paid, MKauto Desk e-mails the customer and (when the WhatsApp Business API is connected) sends it on WhatsApp. It uses the e-mail and phone on the sale, or the ones on the customer\'s website account or WhatsApp order. Each document is sent once per channel.' );
+		self::field_text( 'wa_doc_tpl', 'WhatsApp template name for invoices and receipts (optional)', $s['wa_doc_tpl'], MKD_Desk_POS::api_on() ? 'WhatsApp Business API is connected. Without a template, WhatsApp only delivers to customers who messaged you in the last 24 hours. Add an approved Meta template with 4 variables: {{1}} first name, {{2}} receipt or invoice number, {{3}} amount, {{4}} link.' : 'The WhatsApp Business API is not connected yet, so staff send on WhatsApp with one tap from the sale (the message opens ready on the phone).' );
+		self::field_text( 'wa_doc_lang', 'Template language code', $s['wa_doc_lang'], 'As approved in Meta, e.g. en or en_US.' );
+		echo '</div></section>';
 
 		echo '<section class="nd-card"><header class="nd-card__h"><h2>Marketing</h2></header><div class="nd-fields nd-fields--2">';
 		self::field_text( 'mkt_from_name', 'E-mails come from (name)', $s['mkt_from_name'], '' );
@@ -857,6 +865,9 @@ class MKD_Desk {
 			$out[ $k ] = isset( $in[ $k ] ) && is_email( $in[ $k ] ) ? sanitize_email( $in[ $k ] ) : '';
 		}
 		$out['invoice_logo']   = isset( $in['invoice_logo'] ) ? esc_url_raw( trim( $in['invoice_logo'] ) ) : '';
+		$out['auto_send']      = empty( $in['auto_send'] ) ? 0 : 1;
+		$out['wa_doc_tpl']     = isset( $in['wa_doc_tpl'] ) ? mb_substr( preg_replace( '/[^a-z0-9_]/', '', strtolower( sanitize_text_field( wp_unslash( $in['wa_doc_tpl'] ) ) ) ), 0, 60 ) : '';
+		$out['wa_doc_lang']    = isset( $in['wa_doc_lang'] ) && preg_match( '/^[a-z]{2}(_[A-Z]{2})?$/', trim( (string) $in['wa_doc_lang'] ) ) ? trim( (string) $in['wa_doc_lang'] ) : 'en';
 		$out['invoice_note']   = isset( $in['invoice_note'] ) ? mb_substr( sanitize_textarea_field( $in['invoice_note'] ), 0, 400 ) : '';
 		$gt                   = isset( $in['garage_terms'] ) ? trim( mb_substr( sanitize_textarea_field( $in['garage_terms'] ), 0, 6000 ) ) : '';
 		$out['garage_terms']   = '' === $gt ? self::defaults()['garage_terms'] : $gt;

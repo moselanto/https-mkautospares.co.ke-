@@ -26,6 +26,10 @@ class MKD_Desk_POS {
 		add_action( 'wp_ajax_mkd_pos_order', array( __CLASS__, 'ajax_order' ) );
 		add_action( 'admin_post_mkd_desk_doc', array( __CLASS__, 'h_doc' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'public_doc' ) );
+		add_action( 'woocommerce_order_status_processing', array( __CLASS__, 'online_paid' ), 20 );
+		add_action( 'woocommerce_order_status_completed', array( __CLASS__, 'online_paid' ), 20 );
+		add_filter( 'woocommerce_email_recipient_customer_completed_order', array( __CLASS__, 'skip_wc_mail' ), 10, 2 );
+		add_filter( 'woocommerce_email_recipient_customer_processing_order', array( __CLASS__, 'skip_wc_mail' ), 10, 2 );
 	}
 
 	public static function methods() {
@@ -352,13 +356,187 @@ class MKD_Desk_POS {
 			MKD_Desk_Mkt::upsert( array( 'name' => $name, 'phone' => $phone, 'email' => $email, 'user_id' => $uid, 'source' => 'pos', 'consent' => ! empty( $cust['consent'] ), 'spent' => $paid ? $total : 0 ) );
 		}
 		MKD_Desk::bust();
+		$sent = self::deliver( $order );
 		MKD_Staff::log( 'sale', ( $paid ? 'Sale #' : 'Unpaid invoice #' ) . $order->get_order_number() . ' - ' . ( $name ? $name : 'walk-in' ) . ' - ' . self::methods()[ $method ] . ( $disc > 0 ? ' - discount ' . MKD_Desk::money( $disc ) : '' ), array( 'object' => 'order', 'object_id' => $order->get_id(), 'amount' => (float) $order->get_total() ) );
-		wp_send_json_success( self::summary( $order ) );
+		$sum         = self::summary( $order );
+		$sum['sent'] = $sent;
+		wp_send_json_success( $sum );
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Sending invoices and receipts                                       */
+	/* ------------------------------------------------------------------ */
+
+	/** Automatic sending switched on in Settings (on by default). */
+	public static function auto_on() {
+		return ! empty( MKD_Desk::settings()['auto_send'] );
+	}
+
+	/** WhatsApp Business API connected, so messages can be sent without a tap. */
+	public static function api_on() {
+		return class_exists( 'MKD_WhatsApp' ) && MKD_WhatsApp::is_configured();
+	}
+
+	/**
+	 * Best e-mail and WhatsApp number for an order: the details typed on the
+	 * sale first, then the customer's website account, then the WhatsApp order
+	 * the sale came from, then the customer list (matched by phone).
+	 */
+	public static function contacts( $order ) {
+		$email = is_email( $order->get_billing_email() ) ? (string) $order->get_billing_email() : '';
+		$phone = MKD_Desk::phone( $order->get_billing_phone() );
+		$uid   = (int) $order->get_customer_id();
+		if ( $uid ) {
+			$u = get_userdata( $uid );
+			if ( '' === $email ) {
+				$be = (string) get_user_meta( $uid, 'billing_email', true );
+				if ( is_email( $be ) ) {
+					$email = $be;
+				} elseif ( $u && is_email( $u->user_email ) ) {
+					$email = (string) $u->user_email;
+				}
+			}
+			if ( '' === $phone ) {
+				$phone = MKD_Desk::phone( (string) get_user_meta( $uid, 'billing_phone', true ) );
+			}
+		}
+		$wa = (int) $order->get_meta( '_mkd_wa_order' );
+		if ( '' === $phone && $wa && class_exists( 'MKD_Desk_Orders' ) && MKD_Desk_Orders::is_order( $wa ) ) {
+			$d     = MKD_Desk_Orders::data( $wa );
+			$phone = MKD_Desk::phone( $d['phone'] );
+		}
+		if ( ( '' === $email || '' === $phone ) && class_exists( 'MKD_Desk_Mkt' ) && ( '' !== $phone || '' !== $email ) ) {
+			$c = MKD_Desk_Mkt::find( '' !== $phone ? $phone : $email, 1 );
+			if ( ! empty( $c[0] ) ) {
+				if ( '' === $email && ! empty( $c[0]->email ) && is_email( $c[0]->email ) ) {
+					$email = (string) $c[0]->email;
+				}
+				if ( '' === $phone && ! empty( $c[0]->phone ) ) {
+					$phone = MKD_Desk::phone( $c[0]->phone );
+				}
+			}
+		}
+		return array( 'email' => $email, 'phone' => $phone );
+	}
+
+	/** What has already gone out for this order (shown on the Sales page). */
+	public static function sent_info( $order ) {
+		$type = self::is_paid( $order ) ? 'receipt' : 'invoice';
+		$out  = array();
+		if ( $order->get_meta( '_mkd_sent_email_' . $type ) ) {
+			$out[] = 'E-mailed';
+		}
+		if ( $order->get_meta( '_mkd_sent_wa_' . $type ) ) {
+			$out[] = 'WhatsApp sent';
+		}
+		return $out;
+	}
+
+	/** E-mail the invoice (unpaid) or receipt (paid). Returns true when sent. */
+	public static function send_email( $order, $to ) {
+		if ( ! is_email( $to ) ) {
+			return false;
+		}
+		$b    = self::biz();
+		$type = self::is_paid( $order ) ? 'receipt' : 'invoice';
+		$subj = 'Your ' . $b['name'] . ' ' . $type . ' #' . $order->get_order_number() . ' - ' . MKD_Desk::money( $order->get_total() ) . ( 'receipt' === $type ? ' paid' : ' due' );
+		$hdrs = array( 'Content-Type: text/html; charset=UTF-8' );
+		if ( is_email( $b['email'] ) ) {
+			$hdrs[] = 'Reply-To: ' . $b['name'] . ' <' . $b['email'] . '>';
+		}
+		$ok = wp_mail( $to, $subj, self::email_html( $order ), $hdrs );
+		if ( $ok ) {
+			$order->update_meta_data( '_mkd_sent_email_' . $type, $to . '|' . time() );
+			$order->add_order_note( ucfirst( $type ) . ' e-mailed to ' . $to . ' from MKauto Desk.' );
+			$order->save();
+		}
+		return $ok;
+	}
+
+	/**
+	 * Send the invoice or receipt on WhatsApp through the Business API. Uses the
+	 * approved template from Settings when one is set (works any time); otherwise
+	 * a normal message, which Meta only delivers if the customer has messaged the
+	 * shop in the last 24 hours.
+	 */
+	public static function send_wa( $order, $phone ) {
+		$phone = MKD_Desk::phone( $phone );
+		if ( '' === $phone || ! self::api_on() ) {
+			return false;
+		}
+		$type = self::is_paid( $order ) ? 'receipt' : 'invoice';
+		$tpl  = trim( (string) MKD_Desk::settings()['wa_doc_tpl'] );
+		if ( '' !== $tpl ) {
+			$first = trim( $order->get_billing_first_name() );
+			$ok    = MKD_WhatsApp::send_template( $phone, $tpl, (string) MKD_Desk::settings()['wa_doc_lang'], array(
+				$first && 'Walk-in' !== $first ? $first : 'there',
+				$type . ' #' . $order->get_order_number(),
+				MKD_Desk::money( $order->get_total() ) . ( 'receipt' === $type ? ' paid' : ' due' ),
+				self::public_url( $order, $type ),
+			) );
+		} else {
+			$ok = MKD_WhatsApp::send_text( $phone, self::wa_text( $order ) );
+		}
+		if ( $ok ) {
+			$order->update_meta_data( '_mkd_sent_wa_' . $type, $phone . '|' . time() );
+			$order->add_order_note( ucfirst( $type ) . ' sent on WhatsApp to +' . $phone . ' from MKauto Desk.' );
+			$order->save();
+		}
+		return $ok;
+	}
+
+	/**
+	 * Send automatically after a sale or payment. Each document goes out once per
+	 * channel, so a re-save or status change never sends it twice.
+	 */
+	public static function deliver( $order, $email_too = true ) {
+		$out = array( 'email' => '', 'wa' => '', 'failed' => array(), 'auto' => self::auto_on() ? 1 : 0 );
+		if ( ! self::auto_on() ) {
+			return $out;
+		}
+		$type = self::is_paid( $order ) ? 'receipt' : 'invoice';
+		$c    = self::contacts( $order );
+		if ( $email_too && '' !== $c['email'] && ! $order->get_meta( '_mkd_sent_email_' . $type ) ) {
+			if ( self::send_email( $order, $c['email'] ) ) {
+				$out['email'] = $c['email'];
+			} else {
+				$out['failed'][] = 'e-mail to ' . $c['email'];
+			}
+		}
+		if ( '' !== $c['phone'] && self::api_on() && ! $order->get_meta( '_mkd_sent_wa_' . $type ) ) {
+			if ( self::send_wa( $order, $c['phone'] ) ) {
+				$out['wa'] = $c['phone'];
+			} else {
+				$out['failed'][] = 'WhatsApp to +' . $c['phone'];
+			}
+		}
+		if ( $out['failed'] && class_exists( 'MKD_Staff' ) ) {
+			MKD_Staff::log( 'sale', ucfirst( $type ) . ' #' . $order->get_order_number() . ' could not be sent: ' . implode( ', ', $out['failed'] ), array( 'object' => 'order', 'object_id' => $order->get_id(), 'level' => 'warn' ) );
+		}
+		return $out;
+	}
+
+	/** Website orders: WooCommerce e-mails the customer itself, so only add WhatsApp. */
+	public static function online_paid( $order_id ) {
+		$order = wc_get_order( $order_id );
+		if ( ! $order || 'mkd_pos' === $order->get_created_via() ) {
+			return;
+		}
+		self::deliver( $order, false );
+	}
+
+	/** Till sales: MKauto Desk sends its own branded e-mail, so stop the duplicate WooCommerce one. */
+	public static function skip_wc_mail( $recipient, $order ) {
+		if ( $order instanceof WC_Order && 'mkd_pos' === $order->get_created_via() && self::auto_on() ) {
+			return '';
+		}
+		return $recipient;
 	}
 
 	/** Data the register needs after a sale / for re-printing. */
 	public static function summary( $order ) {
-		$phone = MKD_Desk::phone( $order->get_billing_phone() );
+		$ct    = self::contacts( $order );
+		$phone = $ct['phone'];
 		return array(
 			'id'       => $order->get_id(),
 			'number'   => $order->get_order_number(),
@@ -366,7 +544,9 @@ class MKD_Desk_POS {
 			'paid'     => self::is_paid( $order ),
 			'change'   => (float) $order->get_meta( '_mkd_change' ),
 			'name'     => trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ),
-			'email'    => $order->get_billing_email(),
+			'email'    => $ct['email'],
+			'phone'    => $phone ? MKD_Desk::phone_label( $phone ) : '',
+			'api'      => self::api_on() ? 1 : 0,
 			'receipt'  => self::doc_url( $order, 'receipt' ),
 			'invoice'  => self::doc_url( $order, 'invoice' ),
 			'wa'       => $phone ? MKD_Desk::wa( $phone, self::wa_text( $order ) ) : '',
@@ -518,22 +698,27 @@ class MKD_Desk_POS {
 			wp_send_json_error( array( 'message' => 'Order not found.' ), 404 );
 		}
 		if ( 'email' === $op ) {
-			$to = isset( $_POST['to'] ) && is_email( wp_unslash( $_POST['to'] ) ) ? sanitize_email( wp_unslash( $_POST['to'] ) ) : $order->get_billing_email();
+			$to = isset( $_POST['to'] ) && is_email( wp_unslash( $_POST['to'] ) ) ? sanitize_email( wp_unslash( $_POST['to'] ) ) : self::contacts( $order )['email']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			if ( ! is_email( $to ) ) {
 				wp_send_json_error( array( 'message' => 'No e-mail address for this customer.' ), 400 );
 			}
-			$type = self::is_paid( $order ) ? 'receipt' : 'invoice';
-			$html = self::email_html( $order );
-			$subj = 'Your ' . self::biz()['name'] . ' ' . $type . ' #' . $order->get_order_number() . ' - ' . MKD_Desk::money( $order->get_total() ) . ( 'receipt' === $type ? ' paid' : ' due' );
-			$hdrs = array( 'Content-Type: text/html; charset=UTF-8' );
-			if ( is_email( self::biz()['email'] ) ) {
-				$hdrs[] = 'Reply-To: ' . self::biz()['name'] . ' <' . self::biz()['email'] . '>';
-			}
-			$ok   = wp_mail( $to, $subj, $html, $hdrs );
-			if ( $ok ) {
-				$order->add_order_note( ucfirst( $type ) . ' e-mailed to ' . $to . ' from MKauto Desk.' );
-			}
+			$ok = self::send_email( $order, $to );
 			$ok ? wp_send_json_success( array( 'message' => 'E-mailed to ' . $to ) ) : wp_send_json_error( array( 'message' => 'The e-mail could not be sent. Check your site e-mail (SMTP) settings.' ), 500 );
+		}
+		if ( 'wa' === $op ) {
+			$ph = isset( $_POST['to'] ) ? MKD_Desk::phone( sanitize_text_field( wp_unslash( $_POST['to'] ) ) ) : '';
+			$ph = '' !== $ph ? $ph : self::contacts( $order )['phone'];
+			if ( '' === $ph ) {
+				wp_send_json_error( array( 'message' => 'No WhatsApp number for this customer.' ), 400 );
+			}
+			$link = MKD_Desk::wa( $ph, self::wa_text( $order ) );
+			if ( ! self::api_on() ) {
+				wp_send_json_error( array( 'message' => 'WhatsApp Business API is not connected.', 'link' => $link ), 400 );
+			}
+			if ( self::send_wa( $order, $ph ) ) {
+				wp_send_json_success( array( 'message' => 'Sent on WhatsApp to ' . MKD_Desk::phone_label( $ph ) ) );
+			}
+			wp_send_json_error( array( 'message' => 'WhatsApp did not accept the message (the customer may not have messaged you in the last 24 hours). Opening WhatsApp so you can send it from your phone.', 'link' => $link ), 500 );
 		}
 		if ( 'paid' === $op ) {
 			$method = isset( $_POST['method'] ) && array_key_exists( wp_unslash( $_POST['method'] ), self::methods() ) ? sanitize_key( wp_unslash( $_POST['method'] ) ) : 'mpesa';
@@ -556,7 +741,10 @@ class MKD_Desk_POS {
 			$order->set_status( 'completed', 'Marked paid at MKauto Desk (' . self::methods()[ $method ] . ( $ref ? ' ' . $ref : '' ) . ').' );
 			$order->save();
 			MKD_Desk::bust();
-			wp_send_json_success( self::summary( $order ) );
+			$sent        = self::deliver( $order );
+			$sum         = self::summary( $order );
+			$sum['sent'] = $sent;
+			wp_send_json_success( $sum );
 		}
 		if ( 'complete' === $op ) {
 			$order->set_status( 'completed', 'Marked fulfilled (packed / delivered) at MKauto Desk.' );
@@ -769,6 +957,7 @@ class MKD_Desk_POS {
 				<h2 data-pos-done-title>Sale complete</h2>
 				<p class="pos-done__amt" data-pos-done-amt></p>
 				<p class="pos-done__chg" data-pos-done-chg hidden></p>
+				<p class="pos-done__sent" data-pos-done-sent hidden></p>
 				<div class="pos-done__acts">
 					<a class="nd-btn nd-btn--primary" target="_blank" rel="noopener" data-pos-done-receipt>Print receipt</a>
 					<a class="nd-btn nd-btn--ghost" target="_blank" rel="noopener" data-pos-done-invoice>Print A4 invoice</a>
@@ -960,21 +1149,28 @@ class MKD_Desk_POS {
 			foreach ( $o->get_items() as $it ) {
 				$items[] = ( $it->get_quantity() > 1 ? $it->get_quantity() . ' x ' : '' ) . $it->get_name();
 			}
-			$phone = MKD_Desk::phone( $o->get_billing_phone() );
+			$ct    = self::contacts( $o );
+			$phone = $ct['phone'];
+			$sinfo = self::sent_info( $o );
 			echo '<tr data-nd-search="' . esc_attr( strtolower( $o->get_order_number() . ' ' . $name . ' ' . $phone . ' ' . implode( ' ', $items ) ) ) . '">';
 			echo '<td><a class="nd-ref" target="_blank" rel="noopener" href="' . esc_url( self::doc_url( $o, 'invoice', false ) ) . '">#' . esc_html( $o->get_order_number() ) . '</a><small>' . esc_html( $o->get_date_created() ? $o->get_date_created()->date_i18n( 'j M Y, H:i' ) : '' ) . '</small></td>';
 			echo '<td><strong>' . esc_html( $name ? $name : 'Walk-in customer' ) . '</strong><small>' . esc_html( MKD_Desk::phone_label( $phone ) ) . '</small></td>';
 			echo '<td><span class="nd-clip">' . esc_html( implode( ', ', $items ) ) . '</span></td>';
 			echo '<td>' . MKD_Desk::badge( 'online' === $c ? 'released' : ( 'whatsapp' === $c ? 'confirmed' : 'muted' ), self::channels()[ $c ] ?? ucfirst( $c ) ) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			echo '<td><strong>' . esc_html( MKD_Desk::money( $o->get_total() ) ) . '</strong></td>';
-			echo '<td>' . ( $p ? MKD_Desk::badge( 'confirmed', 'Paid' ) : MKD_Desk::badge( 'overdue', 'Unpaid' ) ) . '<small>' . esc_html( $o->get_payment_method_title() ) . '</small></td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			echo '<td>' . ( $p ? MKD_Desk::badge( 'confirmed', 'Paid' ) : MKD_Desk::badge( 'overdue', 'Unpaid' ) ) . '<small>' . esc_html( $o->get_payment_method_title() ) . '</small>' . ( $sinfo ? '<small class="nd-sent">' . esc_html( implode( ' · ', $sinfo ) ) . '</small>' : '' ) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			echo '<td class="nd-col-act">';
 			echo '<a class="nd-ico-btn" target="_blank" rel="noopener" href="' . esc_url( self::doc_url( $o, 'receipt' ) ) . '">Receipt</a>';
 			echo '<a class="nd-ico-btn" target="_blank" rel="noopener" href="' . esc_url( self::doc_url( $o, 'invoice' ) ) . '">Invoice</a>';
 			if ( $phone ) {
-				echo '<a class="nd-ico-btn nd-ico-btn--wa" target="_blank" rel="noopener" href="' . esc_url( MKD_Desk::wa( $phone, self::wa_text( $o ) ) ) . '">WhatsApp</a>';
+				$wl = MKD_Desk::wa( $phone, self::wa_text( $o ) );
+				if ( self::api_on() ) {
+					echo '<button type="button" class="nd-ico-btn nd-ico-btn--wa" data-pos-wasend="' . (int) $o->get_id() . '" data-link="' . esc_url( $wl ) . '" title="Send to ' . esc_attr( MKD_Desk::phone_label( $phone ) ) . '">WhatsApp</button>';
+				} else {
+					echo '<a class="nd-ico-btn nd-ico-btn--wa" target="_blank" rel="noopener" href="' . esc_url( $wl ) . '" title="Send to ' . esc_attr( MKD_Desk::phone_label( $phone ) ) . '">WhatsApp</a>';
+				}
 			}
-			echo '<button type="button" class="nd-ico-btn" data-pos-email="' . (int) $o->get_id() . '" data-email="' . esc_attr( is_email( $o->get_billing_email() ) ? $o->get_billing_email() : '' ) . '">E-mail</button>';
+			echo '<button type="button" class="nd-ico-btn" data-pos-email="' . (int) $o->get_id() . '" data-email="' . esc_attr( $ct['email'] ) . '">E-mail</button>';
 			if ( ! $p ) {
 				echo '<button type="button" class="nd-ico-btn nd-ico-btn--ok" data-pos-paid="' . (int) $o->get_id() . '">Mark paid</button>';
 			} elseif ( in_array( $o->get_status(), array( 'processing', 'on-hold' ), true ) ) {

@@ -3,7 +3,7 @@
  * Plugin Name:       MKauto Desk
  * Plugin URI:        https://mkautospares.co.ke/
  * Description:       The back office for MK Auto Spares: point of sale with neighbour sourcing, WhatsApp cart orders, payment plans, garage and service bookings with a public booking page, reminders, follow-ups, marketing, social catalogue, team permissions with an activity log, encrypted customer data and branded Excel reports. Requires WooCommerce.
- * Version:           1.4.2
+ * Version:           1.4.3
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * WC requires at least: 8.0
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'MKD_VERSION', '1.4.2' );
+define( 'MKD_VERSION', '1.4.3' );
 define( 'MKD_FILE', __FILE__ );
 define( 'MKD_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MKD_URL', plugin_dir_url( __FILE__ ) );

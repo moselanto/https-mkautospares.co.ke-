@@ -733,3 +733,7 @@ a.nt-who:hover{color:#CA1D24}
 /* 1.4.0 */
 .pcm-lock{display:block;margin-top:4px;font-size:12px;color:#8a5a00}
 .pos-line__price input[readonly],.pcm-money input[readonly]{background:#f3f4f6;cursor:not-allowed}
+
+/* 1.4.3 - sending status */
+.pos-done__sent{margin:6px 0 0;font-size:13px;color:#1f7a3d;background:#eaf6ee;border-radius:8px;padding:8px 12px;text-align:center}
+.nd-sent{display:block;color:#1f7a3d;font-size:11px;margin-top:2px}

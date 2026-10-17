@@ -3,7 +3,7 @@ Contributors: pimofy
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 1.4.2
+Stable tag: 1.4.3
 License: GPLv2 or later
 
 The back office for MK Auto Spares, Kirinyaga Road, Nairobi.
@@ -27,6 +27,14 @@ One black and red desk under wp-admin > MKauto Desk:
 3. Add shop managers under Users > Add New (role Shop manager), then set their limits under MKauto Desk > Team.
 
 == Changelog ==
+= 1.4.3 =
+* Invoices and receipts are sent automatically after every till sale and when an invoice is marked paid (new setting, on by default).
+* The customer's e-mail and WhatsApp number are taken from the sale, then their website account, then the WhatsApp order, then the customer list.
+* WhatsApp sending through the Business API, with an optional approved template so it works outside the 24-hour window; one-tap WhatsApp stays as the fallback.
+* Website orders get the receipt on WhatsApp when paid (WooCommerce still sends its own e-mail); till sales no longer get a duplicate WooCommerce e-mail.
+* Sales page shows "E-mailed" / "WhatsApp sent" for each order; each document goes once per channel.
+* Plan payment receipts: clean e-mail text with a reply-to address, WhatsApp receipt when the API is connected, and a team log entry.
+
 
 = 1.4.2 =
 * Social page: removed the last wording from the original plugin ("wigs they looked at" and "NURA Retargeting"), the plan reminder sign-off and the follow-up consent note; saved message templates that still say NURA are corrected automatically.

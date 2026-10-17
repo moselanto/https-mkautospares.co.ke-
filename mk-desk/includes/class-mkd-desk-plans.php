@@ -1193,13 +1193,22 @@ class MKD_Desk_Plans {
 		$pid  = self::insert_payment( $id, $amt, $method, $ref, $when, isset( $in['note'] ) ? $in['note'] : '' );
 		self::sync( $id );
 
-		if ( ! empty( $in['email_receipt'] ) && is_email( $p->email ) ) {
-			$p2 = self::get( $id );
-			$m  = self::metrics( $p2, self::paid_sum( $id ) );
-			$y  = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . MKD_Desk::t_pay() . ' WHERE id = %d', $pid ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-			if ( $y ) {
-				wp_mail( $p->email, 'MK Auto Spares - payment received (' . $p->ref . ')', self::receipt_text( $p2, $m, $y ) );
+		$p2   = self::get( $id );
+		$m    = self::metrics( $p2, self::paid_sum( $id ) );
+		$y    = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . MKD_Desk::t_pay() . ' WHERE id = %d', $pid ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$sent = array();
+		if ( $y && ! empty( $in['email_receipt'] ) && is_email( $p->email ) ) {
+			$b    = MKD_Desk_POS::biz();
+			$hdrs = is_email( $b['email'] ) ? array( 'Reply-To: ' . $b['name'] . ' <' . $b['email'] . '>' ) : array();
+			if ( wp_mail( $p->email, 'MK Auto Spares - payment received (' . $p->ref . ')', str_replace( '*', '', self::receipt_text( $p2, $m, $y ) ), $hdrs ) ) {
+				$sent[] = 'e-mailed';
 			}
+		}
+		if ( $y && $p->phone && MKD_Desk_POS::auto_on() && MKD_Desk_POS::api_on() && MKD_WhatsApp::send_text( (string) $p->phone, self::receipt_text( $p2, $m, $y ) ) ) {
+			$sent[] = 'sent on WhatsApp';
+		}
+		if ( $sent ) {
+			MKD_Staff::log( 'plan', 'Receipt for plan ' . $p->ref . ' ' . implode( ' and ', $sent ), array( 'object' => 'plan', 'object_id' => $id ) );
 		}
 		wp_safe_redirect( add_query_arg( array( 'nd_msg' => 'paid', 'pid' => $pid ), $view ) );
 		exit;
