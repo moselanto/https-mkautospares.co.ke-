@@ -62,6 +62,8 @@ class MKD_Desk {
 		add_action( 'admin_enqueue_scripts', array( $this, 'assets' ), 20 );
 		add_action( 'admin_post_mkd_desk_settings', array( $this, 'save_settings' ) );
 		add_action( 'admin_post_mkd_desk_export', array( $this, 'export' ) );
+		add_action( 'woocommerce_order_status_processing', array( __CLASS__, 'check_online_ref' ), 5 );
+		add_action( 'woocommerce_order_status_completed', array( __CLASS__, 'check_online_ref' ), 5 );
 		add_action( 'wp_dashboard_setup', array( $this, 'widget' ) );
 		add_filter( 'mkd_lmm_settings', array( $this, 'theme_lmm_settings' ), 5 );
 		add_action( 'woocommerce_account_dashboard', array( $this, 'account' ), 20 );
@@ -378,33 +380,113 @@ class MKD_Desk {
 	 * Checks plan payments, till sales and WhatsApp orders. Returns a short
 	 * description of where it was used, or '' when it is free.
 	 */
+	/** Payment code in one standard form: capitals, letters and digits only ("sgh4 k2-lmnp" -> "SGH4K2LMNP"). */
+	public static function norm_ref( $ref ) {
+		return mb_substr( strtoupper( preg_replace( '/[^A-Za-z0-9]/', '', (string) $ref ) ), 0, 40 );
+	}
+
+	/**
+	 * Hold a database lock on a payment code while it is checked and saved, so two
+	 * staff (or two clicks) cannot save the same code at the same moment. Released
+	 * automatically at the end of the request. Returns false if it could not be held.
+	 */
+	public static function ref_lock( $ref ) {
+		global $wpdb;
+		$n = self::norm_ref( $ref );
+		if ( strlen( $n ) < 4 ) {
+			return true;
+		}
+		static $held = array();
+		if ( isset( $held[ $n ] ) ) {
+			return true;
+		}
+		$name = 'mkd_ref_' . md5( $n );
+		$ok   = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 8)', $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		if ( $ok ) {
+			$held[ $n ] = true;
+			add_action( 'shutdown', function () use ( $name ) {
+				global $wpdb;
+				$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			} );
+		}
+		return (bool) $ok;
+	}
+
+	/** SQL that puts a stored code column into the same standard form as norm_ref(). */
+	private static function sql_norm( $col ) {
+		return "UPPER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE($col,' ',''),'-',''),'/',''),'.',''),'_',''))";
+	}
+
+	/**
+	 * Where a payment code (M-Pesa, card, bank or other reference) has already been
+	 * used: plan payments, till sales and invoices, website orders (their transaction
+	 * ID) and paid WhatsApp orders. Spaces, dashes and capitals are ignored, so
+	 * "sgh4 k2lmnp" matches "SGH4K2LMNP". Voided / cancelled records do not count.
+	 * Returns a description such as "sale #53449", or '' if the code is free.
+	 */
 	public static function ref_used( $ref, $ex_order = 0, $ex_wa = 0, $ex_pay = 0 ) {
 		global $wpdb;
-		$ref = strtoupper( trim( (string) $ref ) );
+		$ref = self::norm_ref( $ref );
 		if ( strlen( $ref ) < 4 ) {
 			return '';
 		}
-		$pid = $wpdb->get_var( $wpdb->prepare( 'SELECT plan_id FROM ' . self::t_pay() . ' WHERE voided = 0 AND UPPER(reference) = %s AND id <> %d LIMIT 1', $ref, (int) $ex_pay ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$pid = $wpdb->get_var( $wpdb->prepare( 'SELECT plan_id FROM ' . self::t_pay() . ' WHERE voided = 0 AND ' . self::sql_norm( 'reference' ) . ' = %s AND id <> %d LIMIT 1', $ref, (int) $ex_pay ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		if ( $pid ) {
 			$p = $wpdb->get_var( $wpdb->prepare( 'SELECT ref FROM ' . self::t_plans() . ' WHERE id = %d', (int) $pid ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 			return 'payment plan ' . ( $p ? $p : '#' . $pid );
 		}
 		if ( function_exists( 'wc_get_orders' ) ) {
-			$ids = wc_get_orders( array( 'limit' => 2, 'return' => 'ids', 'type' => 'shop_order', 'status' => array_keys( wc_get_order_statuses() ), 'meta_key' => '_mkd_pay_ref', 'meta_value' => $ref ) ); // phpcs:ignore WordPress.DB.SlowDBQuery
-			foreach ( (array) $ids as $oid ) {
-				if ( (int) $oid !== (int) $ex_order ) {
+			$dead = array( 'cancelled', 'failed', 'refunded', 'trash', 'checkout-draft' );
+			$ids  = array();
+			$base = array( 'limit' => 5, 'return' => 'ids', 'type' => 'shop_order', 'status' => array_keys( wc_get_order_statuses() ) );
+			$ids  = array_merge( $ids, (array) wc_get_orders( $base + array( 'meta_key' => '_mkd_pay_ref', 'meta_value' => $ref ) ) ); // phpcs:ignore WordPress.DB.SlowDBQuery
+			$ids  = array_merge( $ids, (array) wc_get_orders( $base + array( 'transaction_id' => $ref ) ) );
+			// Codes saved before 1.6.1 may still contain a space or dash.
+			$legacy = $wpdb->get_col( $wpdb->prepare( "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key IN ('_mkd_pay_ref','_transaction_id') AND " . self::sql_norm( 'meta_value' ) . ' = %s LIMIT 5', $ref ) ); // phpcs:ignore WordPress.DB
+			$ids    = array_merge( $ids, (array) $legacy );
+			$hpos   = $wpdb->prefix . 'wc_orders';
+			if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $hpos ) ) === $hpos ) {
+				$ids = array_merge( $ids, (array) $wpdb->get_col( $wpdb->prepare( "SELECT id FROM $hpos WHERE " . self::sql_norm( 'transaction_id' ) . ' = %s LIMIT 5', $ref ) ) ); // phpcs:ignore WordPress.DB
+				$ids = array_merge( $ids, (array) $wpdb->get_col( $wpdb->prepare( "SELECT order_id FROM {$wpdb->prefix}wc_orders_meta WHERE meta_key = '_mkd_pay_ref' AND " . self::sql_norm( 'meta_value' ) . ' = %s LIMIT 5', $ref ) ) ); // phpcs:ignore WordPress.DB
+			}
+			foreach ( array_unique( array_map( 'intval', $ids ) ) as $oid ) {
+				if ( $oid && $oid !== (int) $ex_order ) {
 					$o = wc_get_order( $oid );
-					if ( $o && ! in_array( $o->get_status(), array( 'cancelled', 'failed', 'refunded' ), true ) ) {
-						return 'sale #' . $o->get_order_number();
+					if ( $o && ! in_array( $o->get_status(), $dead, true ) ) {
+						return ( 'mkd_pos' === $o->get_created_via() ? 'sale #' : 'website order #' ) . $o->get_order_number();
 					}
 				}
 			}
 		}
-		$wa = $wpdb->get_var( $wpdb->prepare( "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_mkdwo_pay_ref' AND meta_value = %s AND post_id <> %d LIMIT 1", $ref, (int) $ex_wa ) );
-		if ( $wa && 'paid' === get_post_meta( (int) $wa, '_mkdwo_pay', true ) ) {
-			return 'WhatsApp order #' . (int) $wa;
+		$was = $wpdb->get_col( $wpdb->prepare( "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_mkdwo_pay_ref' AND " . self::sql_norm( 'meta_value' ) . ' = %s AND post_id <> %d LIMIT 5', $ref, (int) $ex_wa ) ); // phpcs:ignore WordPress.DB
+		foreach ( (array) $was as $wa ) {
+			if ( 'paid' === get_post_meta( (int) $wa, '_mkdwo_pay', true ) ) {
+				return 'WhatsApp order #' . (int) $wa;
+			}
 		}
 		return '';
+	}
+
+	/** Website orders: a transaction code already used elsewhere puts the order on hold for checking. */
+	public static function check_online_ref( $order_id ) {
+		$o = function_exists( 'wc_get_order' ) ? wc_get_order( $order_id ) : null;
+		if ( ! $o || 'mkd_pos' === $o->get_created_via() || $o->get_meta( '_mkd_dup_ref' ) ) {
+			return;
+		}
+		$ref = self::norm_ref( $o->get_transaction_id() ? $o->get_transaction_id() : $o->get_meta( '_mkd_pay_ref' ) );
+		if ( strlen( $ref ) < 4 ) {
+			return;
+		}
+		$used = self::ref_used( $ref, $o->get_id() );
+		if ( '' === $used ) {
+			return;
+		}
+		$o->update_meta_data( '_mkd_dup_ref', $ref );
+		$o->save();
+		$o->update_status( 'on-hold', 'Payment code ' . $ref . ' was already used on ' . $used . '. Check the payment before releasing this order.' );
+		if ( class_exists( 'MKD_Staff' ) ) {
+			MKD_Staff::log( 'blocked', 'Website order #' . $o->get_order_number() . ' put on hold: payment code ' . $ref . ' already used on ' . $used, array( 'object' => 'order', 'object_id' => $o->get_id(), 'level' => 'warn' ) );
+		}
 	}
 
 	/** M-Pesa transaction codes are 10 letters and digits, e.g. SGH4K2LMNP. */

@@ -216,7 +216,7 @@ class MKD_Desk_POS {
 		$pay     = isset( $raw['payment'] ) && is_array( $raw['payment'] ) ? $raw['payment'] : array();
 		$method  = isset( $pay['method'] ) && array_key_exists( $pay['method'], self::methods() ) ? $pay['method'] : 'cash';
 		$paid    = ! empty( $pay['paid'] );
-		$ref     = mb_substr( strtoupper( preg_replace( '/[^A-Za-z0-9\- ]/', '', isset( $pay['ref'] ) ? (string) $pay['ref'] : '' ) ), 0, 40 );
+		$ref     = MKD_Desk::norm_ref( isset( $pay['ref'] ) ? (string) $pay['ref'] : '' );
 		$channel = isset( $raw['channel'] ) && array_key_exists( $raw['channel'], self::channels() ) ? $raw['channel'] : 'walk-in';
 		$wa_in   = isset( $raw['wa_order'] ) ? absint( $raw['wa_order'] ) : 0;
 		if ( $wa_in ) {
@@ -227,6 +227,9 @@ class MKD_Desk_POS {
 			}
 		}
 		if ( $paid && '' !== $ref ) {
+			if ( ! MKD_Desk::ref_lock( $ref ) ) {
+				wp_send_json_error( array( 'message' => 'Another payment with code ' . $ref . ' is being saved right now. Wait a moment and check Sales & invoices.' ), 409 );
+			}
 			if ( 'mpesa' === $method && ! MKD_Desk::mpesa_code_ok( $ref ) ) {
 				wp_send_json_error( array( 'message' => 'That does not look like an M-Pesa code (10 letters and numbers, e.g. SGH4K2LMNP).' ), 400 );
 			}
@@ -916,7 +919,10 @@ class MKD_Desk_POS {
 		}
 		if ( 'paid' === $op ) {
 			$method = isset( $_POST['method'] ) && array_key_exists( wp_unslash( $_POST['method'] ), self::methods() ) ? sanitize_key( wp_unslash( $_POST['method'] ) ) : 'mpesa';
-			$ref    = isset( $_POST['ref'] ) ? mb_substr( strtoupper( preg_replace( '/[^A-Za-z0-9\- ]/', '', wp_unslash( $_POST['ref'] ) ) ), 0, 40 ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			$ref    = isset( $_POST['ref'] ) ? MKD_Desk::norm_ref( wp_unslash( $_POST['ref'] ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			if ( $ref && ! MKD_Desk::ref_lock( $ref ) ) {
+				wp_send_json_error( array( 'message' => 'Another payment with code ' . $ref . ' is being saved right now. Wait a moment and try again.' ), 409 );
+			}
 			if ( $ref && 'mpesa' === $method && ! MKD_Desk::mpesa_code_ok( $ref ) ) {
 				wp_send_json_error( array( 'message' => 'That does not look like an M-Pesa code (10 letters and numbers, e.g. SGH4K2LMNP).' ), 400 );
 			}

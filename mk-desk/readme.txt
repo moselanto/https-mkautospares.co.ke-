@@ -3,7 +3,7 @@ Contributors: pimofy
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 1.6.0
+Stable tag: 1.6.1
 License: GPLv2 or later
 
 The back office for MK Auto Spares, Kirinyaga Road, Nairobi.
@@ -27,6 +27,13 @@ One black and red desk under wp-admin > MKauto Desk:
 3. Add shop managers under Users > Add New (role Shop manager), then set their limits under MKauto Desk > Team.
 
 == Changelog ==
+= 1.6.1 =
+* One payment code, one use: an M-Pesa, card, bank or other transaction code can only be used once across till sales, invoices marked paid, payment plans, WhatsApp orders and website orders.
+* Codes are compared in one standard form, so spaces, dashes and small letters no longer let the same code through ("sgh4 k2-lmnp" = "SGH4K2LMNP"). Older saved codes are matched the same way.
+* Website orders: the transaction ID is checked too; a website order paid with a code already used elsewhere is put on hold for checking and logged.
+* A database lock stops two staff (or a double click) saving the same code at the same moment.
+* Voided or cancelled sales and voided plan payments release their code.
+
 = 1.6.0 =
 * End-to-end review. Security: all staff actions checked for permission and security token; public forms keep honeypot and rate limits.
 * Stock: parts on an unpaid invoice (e.g. fitted on a garage job) now leave stock straight away; no double reduction when paid.

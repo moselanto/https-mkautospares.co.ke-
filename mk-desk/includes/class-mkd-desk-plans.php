@@ -1111,7 +1111,7 @@ class MKD_Desk_Plans {
 				$amt = min( $amt, $price );
 				$m    = isset( $in['init_method'] ) && array_key_exists( $in['init_method'], self::methods() ) ? $in['init_method'] : 'mpesa';
 				$iref = self::clean_ref( isset( $in['init_reference'] ) ? $in['init_reference'] : '' );
-				if ( '' !== $iref && ( '' !== MKD_Desk::ref_used( $iref ) || ( 'mpesa' === $m && ! MKD_Desk::mpesa_code_ok( $iref ) ) ) ) {
+				if ( '' !== $iref && ( ! MKD_Desk::ref_lock( $iref ) || '' !== MKD_Desk::ref_used( $iref ) || ( 'mpesa' === $m && ! MKD_Desk::mpesa_code_ok( $iref ) ) ) ) {
 					self::sync( $id );
 					wp_safe_redirect( MKD_Desk::url( MKD_Desk::P_PLANS, array( 'plan' => $id, 'nd_msg' => 'dup_init' ) ) );
 					exit;
@@ -1178,7 +1178,7 @@ class MKD_Desk_Plans {
 			wp_safe_redirect( add_query_arg( 'nd_msg', 'badcode', $view ) );
 			exit;
 		}
-		if ( '' !== $ref && '' !== MKD_Desk::ref_used( $ref ) ) {
+		if ( '' !== $ref && ( ! MKD_Desk::ref_lock( $ref ) || '' !== MKD_Desk::ref_used( $ref ) ) ) {
 			if ( class_exists( 'MKD_Staff' ) ) {
 				MKD_Staff::log( 'blocked', 'Blocked: payment code ' . $ref . ' already used on ' . MKD_Desk::ref_used( $ref ) . ' (plan ' . $p->ref . ')', array( 'level' => 'warn' ) );
 			}

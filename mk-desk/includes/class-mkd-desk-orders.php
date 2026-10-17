@@ -199,14 +199,18 @@ class MKD_Desk_Orders {
 	}
 
 	public static function set_paid( $post_id, $paid, $ref = '', $ex_order = 0 ) {
-		$ref = mb_substr( strtoupper( preg_replace( '/[^A-Za-z0-9\- ]/', '', (string) $ref ) ), 0, 40 );
+		$ref = MKD_Desk::norm_ref( $ref );
+		if ( $paid && '' !== $ref && ! MKD_Desk::ref_lock( $ref ) ) {
+			self::log( $post_id, 'Not marked paid: code ' . $ref . ' was being saved elsewhere at the same moment. Try again.' );
+			return false;
+		}
 		if ( $paid && '' !== $ref && '' !== MKD_Desk::ref_used( $ref, $ex_order, $post_id ) ) {
 			self::log( $post_id, 'Not marked paid: code ' . $ref . ' is already used on ' . MKD_Desk::ref_used( $ref, $ex_order, $post_id ) . '.' );
 			return false;
 		}
 		if ( $paid ) {
 			update_post_meta( $post_id, '_mkdwo_pay', 'paid' );
-			update_post_meta( $post_id, '_mkdwo_pay_ref', mb_substr( strtoupper( preg_replace( '/[^A-Za-z0-9\- ]/', '', (string) $ref ) ), 0, 40 ) );
+			update_post_meta( $post_id, '_mkdwo_pay_ref', $ref );
 			update_post_meta( $post_id, '_mkdwo_paid_at', current_time( 'mysql' ) );
 			self::log( $post_id, 'Marked as paid' . ( $ref ? ' (' . $ref . ')' : '' ) . '.' );
 		} else {
