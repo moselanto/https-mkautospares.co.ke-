@@ -219,6 +219,13 @@ class MKD_Desk_POS {
 		$ref     = mb_substr( strtoupper( preg_replace( '/[^A-Za-z0-9\- ]/', '', isset( $pay['ref'] ) ? (string) $pay['ref'] : '' ) ), 0, 40 );
 		$channel = isset( $raw['channel'] ) && array_key_exists( $raw['channel'], self::channels() ) ? $raw['channel'] : 'walk-in';
 		$wa_in   = isset( $raw['wa_order'] ) ? absint( $raw['wa_order'] ) : 0;
+		if ( $wa_in ) {
+			$prev = (int) get_post_meta( $wa_in, '_mkdwo_wc_order', true );
+			$po   = $prev ? wc_get_order( $prev ) : null;
+			if ( $po && ! in_array( $po->get_status(), array( 'cancelled', 'refunded', 'failed' ), true ) ) {
+				wp_send_json_error( array( 'message' => 'This WhatsApp order was already rung up as sale #' . $po->get_order_number() . '. Open it from Sales & invoices instead of charging twice.' ), 409 );
+			}
+		}
 		if ( $paid && '' !== $ref ) {
 			if ( 'mpesa' === $method && ! MKD_Desk::mpesa_code_ok( $ref ) ) {
 				wp_send_json_error( array( 'message' => 'That does not look like an M-Pesa code (10 letters and numbers, e.g. SGH4K2LMNP).' ), 400 );
@@ -358,6 +365,12 @@ class MKD_Desk_POS {
 				$order->set_status( 'pending', 'Invoice created at MKauto Desk POS - awaiting payment.' );
 			}
 			$order->save();
+			// Parts on an unpaid invoice have already left the shelf (fitted on a car or taken
+			// by the customer), so take them out of stock now. WooCommerce flags the order, so
+			// stock is not reduced a second time when it is marked paid.
+			if ( ! $paid && function_exists( 'wc_reduce_stock_levels' ) ) {
+				wc_reduce_stock_levels( $order->get_id() );
+			}
 		} catch ( \Throwable $e ) {
 			wp_send_json_error( array( 'message' => 'Could not save the sale: ' . $e->getMessage() ), 500 );
 		}
@@ -608,7 +621,7 @@ class MKD_Desk_POS {
 	 */
 	public static function deliver( $order, $email_too = true ) {
 		$out = array( 'email' => '', 'wa' => '', 'failed' => array(), 'auto' => self::auto_on() ? 1 : 0 );
-		if ( ! self::auto_on() ) {
+		if ( ! self::auto_on() || in_array( $order->get_status(), array( 'cancelled', 'failed', 'refunded' ), true ) ) {
 			return $out;
 		}
 		$type = self::is_paid( $order ) ? 'receipt' : 'invoice';
@@ -841,6 +854,43 @@ class MKD_Desk_POS {
 		if ( ! $order ) {
 			wp_send_json_error( array( 'message' => 'Order not found.' ), 404 );
 		}
+		$voided = in_array( $order->get_status(), array( 'cancelled', 'refunded', 'failed' ), true );
+		if ( $voided && in_array( $op, array( 'paid', 'complete', 'email', 'wa', 'void' ), true ) ) {
+			wp_send_json_error( array( 'message' => 'Order #' . $order->get_order_number() . ' is ' . wc_get_order_status_name( $order->get_status() ) . ' - nothing to do.' ), 409 );
+		}
+		if ( 'void' === $op ) {
+			if ( 'mkd_pos' !== $order->get_created_via() ) {
+				wp_send_json_error( array( 'message' => 'Website orders are refunded or cancelled in WooCommerce > Orders.' ), 400 );
+			}
+			$why = isset( $_POST['reason'] ) ? mb_substr( sanitize_text_field( wp_unslash( $_POST['reason'] ) ), 0, 160 ) : '';
+			if ( mb_strlen( $why ) < 3 ) {
+				wp_send_json_error( array( 'message' => 'Please give a reason for voiding this sale.' ), 400 );
+			}
+			$was_paid = self::is_paid( $order );
+			// Cancelling makes WooCommerce put the parts back into stock.
+			$order->update_meta_data( '_mkd_void_reason', $why );
+			$order->update_meta_data( '_mkd_void_by', get_current_user_id() );
+			$order->set_status( 'cancelled', 'Voided at MKauto Desk: ' . $why );
+			$order->save();
+			if ( class_exists( 'MKD_Desk_Source' ) ) {
+				MKD_Desk_Source::void_order( $order->get_id() );
+			}
+			$wa = (int) $order->get_meta( '_mkd_wa_order' );
+			if ( $wa && class_exists( 'MKD_Desk_Orders' ) && MKD_Desk_Orders::is_order( $wa ) ) {
+				if ( $was_paid ) {
+					MKD_Desk_Orders::set_paid( $wa, false );
+				}
+				update_post_meta( $wa, MKD_Desk_Orders::STATUS, 'confirmed' );
+				MKD_Desk_Orders::add_log( $wa, 'Sale #' . $order->get_order_number() . ' voided: ' . $why );
+			}
+			$ap = (int) $order->get_meta( '_mkd_appt' );
+			if ( $ap && class_exists( 'MKD_Desk_Appts' ) ) {
+				MKD_Desk_Appts::staff_log( $ap, 'invoice #' . $order->get_order_number() . ' voided: ' . $why );
+			}
+			MKD_Staff::log( 'sale', 'Voided ' . ( $was_paid ? 'paid sale' : 'invoice' ) . ' #' . $order->get_order_number() . ' (' . MKD_Desk::money( $order->get_total() ) . ') - ' . $why . ( $was_paid ? ' - refund the customer' : '' ), array( 'object' => 'order', 'object_id' => $order->get_id(), 'amount' => (float) $order->get_total(), 'level' => 'warn' ) );
+			MKD_Desk::bust();
+			wp_send_json_success( array( 'message' => 'Sale #' . $order->get_order_number() . ' voided. Parts are back in stock.' . ( $was_paid ? ' Remember to refund the customer ' . MKD_Desk::money( $order->get_total() ) . '.' : '' ) ) );
+		}
 		if ( 'email' === $op ) {
 			$to = isset( $_POST['to'] ) && is_email( wp_unslash( $_POST['to'] ) ) ? sanitize_email( wp_unslash( $_POST['to'] ) ) : self::contacts( $order )['email']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			if ( ! is_email( $to ) ) {
@@ -1011,6 +1061,9 @@ class MKD_Desk_POS {
 			}
 			$pre = array(
 				'appt'     => (int) $a->id,
+				'billed'   => count( array_filter( self::orders_for_appt( $a->id ), function ( $o ) {
+					return ! in_array( $o->get_status(), array( 'cancelled', 'refunded', 'failed' ), true );
+				} ) ),
 				'items'    => $items,
 				'customer' => array( 'name' => $a->customer_name, 'phone' => $a->phone, 'email' => $a->email, 'user_id' => (int) $a->user_id ),
 				'channel'  => 'garage',
@@ -1334,7 +1387,8 @@ class MKD_Desk_POS {
 			echo '<td><span class="nd-clip">' . esc_html( implode( ', ', $items ) ) . '</span></td>';
 			echo '<td>' . MKD_Desk::badge( 'online' === $c ? 'released' : ( 'whatsapp' === $c ? 'confirmed' : 'muted' ), self::channels()[ $c ] ?? ucfirst( $c ) ) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			echo '<td><strong>' . esc_html( MKD_Desk::money( $o->get_total() ) ) . '</strong></td>';
-			echo '<td>' . ( $p ? MKD_Desk::badge( 'confirmed', 'Paid' ) : MKD_Desk::badge( 'overdue', 'Unpaid' ) ) . '<small>' . esc_html( $o->get_payment_method_title() ) . '</small>' . ( $sinfo ? '<small class="nd-sent">' . esc_html( implode( ' · ', $sinfo ) ) . '</small>' : '' ) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			$isv = in_array( $o->get_status(), array( 'cancelled', 'refunded', 'failed' ), true );
+			echo '<td>' . ( $isv ? MKD_Desk::badge( 'muted', 'Voided' ) : ( $p ? MKD_Desk::badge( 'confirmed', 'Paid' ) : MKD_Desk::badge( 'overdue', 'Unpaid' ) ) ) . '<small>' . esc_html( $o->get_payment_method_title() ) . '</small>' . ( $sinfo ? '<small class="nd-sent">' . esc_html( implode( ' · ', $sinfo ) ) . '</small>' : '' ) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			echo '<td class="nd-col-act">';
 			echo '<a class="nd-ico-btn" target="_blank" rel="noopener" href="' . esc_url( self::doc_url( $o, 'receipt' ) ) . '">Receipt</a>';
 			echo '<a class="nd-ico-btn" target="_blank" rel="noopener" href="' . esc_url( self::doc_url( $o, 'invoice' ) ) . '">Invoice</a>';
@@ -1347,10 +1401,16 @@ class MKD_Desk_POS {
 				}
 			}
 			echo '<button type="button" class="nd-ico-btn" data-pos-email="' . (int) $o->get_id() . '" data-email="' . esc_attr( $ct['email'] ) . '">E-mail</button>';
-			if ( ! $p ) {
+			$void = in_array( $o->get_status(), array( 'cancelled', 'refunded', 'failed' ), true );
+			if ( $void ) {
+				echo '<span class="nd-mut nd-small">' . esc_html( wc_get_order_status_name( $o->get_status() ) . ( $o->get_meta( '_mkd_void_reason' ) ? ': ' . $o->get_meta( '_mkd_void_reason' ) : '' ) ) . '</span>';
+			} elseif ( ! $p ) {
 				echo '<button type="button" class="nd-ico-btn nd-ico-btn--ok" data-pos-paid="' . (int) $o->get_id() . '">Mark paid</button>';
 			} elseif ( in_array( $o->get_status(), array( 'processing', 'on-hold' ), true ) ) {
 				echo '<button type="button" class="nd-ico-btn nd-ico-btn--ok" data-pos-complete="' . (int) $o->get_id() . '">Fulfilled</button>';
+			}
+			if ( ! $void && 'mkd_pos' === $o->get_created_via() && MKD_Staff::can( 'refunds' ) ) {
+				echo '<button type="button" class="nd-ico-btn nd-ico-btn--danger" data-pos-void="' . (int) $o->get_id() . '" data-num="' . esc_attr( $o->get_order_number() ) . '">Void</button>';
 			}
 			echo '<a class="nd-ico-btn" href="' . esc_url( $o->get_edit_order_url() ) . '">Open</a>';
 			echo '</td></tr>';
@@ -1468,6 +1528,10 @@ class MKD_Desk_POS {
 		$ref   = $order->get_meta( '_mkd_pay_ref' ) ? $order->get_meta( '_mkd_pay_ref' ) : $order->get_transaction_id();
 		$cash  = $order->get_meta( '_mkd_cashier' ) ? get_userdata( (int) $order->get_meta( '_mkd_cashier' ) ) : null;
 		$title = 'receipt' === $type ? 'Receipt' : ( $paid ? 'Tax Invoice' : 'Invoice' );
+		if ( in_array( $order->get_status(), array( 'cancelled', 'refunded', 'failed' ), true ) ) {
+			$title = 'VOID - ' . $title;
+			$paid  = false;
+		}
 		$chan  = self::channels()[ self::channel( $order ) ] ?? 'Online shop';
 		$meth  = $order->get_payment_method_title();
 		$mpesa = trim( (string) MKD_Desk::settings()['mpesa_details'] );

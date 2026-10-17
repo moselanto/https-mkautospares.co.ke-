@@ -311,11 +311,33 @@
 			.always(function () { $b.removeClass('is-loading'); });
 		});
 		$d.on('click', '[data-pos-paid]', function () {
-			var $b = $(this), ref = window.prompt('Mark as paid. M-Pesa code (optional):', '');
-			if (ref === null) { return; }
-			$.post(P.ajax, { action: 'mkd_pos_order', nonce: P.nonce, op: 'paid', id: $b.attr('data-pos-paid'), method: 'mpesa', ref: ref }).done(function (r) {
-				if (r && r.success) { var st = sentText(r.data); toast('Invoice marked paid' + (st ? '. ' + st : ''), 'ok'); setTimeout(function () { window.location.reload(); }, st ? 2200 : 600); } else { toast('Could not update', 'err'); }
-			});
+			var $b = $(this), map = { '1': 'mpesa', '2': 'cash', '3': 'card', '4': 'bank' };
+			var pick = window.prompt('How did the customer pay?\n1 = M-Pesa\n2 = Cash\n3 = Card\n4 = Bank transfer', '1');
+			if (pick === null) { return; }
+			var method = map[$.trim(pick)];
+			if (!method) { toast('Type 1, 2, 3 or 4.', 'err'); return; }
+			var ref = '';
+			if (method !== 'cash') {
+				ref = window.prompt(method === 'mpesa' ? 'M-Pesa code (10 letters and numbers, e.g. SGH4K2LMNP):' : 'Payment reference (optional):', '');
+				if (ref === null) { return; }
+				ref = $.trim(ref);
+				if (method === 'mpesa' && !ref && !window.confirm('No M-Pesa code entered. Mark paid without it?')) { return; }
+			}
+			$b.addClass('is-loading');
+			$.post(P.ajax, { action: 'mkd_pos_order', nonce: P.nonce, op: 'paid', id: $b.attr('data-pos-paid'), method: method, ref: ref }).done(function (r) {
+				if (r && r.success) { var st = sentText(r.data); toast('Invoice marked paid' + (st ? '. ' + st : ''), 'ok'); setTimeout(function () { window.location.reload(); }, st ? 2200 : 600); } else { toast((r && r.data && r.data.message) || 'Could not update', 'err'); $b.removeClass('is-loading'); }
+			}).fail(function (x) { var m = x && x.responseJSON && x.responseJSON.data && x.responseJSON.data.message; toast(m || 'Could not update', 'err'); $b.removeClass('is-loading'); });
+		});
+		$d.on('click', '[data-pos-void]', function () {
+			var $b = $(this), why = window.prompt('Void sale #' + $b.attr('data-num') + '? The parts go back into stock and it stays on record as voided.\n\nReason (required):', '');
+			if (why === null) { return; }
+			why = $.trim(why);
+			if (why.length < 3) { toast('Please give a reason.', 'err'); return; }
+			$b.addClass('is-loading');
+			$.post(P.ajax, { action: 'mkd_pos_order', nonce: P.nonce, op: 'void', id: $b.attr('data-pos-void'), reason: why }).done(function (r) {
+				toast((r && r.data && r.data.message) || (r && r.success ? 'Voided' : 'Could not void'), r && r.success ? 'ok' : 'err');
+				if (r && r.success) { setTimeout(function () { window.location.reload(); }, 2500); } else { $b.removeClass('is-loading'); }
+			}).fail(function (x) { var m = x && x.responseJSON && x.responseJSON.data && x.responseJSON.data.message; toast(m || 'Could not void', 'err'); $b.removeClass('is-loading'); });
 		});
 		$d.on('click', '[data-pos-complete]', function () {
 			var $b = $(this);
@@ -555,6 +577,7 @@
 			setCust(P.pre.customer); apptId = P.pre.appt; $('[data-pos-channel]').val('garage');
 			$.each(P.pre.job || {}, function (k, v) { $('[data-pos-j="' + k + '"]').val(v || ''); });
 			$('[data-pos-job-ref]').text('Booking ' + (P.pre.ref || '')); showJob(true);
+			if (P.pre.billed) { window.alert('Note: this job already has ' + P.pre.billed + ' invoice(s). Only continue if this is extra work or parts - otherwise open the existing invoice from the booking page.'); }
 			toast('Garage job loaded - add the parts fitted and labour, write the work done, then charge or save as invoice.', 'ok');
 		} else if (P.pre && P.pre.items) {
 			cart = []; P.pre.items.forEach(function (p) { add(p); });

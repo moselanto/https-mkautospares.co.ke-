@@ -403,7 +403,7 @@ AJAX actions (all nonce-checked with `mkae_nonce`): `mkae_get_terms`, `mkae_sear
 <sub>Designed, developed and maintained by <a href="https://github.com/moselanto"><b>Pimofy Digital</b></a>, Nairobi &nbsp;&bull;&nbsp; Licensed GPLv2 or later</sub>
 </div>
 
-## MKauto Desk (plugin `mk-desk/`, 1.5.1)
+## MKauto Desk (plugin `mk-desk/`, 1.6.0)
 
 The shop's back office under wp-admin > MKauto Desk: Overview, Point of sale, WhatsApp orders, Payment plans, Sourcing, Garage & service, Reminders, Marketing, Social, Settings and Team.
 

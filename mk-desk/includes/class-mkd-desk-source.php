@@ -125,6 +125,18 @@ class MKD_Desk_Source {
 		}
 	}
 
+	/** A voided sale: drop sourced lines not yet paid to the neighbour; flag paid ones for follow-up. */
+	public static function void_order( $order_id ) {
+		global $wpdb;
+		self::maybe_install();
+		$t = self::table();
+		$wpdb->query( $wpdb->prepare( "DELETE FROM $t WHERE order_id = %d AND paid = 0", (int) $order_id ) ); // phpcs:ignore WordPress.DB
+		$n = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $t WHERE order_id = %d AND paid = 1", (int) $order_id ) ); // phpcs:ignore WordPress.DB
+		if ( $n && class_exists( 'MKD_Staff' ) ) {
+			MKD_Staff::log( 'sale', 'Voided sale had ' . $n . ' sourced part(s) already paid to the neighbour - return the part(s) or agree a credit', array( 'object' => 'order', 'object_id' => (int) $order_id, 'level' => 'warn' ) );
+		}
+	}
+
 	/** Known suppliers, most used first (for the till's suggestion list). */
 	public static function supplier_names( $limit = 40 ) {
 		global $wpdb;

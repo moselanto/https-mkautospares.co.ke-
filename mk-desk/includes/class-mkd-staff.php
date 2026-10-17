@@ -261,6 +261,9 @@ class MKD_Staff {
 		if ( 'paid' === $op && ! self::can( 'mark_paid' ) ) {
 			self::deny( 'mark invoices as paid', true );
 		}
+		if ( 'void' === $op && ! self::can( 'refunds' ) ) {
+			self::deny( 'void a sale', true );
+		}
 		$map = array( 'paid' => 'Marked invoice as paid', 'complete' => 'Marked order as fulfilled', 'email' => 'E-mailed invoice' );
 		if ( isset( $map[ $op ] ) ) {
 			$o = function_exists( 'wc_get_order' ) ? wc_get_order( $id ) : null;

@@ -3,7 +3,7 @@ Contributors: pimofy
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 1.5.1
+Stable tag: 1.6.0
 License: GPLv2 or later
 
 The back office for MK Auto Spares, Kirinyaga Road, Nairobi.
@@ -27,6 +27,14 @@ One black and red desk under wp-admin > MKauto Desk:
 3. Add shop managers under Users > Add New (role Shop manager), then set their limits under MKauto Desk > Team.
 
 == Changelog ==
+= 1.6.0 =
+* End-to-end review. Security: all staff actions checked for permission and security token; public forms keep honeypot and rate limits.
+* Stock: parts on an unpaid invoice (e.g. fitted on a garage job) now leave stock straight away; no double reduction when paid.
+* Mark paid: choose M-Pesa, cash, card or bank (it was always recorded as M-Pesa); M-Pesa code checks and errors now shown.
+* Void a till sale (owner, or staff with the refunds permission): reason required, parts back in stock, unpaid neighbour-supplier lines removed, linked WhatsApp order and booking updated, team log entry and a refund reminder if it was paid.
+* Voided sales show "Voided" on the Sales page, print as VOID, cannot be marked paid or re-sent.
+* A WhatsApp order can no longer be rung up twice; a garage job that already has an invoice warns before billing again.
+
 = 1.5.1 =
 * Fix: "Print receipt" and "Print A4 invoice" after a sale showed "The link you followed has expired". The print links are now built without HTML-escaped "&amp;", so the security check passes.
 

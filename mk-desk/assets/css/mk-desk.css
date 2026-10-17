@@ -745,3 +745,7 @@ a.nt-who:hover{color:#CA1D24}
 .pos-job input,.pos-job textarea{width:100%}
 .pos-job__tip{margin:0;font-size:11.5px;color:#5f6370}
 .nd-jobinv td{vertical-align:middle}
+
+/* 1.6.0 - void button */
+.nd-ico-btn--danger{color:#b42318;border-color:#f3c3bd}
+.nd-ico-btn--danger:hover{background:#fdecea}
