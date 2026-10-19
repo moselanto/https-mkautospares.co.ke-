@@ -330,12 +330,20 @@ class Meta {
 	 * @return string
 	 */
 	public function vehicle_heading( $title ) {
-		if ( ! is_tax( array( 'mk_make', 'mk_model' ) ) ) {
+		if ( ! is_tax( array( 'mk_make', 'mk_model', 'product_cat' ) ) ) {
 			return $title;
 		}
 		$term = get_queried_object();
 		if ( ! $term instanceof \WP_Term ) {
 			return $title;
+		}
+		if ( 'product_cat' === $term->taxonomy ) {
+			// 2.30.0: keyword-led H1 ("Suspension Parts in Kenya") to match the title.
+			return preg_match( '/\bparts\s*$/i', $term->name )
+				/* translators: %s: category. */
+				? sprintf( __( '%s in Kenya', 'mk-auto-elite' ), $term->name )
+				/* translators: %s: category. */
+				: sprintf( __( '%s Parts in Kenya', 'mk-auto-elite' ), $term->name );
 		}
 		if ( 'mk_make' === $term->taxonomy ) {
 			/* translators: %s: vehicle make. */

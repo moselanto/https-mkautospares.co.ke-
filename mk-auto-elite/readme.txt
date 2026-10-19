@@ -46,6 +46,7 @@ ships with:
 * GEO: /llms.txt business and catalogue summary; robots.txt now allows AI search and assistant crawlers (GPTBot, ClaudeBot, CCBot etc.), keeps Bytespider/PetalBot blocked, and points at Rank Math's sitemap_index.xml.
 * Schema: contactPoint, description, knowsAbout and OfferCatalog on the business; GTIN (valid only) and OEM/engine/years PropertyValues on products; ItemList on archives.
 * Customizer: delivery fee and free-delivery threshold settings.
+* SEO: product category H1 is keyword-led ("Suspension Parts in Kenya") to match the title.
 
 = 2.29.0 =
 * Knowledge Centre: 16 new guides targeting high-demand Kenyan searches (hybrid battery prices, spare parts prices, Kirinyaga Road, ordering online with M-Pesa, Fielder/Axio, Demio, Honda Fit, Probox, check engine light, overheating, CVT, AC, NTSA inspection, ex-Japan engines, spark plugs, fuel consumption). 31 guides in total.
