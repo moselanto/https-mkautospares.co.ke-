@@ -62,6 +62,9 @@ class Security {
 
 		// Theme-served robots.txt (used only when no physical file exists).
 		add_filter( 'robots_txt', array( $this, 'robots_txt' ), 10, 2 );
+		// 2.32.1: short cache life so a CDN never pins an old robots.txt for long
+		// (Cloudflare kept serving the pre-2.30.0 rules that blocked AI crawlers).
+		add_action( 'do_robotstxt', array( $this, 'robots_headers' ), 0 );
 	}
 
 	/**
@@ -232,6 +235,19 @@ class Security {
 	 */
 	public function restrict_comments( $open, $post_id ) {
 		return ( 'product' === get_post_type( $post_id ) ) ? $open : false;
+	}
+
+	/**
+	 * Cache headers for the theme-served robots.txt: 5 minutes in browsers
+	 * and shared caches, so rule changes reach crawlers quickly.
+	 */
+	public function robots_headers(): void {
+		if ( headers_sent() ) {
+			return;
+		}
+		header( 'Cache-Control: public, max-age=300, s-maxage=300' );
+		header( 'CDN-Cache-Control: max-age=300' );
+		header( 'Cloudflare-CDN-Cache-Control: max-age=300' );
 	}
 
 	/**

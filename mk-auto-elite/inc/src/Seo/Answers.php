@@ -850,7 +850,8 @@ class Answers {
 		status_header( 200 );
 		header( 'Content-Type: text/plain; charset=utf-8' );
 		header( 'X-Robots-Tag: noindex' );
-		header( 'Cache-Control: public, max-age=3600' );
+		header( 'Cache-Control: public, max-age=3600, s-maxage=3600' );
+		header( 'Cloudflare-CDN-Cache-Control: max-age=3600' );
 		echo $body; // phpcs:ignore WordPress.Security.EscapeOutput -- plain text built from sanitised site data.
 		exit;
 	}

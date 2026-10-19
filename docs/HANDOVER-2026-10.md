@@ -34,6 +34,8 @@ which are harmless and expire in 12 h.
 
 ## Log
 
+- 20 Oct 2026 - 2.32.1: CDN cache headers on robots.txt / llms.txt. Verified: /robots.txt?nocache returns the new rules (so no physical file exists); the plain URL is a stale Cloudflare copy - purge it by URL. Product pilot (50) imported; checked product SZ72104 (Germax Discovery 4 hose): description, part details, short description render correctly.
+
 - 19 Oct 2026 - 2.32.0 (committed, not uploaded): empty product image alt text falls back to the product name. Audit via the public Store API found every product description uses one boilerplate template ("The X is a quality new auto spare part ... your trusted supplier ... Order today via WhatsApp"), and catalogue images have alt="". Product copy rewrite needs a WooCommerce export CSV.
 
 - 19 Oct 2026 - 2.31.1: natural category labels ("Brake Parts in Kenya", not "Brakes Parts").

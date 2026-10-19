@@ -38,6 +38,9 @@ ships with:
 
 == Changelog ==
 
+= 2.32.1 =
+* GEO: robots.txt and llms.txt send short CDN cache headers (5 min / 1 h), so Cloudflare cannot keep serving an outdated robots.txt that blocks AI crawlers.
+
 = 2.32.0 =
 * SEO/accessibility: product images with an empty alt now use the product name (loop, single product and gallery). Typed alt text is never replaced.
 
