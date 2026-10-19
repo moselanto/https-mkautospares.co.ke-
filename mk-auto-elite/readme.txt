@@ -38,6 +38,9 @@ ships with:
 
 == Changelog ==
 
+= 2.32.0 =
+* SEO/accessibility: product images with an empty alt now use the product name (loop, single product and gallery). Typed alt text is never replaced.
+
 = 2.31.1 =
 * SEO: natural category labels in titles, H1s, intros and FAQs ("Brake Parts in Kenya" instead of "Brakes Parts in Kenya"; "Accessories" no longer gets "Parts" appended).
 

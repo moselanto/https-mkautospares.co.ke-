@@ -34,6 +34,8 @@ which are harmless and expire in 12 h.
 
 ## Log
 
+- 19 Oct 2026 - 2.32.0 (committed, not uploaded): empty product image alt text falls back to the product name. Audit via the public Store API found every product description uses one boilerplate template ("The X is a quality new auto spare part ... your trusted supplier ... Order today via WhatsApp"), and catalogue images have alt="". Product copy rewrite needs a WooCommerce export CSV.
+
 - 19 Oct 2026 - 2.31.1: natural category labels ("Brake Parts in Kenya", not "Brakes Parts").
 
 - 19 Oct 2026 - 2.31.0: data-driven fallback intros on category/make/model archives with no description; Offer shippingRate (KES 500, free from 10,000) and delivery times in schema; AI crawlers named explicitly as allowed in robots.txt.

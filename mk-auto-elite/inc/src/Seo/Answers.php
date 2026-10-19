@@ -65,6 +65,8 @@ class Answers {
 		add_action( 'woocommerce_after_shop_loop', array( __CLASS__, 'render_archive_faq' ), 40 );
 		add_action( 'mkae_hub_after_products', array( __CLASS__, 'render_archive_faq' ) );
 		add_action( 'woocommerce_archive_description', array( __CLASS__, 'render_fallback_intro' ), 11 );
+		add_filter( 'wp_get_attachment_image_attributes', array( $this, 'image_alt' ), 20, 2 );
+		add_filter( 'woocommerce_gallery_image_html_attachment_image_params', array( $this, 'gallery_alt' ), 20, 2 );
 
 		add_filter( 'rank_math/frontend/title', array( $this, 'product_title' ), 21 );
 		add_filter( 'rank_math/frontend/description', array( $this, 'product_description' ), 21 );
@@ -645,6 +647,65 @@ class Answers {
 		if ( '' !== $html ) {
 			echo '<div class="term-description mkae-term-intro">' . $html . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in fallback_intro().
 		}
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Image alt text (2.32.0)                                             */
+	/* ------------------------------------------------------------------ */
+
+	/**
+	 * Product the image is being shown for: the loop / single product in
+	 * context, else the attachment's parent product. Images are shared
+	 * between products, so context wins over the parent.
+	 *
+	 * @param \WP_Post|null $attachment Attachment.
+	 */
+	private static function image_product( $attachment ): ?\WC_Product {
+		global $product;
+		if ( $product instanceof \WC_Product ) {
+			return $product;
+		}
+		if ( $attachment instanceof \WP_Post && $attachment->post_parent && function_exists( 'wc_get_product' ) && 'product' === get_post_type( $attachment->post_parent ) ) {
+			$found = wc_get_product( $attachment->post_parent );
+			return $found instanceof \WC_Product ? $found : null;
+		}
+		return null;
+	}
+
+	/**
+	 * Fill an empty alt with the product name (the 19 Oct 2026 audit found
+	 * catalogue images with alt=""). A typed alt is never replaced.
+	 *
+	 * @param array<string,string> $attr       Attributes.
+	 * @param \WP_Post|mixed       $attachment Attachment.
+	 * @return array<string,string>
+	 */
+	public function image_alt( $attr, $attachment ) {
+		if ( ! is_array( $attr ) || is_admin() || '' !== trim( (string) ( $attr['alt'] ?? '' ) ) ) {
+			return $attr;
+		}
+		$product = self::image_product( $attachment instanceof \WP_Post ? $attachment : null );
+		if ( $product ) {
+			$attr['alt'] = trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( $product->get_name() ) ) );
+		}
+		return $attr;
+	}
+
+	/**
+	 * Same for the single-product gallery (passes its own params).
+	 *
+	 * @param array<string,string> $params        Image params.
+	 * @param int                  $attachment_id Attachment ID.
+	 * @return array<string,string>
+	 */
+	public function gallery_alt( $params, $attachment_id = 0 ) {
+		if ( is_array( $params ) && '' === trim( (string) ( $params['alt'] ?? '' ) ) ) {
+			$product = self::image_product( get_post( (int) $attachment_id ) );
+			if ( $product ) {
+				$params['alt'] = trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( $product->get_name() ) ) );
+			}
+		}
+		return $params;
 	}
 
 	/* ------------------------------------------------------------------ */
