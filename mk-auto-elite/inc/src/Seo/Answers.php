@@ -64,6 +64,7 @@ class Answers {
 		add_action( 'template_redirect', array( $this, 'serve_llms_txt' ), 0 );
 		add_action( 'woocommerce_after_shop_loop', array( __CLASS__, 'render_archive_faq' ), 40 );
 		add_action( 'mkae_hub_after_products', array( __CLASS__, 'render_archive_faq' ) );
+		add_action( 'woocommerce_archive_description', array( __CLASS__, 'render_fallback_intro' ), 11 );
 
 		add_filter( 'rank_math/frontend/title', array( $this, 'product_title' ), 21 );
 		add_filter( 'rank_math/frontend/description', array( $this, 'product_description' ), 21 );
@@ -526,6 +527,103 @@ class Answers {
 			);
 		}
 		echo '</div></section>';
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Fallback archive intros (2.31.0)                                    */
+	/* ------------------------------------------------------------------ */
+
+	/**
+	 * Buying guidance per part family, matched on the category name. General,
+	 * factual advice only - no stock, price or fitment claims.
+	 *
+	 * @return array<string,string> regex => sentence
+	 */
+	private static function category_tips(): array {
+		return array(
+			'/brake/i'                 => __( 'Brake pads, discs, shoes, calipers and cylinders must match your exact model and axle (front or rear). Replace pads and discs in axle pairs and check the OEM number on the old part.', 'mk-auto-elite' ),
+			'/engine/i'                => __( 'Engine parts such as gaskets, mounts, belts, pistons and timing components are specific to the engine code (for example 1NZ, 2KD, QR25 or EJ20). Quote the engine code or chassis number when you order.', 'mk-auto-elite' ),
+			'/electric|sensor/i'       => __( 'Sensors, switches, coils and modules are often specific to the year and engine. Match the connector and part number, and note that installed electrical parts are only returnable if faulty on arrival.', 'mk-auto-elite' ),
+			'/transmission|gearbox|clutch/i' => __( 'Gearbox, CV and clutch parts differ between manual, automatic and CVT versions and between 2WD and 4WD. Confirm the transmission type and chassis code before ordering.', 'mk-auto-elite' ),
+			'/cool|radiator/i'         => __( 'Radiators, fans, water pumps, thermostats and hoses keep the engine from overheating in Kenyan traffic. Match the engine size and whether the car is manual or automatic, as radiators often differ.', 'mk-auto-elite' ),
+			'/light|lamp/i'            => __( 'Head lamps, tail lights and corner lamps are side-specific (LHS or RHS) and change with facelifts. Check the side and model years in the product title.', 'mk-auto-elite' ),
+			'/body|mirror|bumper/i'    => __( 'Body parts such as mirrors, bumpers, grilles and mounts are side- and year-specific. Check LHS or RHS and the model years, or send a photo of the old part on WhatsApp.', 'mk-auto-elite' ),
+			'/fuel|inject|pump/i'      => __( 'Fuel pumps, filters and injectors must match the engine and fuel type (petrol or diesel). Quote the engine code or chassis number to get the right part.', 'mk-auto-elite' ),
+			'/steer/i'                 => __( 'Steering racks, rack ends, tie rod ends and pumps are model-specific and safety-critical. Have them fitted by a qualified mechanic and check wheel alignment afterwards.', 'mk-auto-elite' ),
+			'/suspension|shock/i'      => __( 'Shock absorbers, control arms, ball joints, links and bushes are often side- and position-specific. Use your chassis code for the safest match.', 'mk-auto-elite' ),
+			'/accessor/i'              => __( 'Accessories are listed with the vehicles they suit; check the model and years in the title before ordering.', 'mk-auto-elite' ),
+		);
+	}
+
+	/**
+	 * Data-driven intro used only when the term has no description of its own.
+	 *
+	 * @param \WP_Term $term Term.
+	 */
+	public static function fallback_intro( \WP_Term $term ): string {
+		$stats = self::term_stats( $term );
+		if ( $stats['count'] < 1 ) {
+			return '';
+		}
+		$brand = self::brand();
+		$where = Customizer::get( 'location' );
+		$phone = Customizer::get( 'phone' );
+		$out   = array();
+
+		if ( 'product_cat' === $term->taxonomy ) {
+			$label = preg_match( '/\bparts\s*$/i', $term->name ) ? $term->name : $term->name . ' ' . __( 'parts', 'mk-auto-elite' );
+			$makes = array_keys( self::co_terms( $term, 'mk_make', 6 ) );
+			/* translators: 1: count, 2: label, 3: brand, 4: location. */
+			$p = sprintf( __( 'Shop %1$s %2$s at %3$s, %4$s', 'mk-auto-elite' ), number_format_i18n( $stats['count'] ), mb_strtolower( $label ), $brand, $where );
+			if ( $makes ) {
+				/* translators: %s: makes. */
+				$p .= sprintf( __( ', for vehicles including %s', 'mk-auto-elite' ), self::and_list( $makes ) );
+			}
+			$out[] = $p . '. ' . __( 'Each listing shows the vehicle it fits and, where available, the OEM part number.', 'mk-auto-elite' );
+			foreach ( self::category_tips() as $re => $tip ) {
+				if ( preg_match( $re, $term->name ) ) {
+					$out[] = $tip;
+					break;
+				}
+			}
+		} else {
+			$name = $term->name;
+			if ( $term->parent ) {
+				$parent = get_term( $term->parent, $term->taxonomy );
+				if ( $parent instanceof \WP_Term && 0 !== stripos( $name, $parent->name ) ) {
+					$name = $parent->name . ' ' . $name;
+				}
+			}
+			$cats = array_map( 'mb_strtolower', array_keys( self::co_terms( $term, 'product_cat', 5 ) ) );
+			/* translators: 1: count, 2: vehicle, 3: brand, 4: location. */
+			$p = sprintf( __( 'Find %1$s %2$s spare parts at %3$s, %4$s', 'mk-auto-elite' ), number_format_i18n( $stats['count'] ), $name, $brand, $where );
+			if ( $cats ) {
+				/* translators: %s: categories. */
+				$p .= sprintf( __( ', including %s', 'mk-auto-elite' ), self::and_list( $cats ) );
+			}
+			$out[] = $p . '.';
+			/* translators: %s: vehicle. */
+			$out[] = sprintf( __( 'Parts often change between generations of the same %s model, so the chassis code on your logbook is the safest way to match the right part.', 'mk-auto-elite' ), $name );
+		}
+		/* translators: %s: phone. */
+		$out[] = sprintf( __( 'Not sure it fits? Send your chassis number or a photo of the old part on WhatsApp (%s) and we confirm before you pay. Pay by M-Pesa, collect from the shop or get delivery across Kenya.', 'mk-auto-elite' ), $phone );
+
+		return '<p>' . implode( '</p><p>', array_map( 'esc_html', $out ) ) . '</p>';
+	}
+
+	/** WooCommerce category archives: print the fallback intro when the term has none. */
+	public static function render_fallback_intro(): void {
+		if ( ! is_tax( 'product_cat' ) || (int) get_query_var( 'paged' ) > 1 ) {
+			return;
+		}
+		$term = get_queried_object();
+		if ( ! $term instanceof \WP_Term || '' !== trim( wp_strip_all_tags( (string) $term->description ) ) ) {
+			return;
+		}
+		$html = self::fallback_intro( $term );
+		if ( '' !== $html ) {
+			echo '<div class="term-description mkae-term-intro">' . $html . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in fallback_intro().
+		}
 	}
 
 	/* ------------------------------------------------------------------ */

@@ -38,6 +38,11 @@ ships with:
 
 == Changelog ==
 
+= 2.31.0 =
+* SEO/AEO: category, make and model archives without their own description get a data-driven intro (live part count, top makes or categories, part-family buying advice, fitment and WhatsApp help). Typed descriptions always win.
+* Schema: Offer shippingDetails now carry the delivery fee (free above the threshold) and handling/transit times from the Customizer, matching the Shipping page.
+* GEO: robots.txt names the AI search and assistant crawlers (OpenAI, Anthropic, Perplexity, Google, Apple, Common Crawl, Meta, DuckDuckGo, Mistral) explicitly as allowed.
+
 = 2.30.0 =
 * SEO/AEO: homepage FAQ expanded to 10 answers (where to buy in Nairobi, makes stocked, chassis-number orders, genuine vs OEM vs aftermarket vs ex-Japan, delivery, payment, unlisted parts, returns), built from Customizer and policy facts; FAQPage schema mirrors it.
 * SEO/AEO: data-driven FAQ under the grid on category, make and model archives (live part count, real price range, top categories/makes, fitment); FAQPage schema mirrors it.

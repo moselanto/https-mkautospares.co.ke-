@@ -618,13 +618,7 @@ class Schema {
 	private function offer_extras( \WC_Product $product ): array {
 		$extras = array(
 			'seller'                  => array( '@id' => home_url( '/#organization' ) ),
-			'shippingDetails'         => array(
-				'@type'               => 'OfferShippingDetails',
-				'shippingDestination' => array(
-					'@type'          => 'DefinedRegion',
-					'addressCountry' => 'KE',
-				),
-			),
+			'shippingDetails'         => $this->shipping_details( $product ),
 		);
 		$days = absint( Customizer::get( 'return_days' ) );
 		if ( $days > 0 ) {
@@ -645,6 +639,49 @@ class Schema {
 			$extras['itemCondition'] = $condition;
 		}
 		return (array) apply_filters( 'mkae_schema_offer_extras', $extras, $product );
+	}
+
+	/**
+	 * Shipping details from the Customizer (must match the Shipping page):
+	 * flat fee, free above the threshold, 0-1 day handling, 1-5 days transit.
+	 *
+	 * @param \WC_Product $product Product.
+	 * @return array<string,mixed>
+	 */
+	private function shipping_details( \WC_Product $product ): array {
+		$details = array(
+			'@type'               => 'OfferShippingDetails',
+			'shippingDestination' => array(
+				'@type'          => 'DefinedRegion',
+				'addressCountry' => 'KE',
+			),
+		);
+		$fee   = absint( Customizer::get( 'delivery_fee' ) );
+		$free  = absint( Customizer::get( 'free_delivery_from' ) );
+		$price = (float) $product->get_price();
+		if ( $fee > 0 ) {
+			$details['shippingRate'] = array(
+				'@type'    => 'MonetaryAmount',
+				'value'    => ( $free > 0 && $price >= $free ) ? 0 : $fee,
+				'currency' => 'KES',
+			);
+			$details['deliveryTime'] = array(
+				'@type'        => 'ShippingDeliveryTime',
+				'handlingTime' => array(
+					'@type'    => 'QuantitativeValue',
+					'minValue' => 0,
+					'maxValue' => 1,
+					'unitCode' => 'DAY',
+				),
+				'transitTime'  => array(
+					'@type'    => 'QuantitativeValue',
+					'minValue' => 1,
+					'maxValue' => 5,
+					'unitCode' => 'DAY',
+				),
+			);
+		}
+		return $details;
 	}
 
 	/**

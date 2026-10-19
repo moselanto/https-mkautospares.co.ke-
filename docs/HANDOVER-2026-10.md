@@ -4,7 +4,7 @@ Read `AGENTS.md`, then `docs/SEO-STRATEGY-2026-10.md`, before continuing.
 
 ## Current state (19 Oct 2026, 23:15 EAT)
 
-- Theme **2.30.0 committed, NOT uploaded yet**. Live is 2.29.0.
+- Theme **2.31.0 committed, NOT uploaded yet** (includes 2.30.0). Live is 2.29.0.
 - New module `inc/src/Seo/Answers.php`; edits to `Seo/Schema.php`,
   `Security.php` (robots.txt), `Customizer.php`, `Theme.php`,
   `front-page.php`, `template-parts/hub.php`.
@@ -32,5 +32,7 @@ which are harmless and expire in 12 h.
 - Competitors named in the brief (Nanak, Simco, Taisho, Motorshop) still to be checked manually in Google.
 
 ## Log
+
+- 19 Oct 2026 - 2.31.0: data-driven fallback intros on category/make/model archives with no description; Offer shippingRate (KES 500, free from 10,000) and delivery times in schema; AI crawlers named explicitly as allowed in robots.txt.
 
 - 19 Oct 2026 - 2.30.0: AEO homepage FAQ (10), data-driven archive FAQs with live price ranges, product title/description fallbacks, facet + search noindex, llms.txt, AI crawlers allowed, Rank Math sitemap in robots.txt, schema enrichment (contactPoint, description, knowsAbout, OfferCatalog, GTIN, additionalProperty, ItemList).

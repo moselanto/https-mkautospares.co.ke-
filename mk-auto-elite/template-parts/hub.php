@@ -28,6 +28,10 @@ $mkae_heading  = $mkae_is_model
 			<h1 class="mkae-hub__title"><?php echo esc_html( $mkae_heading ); ?></h1>
 			<?php
 			$mkae_desc = ( $mkae_term instanceof WP_Term ) ? term_description( $mkae_term ) : '';
+			if ( ! trim( wp_strip_all_tags( (string) $mkae_desc ) ) && $mkae_term instanceof WP_Term && (int) get_query_var( 'paged' ) < 2 ) {
+				// 2.31.0: data-driven intro when the make/model has no description yet.
+				$mkae_desc = \MKAutoElite\Seo\Answers::fallback_intro( $mkae_term );
+			}
 			if ( $mkae_desc ) :
 				?>
 				<div class="mkae-hub__intro"><?php echo wp_kses_post( $mkae_desc ); ?></div>
