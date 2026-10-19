@@ -30,9 +30,11 @@ which are harmless and expire in 12 h.
 - Cloudflare bot settings (AI crawlers currently challenged for non-browser clients).
 - Search Console / Bing / GA4 access for baseline numbers.
 - Google Business Profile consistency and reviews.
-- Competitors named in the brief (Nanak, Simco, Taisho, Motorshop) still to be checked manually in Google.
+- Competitors named in the brief checked 20 Oct 2026 (see strategy section 2). Directory citations and listicle outreach are the next off-site actions.
 
 ## Log
+
+- 20 Oct 2026 - MKauto Desk 1.7.1: subscribe pop-up is marked seen when it opens (no repeat on reload). Competitor check + AI/answer visibility tests logged in the strategy file. Meta-description import: product pages load; title on SZ7195 unchanged as intended; meta description tag could not be read by our fetch tool - owner to confirm via view-source.
 
 - 20 Oct 2026 - 2.32.1: CDN cache headers on robots.txt / llms.txt. Verified: /robots.txt?nocache returns the new rules (so no physical file exists); the plain URL is a stale Cloudflare copy - purge it by URL. Product pilot (50) imported; checked product SZ72104 (Germax Discovery 4 hose): description, part details, short description render correctly.
 

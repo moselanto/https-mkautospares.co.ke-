@@ -40,7 +40,11 @@ URLs (blocked to us by Cloudflare). See section 7.
 | Toyota Kenya / CFAO (toyotakenya.ke, cfaomobility.co.ke) | Official genuine parts pages | Authority on "genuine Toyota parts" | Do not compete on "official"; win "Toyota spare parts price Kenya", model + part queries |
 | Partspoa, 888 Auto Spares, E-spareparts | Toyota/Japanese parts with prices, part numbers | Price + part-number pages | MK has 4,300 priced items; product titles now "... Price in Kenya" where length allows |
 | Kirinyaga Road shops (KM Auto Spares, Smallwood, Carmath, Kabugua, SamTech, JSAM, Gitonga) | Many rank for "Kirinyaga Road" with thin shop pages | Local signals | MK has the strongest catalogue + guides; keep Google Business Profile and NAP consistent |
-| Nanak, Simco, Taisho, Motorshop (named in brief) | Not surfaced in these two searches; check again in Search Console "Queries" and manual Google searches | - | Record in section 6 when checked |
+| Nanak Car Parts (naanak.com) [verified 20 Oct 2026] | German-car specialist (Mercedes, BMW, VW, Audi), Butere Rd, Industrial Area; claims 20,000+ lines, est. 1969; make-specific landing pages ("BMW Spare Parts Nairobi Kenya") | Strong make-page titles for European brands; long history | MK should not lead on German parts; its Mercedes/BMW/VW make hubs should target model + part queries with real prices, which Nanak's pages lack |
+| Simco Auto Parts (simcoautoparts.com / simcospares.com) [verified 20 Oct 2026] | Wholesaler/distributor since 1999, Lusaka Rd; homepage is almost empty ("Quality Parts, Dependable Performance"); visibility comes from directories (Yellow Pages Kenya, KenyaBizList) listing brands it distributes (KYB, Exedy, 555, NSK) | Directory citations, brand distributorships | MK outranks it easily on product queries; copy the directory tactic: list MK with identical NAP on Yellow Pages Kenya, KenyaBizList, Bing Places, Apple Business Connect |
+| Taisho Parts & Accessories (taishopartsandaccessories.co.ke) [verified 20 Oct 2026] | New + ex-Japan parts, Chogoria Rd, Industrial Area; WordPress site with a blog post ("Looking for Genuine Car Spare Parts in Kenya?", Aug 2026); no visible priced catalogue | Fresh blog content aimed at "genuine car spare parts Kenya" | MK's 31 guides + 4,300 priced products are much deeper; keep publishing guides where Search Console shows impressions |
+| Motorshop Kenya (motorshop.co.ke) [verified 20 Oct 2026] | Classifieds / auto media marketplace (Marsabit Plaza, Ngong Rd), not a parts retailer; appears in "best places to buy spare parts" listicles | Listicle mentions | Pitch MK to the same listicle authors (victormatara.com, nyongesasande.com) for inclusion - these lists are what AI answers often cite |
+| Others seen in live results 20 Oct 2026 | SasaParts, Commercial Motor Spares (cms.co.ke), Saf Auto Spares, Samco, Onestop Garage, Premier Motor Spares, Precision, Slurg, Masuma, Woodville, E-spareparts, Spares Mall, Tyrex, SpareZone, Taleon, Trustway, Greyant, Partsultan, CarPartsKE | Best product pages show fitment tables, OEM cross-refs, engine/chassis codes and a price (Woodville, Spares Mall, Onestop) | MK pilot descriptions follow the same pattern; expand once the pilot shows results |
 
 ## 3. Keyword architecture (one primary intent per URL)
 
@@ -98,9 +102,13 @@ Run monthly; record date, engine, query, whether MK was mentioned/cited.
 | --- | --- | --- | --- |
 | 19 Oct 2026 | Web search (Exa) | car spare parts Nairobi Kirinyaga Road online shop | Yes (homepage, result 2 of 10) |
 | 19 Oct 2026 | Web search (Exa) | Toyota spare parts Kenya online | Yes (homepage, result 9 of 10) |
-| - | ChatGPT search | where to buy genuine car spare parts in Nairobi | to test after Cloudflare change |
-| - | Perplexity | Toyota Prado shock absorber price Kenya | to test |
-| - | Google AI Overview | car spare parts with countrywide delivery Kenya | to test |
+| 20 Oct 2026 | Web search (Exa) | where to buy genuine car spare parts in Nairobi | Yes (homepage, result 3 of 10; SasaParts 1, CMS 2) |
+| 20 Oct 2026 | Web search (Exa) | car spare parts with countrywide delivery Kenya | Yes (homepage, result 3 of 10) |
+| 20 Oct 2026 | Web search (Exa) | Toyota Prado shock absorber price Kenya | No (E-spareparts, Woodville, Onestop, Spares Mall, SasaParts, Tyrex) |
+| 20 Oct 2026 | Web search (Exa) | Subaru Forester suspension parts Kenya | No (Subaru Solutions, Taleon, SpareZone, Onestop, Tyrex, SasaParts) |
+| - | ChatGPT search / Perplexity / Google AI Overview | same four queries | needs a signed-in browser session; run monthly |
+
+Reading (20 Oct 2026): MK is cited for broad "where to buy" and delivery queries (homepage), but not yet for model + part + price queries, where competitors' product pages with fitment tables win. That is exactly what the 50-product pilot and the meta descriptions address.
 
 ## 7. Measurement
 
