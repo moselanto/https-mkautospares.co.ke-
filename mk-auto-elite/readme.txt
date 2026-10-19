@@ -38,6 +38,9 @@ ships with:
 
 == Changelog ==
 
+= 2.31.1 =
+* SEO: natural category labels in titles, H1s, intros and FAQs ("Brake Parts in Kenya" instead of "Brakes Parts in Kenya"; "Accessories" no longer gets "Parts" appended).
+
 = 2.31.0 =
 * SEO/AEO: category, make and model archives without their own description get a data-driven intro (live part count, top makes or categories, part-family buying advice, fitment and WhatsApp help). Typed descriptions always win.
 * Schema: Offer shippingDetails now carry the delivery fee (free above the threshold) and handling/transit times from the Customizer, matching the Shipping page.

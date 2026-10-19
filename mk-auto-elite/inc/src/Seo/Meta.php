@@ -86,10 +86,8 @@ class Meta {
 			$paged = self::page_suffix();
 			if ( 'product_cat' === $term->taxonomy ) {
 				// Avoid "Spare Parts Parts" when the category name already ends in "Parts".
-				if ( preg_match( '/\bparts\s*$/i', $term->name ) ) {
-					return sprintf( __( '%1$s in Kenya%2$s | %3$s', 'mk-auto-elite' ), $term->name, $paged, $brand );
-				}
-				return sprintf( __( '%1$s Parts in Kenya%2$s | %3$s', 'mk-auto-elite' ), $term->name, $paged, $brand );
+				/* translators: 1: category label, 2: page suffix, 3: brand. */
+				return sprintf( __( '%1$s in Kenya%2$s | %3$s', 'mk-auto-elite' ), Answers::category_label( $term->name ), $paged, $brand );
 			}
 			$name = self::vehicle_name( $term );
 			return sprintf( __( '%1$s Spare Parts in Kenya%2$s | %3$s', 'mk-auto-elite' ), $name, $paged, $brand );
@@ -339,11 +337,8 @@ class Meta {
 		}
 		if ( 'product_cat' === $term->taxonomy ) {
 			// 2.30.0: keyword-led H1 ("Suspension Parts in Kenya") to match the title.
-			return preg_match( '/\bparts\s*$/i', $term->name )
-				/* translators: %s: category. */
-				? sprintf( __( '%s in Kenya', 'mk-auto-elite' ), $term->name )
-				/* translators: %s: category. */
-				: sprintf( __( '%s Parts in Kenya', 'mk-auto-elite' ), $term->name );
+			/* translators: %s: category label. */
+			return sprintf( __( '%s in Kenya', 'mk-auto-elite' ), Answers::category_label( $term->name ) );
 		}
 		if ( 'mk_make' === $term->taxonomy ) {
 			/* translators: %s: vehicle make. */

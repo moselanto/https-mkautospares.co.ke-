@@ -4,7 +4,8 @@ Read `AGENTS.md`, then `docs/SEO-STRATEGY-2026-10.md`, before continuing.
 
 ## Current state (19 Oct 2026, 23:15 EAT)
 
-- Theme **2.31.0 committed, NOT uploaded yet** (includes 2.30.0). Live is 2.29.0.
+- 2.31.0 is LIVE (verified 19 Oct 2026 23:20 EAT: /llms.txt, make-hub and category FAQs render). **2.31.1 committed, not uploaded** (category label fix).
+- Still stale on live: homepage shows the old 3-question FAQ (page cache) and /robots.txt shows the OLD rules blocking GPTBot/ClaudeBot (Cloudflare cache or a physical robots.txt in the web root).
 - New module `inc/src/Seo/Answers.php`; edits to `Seo/Schema.php`,
   `Security.php` (robots.txt), `Customizer.php`, `Theme.php`,
   `front-page.php`, `template-parts/hub.php`.
@@ -32,6 +33,8 @@ which are harmless and expire in 12 h.
 - Competitors named in the brief (Nanak, Simco, Taisho, Motorshop) still to be checked manually in Google.
 
 ## Log
+
+- 19 Oct 2026 - 2.31.1: natural category labels ("Brake Parts in Kenya", not "Brakes Parts").
 
 - 19 Oct 2026 - 2.31.0: data-driven fallback intros on category/make/model archives with no description; Offer shippingRate (KES 500, free from 10,000) and delivery times in schema; AI crawlers named explicitly as allowed in robots.txt.
 

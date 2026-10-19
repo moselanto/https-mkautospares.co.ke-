@@ -287,6 +287,27 @@ class Answers {
 		return sprintf( __( '%1$s and %2$s', 'mk-auto-elite' ), implode( ', ', $items ), $last );
 	}
 
+	/**
+	 * Natural "X parts" label for a category: "Brakes" -> "Brake Parts",
+	 * "Body Parts" stays, "Accessories" stays, "Cooling" -> "Cooling Parts".
+	 *
+	 * @param string $name Category name.
+	 */
+	public static function category_label( string $name ): string {
+		$name = trim( $name );
+		if ( preg_match( '/\b(parts|accessories|batteries|wheels|spares)\s*$/i', $name ) ) {
+			return $name;
+		}
+		$map = (array) apply_filters( 'mkae_category_singular', array( 'Brakes' => 'Brake', 'Lights' => 'Light', 'Filters' => 'Filter', 'Sensors' => 'Sensor' ) );
+		foreach ( $map as $plural => $single ) {
+			if ( preg_match( '/\b' . preg_quote( (string) $plural, '/' ) . '$/i', $name ) ) {
+				$name = (string) preg_replace( '/\b' . preg_quote( (string) $plural, '/' ) . '$/i', (string) $single, $name );
+				break;
+			}
+		}
+		return $name . ' ' . __( 'Parts', 'mk-auto-elite' );
+	}
+
 	/** URL of a published page by one of several slugs, or ''. */
 	private static function page_url( string ...$slugs ): string {
 		foreach ( $slugs as $slug ) {
@@ -437,7 +458,7 @@ class Answers {
 		$faqs  = array();
 
 		if ( 'product_cat' === $term->taxonomy ) {
-			$label = preg_match( '/\bparts\s*$/i', $term->name ) ? $term->name : $term->name . ' ' . __( 'parts', 'mk-auto-elite' );
+			$label = self::category_label( $term->name );
 			$lower = function_exists( 'mb_strtolower' ) ? mb_strtolower( $label ) : strtolower( $label );
 			$makes = array_keys( self::co_terms( $term, 'mk_make', 6 ) );
 
@@ -571,7 +592,7 @@ class Answers {
 		$out   = array();
 
 		if ( 'product_cat' === $term->taxonomy ) {
-			$label = preg_match( '/\bparts\s*$/i', $term->name ) ? $term->name : $term->name . ' ' . __( 'parts', 'mk-auto-elite' );
+			$label = self::category_label( $term->name );
 			$makes = array_keys( self::co_terms( $term, 'mk_make', 6 ) );
 			/* translators: 1: count, 2: label, 3: brand, 4: location. */
 			$p = sprintf( __( 'Shop %1$s %2$s at %3$s, %4$s', 'mk-auto-elite' ), number_format_i18n( $stats['count'] ), mb_strtolower( $label ), $brand, $where );
