@@ -1,4 +1,4 @@
-/* MKauto "Parts list" - pop-up + footer form (MKauto Desk 1.62.0). */
+/* MKauto "Parts list" - pop-up + footer form (MKauto Desk 1.7.1). */
 (function () {
 'use strict';
 function mkdHouseInit() {
@@ -56,6 +56,8 @@ function mkdHouseInit() {
 		if (!force && state()) { return; }
 		if (!force && busy()) { setTimeout(function () { open(false); }, 8000); return; }
 		opened = true; lastFocus = d.activeElement;
+		/* Count the pop-up as seen as soon as it opens, so a reload or the next page does not show it again. */
+		if (!force && state() !== 'sub') { setC(KEY, 'x', C.days || 21); try { setC('mkd_house_tab', '1', 1); } catch (e) {} }
 		box.hidden = false; d.documentElement.classList.add('nhs-lock');
 		requestAnimationFrame(function () { box.classList.add('is-open'); var i = box.querySelector('[name=name]'); setTimeout(function () { (i || card).focus({ preventScroll: true }); }, 250); });
 		if (tab) { tab.hidden = true; }

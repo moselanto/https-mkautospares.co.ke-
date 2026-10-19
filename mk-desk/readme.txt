@@ -3,7 +3,7 @@ Contributors: pimofy
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Stable tag: 1.7.0
+Stable tag: 1.7.1
 License: GPLv2 or later
 
 The back office for MK Auto Spares, Kirinyaga Road, Nairobi.
@@ -27,6 +27,9 @@ One black and red desk under wp-admin > MKauto Desk:
 3. Add shop managers under Users > Add New (role Shop manager), then set their limits under MKauto Desk > Team.
 
 == Changelog ==
+= 1.7.1 =
+* Subscribe pop-up: now counted as seen the moment it opens, so reloading the page or moving to another page no longer brings it back. It shows again only after the "ask again after (days)" setting (default 21 days); subscribers never see it again.
+
 = 1.7.0 =
 * Garage bookings: record a deposit (amount, method, M-Pesa code checked for re-use) and check the car in when it arrives (new "Checked in" status with time). The deposit is taken off the invoice automatically when the job is billed; only staff with the refunds permission can remove a deposit that is not yet on an invoice.
 * Till invoices: record part payments (amount, method, code checked for re-use). Invoices, receipts, e-mails and WhatsApp messages show each payment and the balance due; the invoice becomes a receipt automatically when fully paid. Sales list shows "Part paid" with the amount left.
