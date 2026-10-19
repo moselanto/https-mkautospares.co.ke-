@@ -65,6 +65,8 @@ Custom WordPress + WooCommerce storefront for **[mkautospares.co.ke](https://mka
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Full architecture: modules, data, flows, security layers, release process |
 | [PRD.md](PRD.md) | Product requirements and status |
 | [SECURITY-AUDIT.md](SECURITY-AUDIT.md) | Security review, fixes and maintenance checklist |
+| [docs/SEO-STRATEGY-2026-10.md](docs/SEO-STRATEGY-2026-10.md) | SEO/AEO/GEO audit, competitors, keyword map, roadmap |
+| [docs/HANDOVER-2026-10.md](docs/HANDOVER-2026-10.md) | Current state, deploy, rollback, work log |
 
 ## Security (theme 2.28.0 / core 1.1.0 / desk 1.6.3)
 
@@ -382,6 +384,7 @@ AJAX actions (all nonce-checked with `mkae_nonce`): `mkae_get_terms`, `mkae_sear
 
 | Theme | Plugin | Highlights |
 | :---: | :---: | --- |
+| `2.30.0` | - | SEO/AEO/GEO programme: 10-answer homepage FAQ, data-driven FAQs with live price ranges on category/make/model archives, product title/description fallbacks, facet + search noindex, `/llms.txt`, AI crawlers allowed in robots.txt, richer schema (contactPoint, OfferCatalog, GTIN, PropertyValue, ItemList). See docs/SEO-STRATEGY-2026-10.md |
 | `2.28.0` | `1.1.0` | Security: trusted-IP rate limits (fake proxy headers no longer bypass limits), Gemini key from environment and sent in a header, rate limit on public lookups, HTTPS redirect, HSTS and extra headers; core: 60-minute staff idle logout, extra admin headers. Desk 1.6.3: REST rate limit, no CORS for other sites, `no-store` on Desk screens |
 | `2.19.0` | - | SEO: schema de-duplicated against Rank Math and enriched (AutoPartsStore, part brand, MPN, condition, compatible vehicles, shipping, 7-day returns); no Offer on price-on-request items; Knowledge Centre Article schema; new Seo\Meta titles/descriptions fallbacks; empty /fitment/ and /locations/ noindexed; Customizer SEO & Local Business section |
 | - | `1.0.0` | New MK Auto Core plugin: branded split-screen staff sign-in (logo, Welcome back, WhatsApp help, secure note) and login guard (lockout, bot traps, rate limits, 10-character passwords, 8-hour staff sessions, login/admin headers). Full documentation set added |

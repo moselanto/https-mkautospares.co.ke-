@@ -54,6 +54,8 @@ class Customizer {
 		'geo_lng'        => '',
 		'return_days'    => '7',
 		'og_image'       => '',
+		'delivery_fee'       => '500',
+		'free_delivery_from' => '10000',
 	);
 
 	/**
@@ -342,6 +344,8 @@ class Customizer {
 			'geo_lng'        => array( __( 'Shop longitude (e.g. 36.8285). Leave blank if unsure.', 'mk-auto-elite' ), 'sanitize_text_field', 'text' ),
 			'return_days'    => array( __( 'Return window in days (must match the Returns & Refund page)', 'mk-auto-elite' ), 'absint', 'number' ),
 			'og_image'       => array( __( 'Default social share image URL (1200x630). Blank uses the homepage hero.', 'mk-auto-elite' ), 'esc_url_raw', 'url' ),
+			'delivery_fee'       => array( __( 'Delivery fee in KES (must match the Shipping & Delivery page; 0 hides it in FAQs)', 'mk-auto-elite' ), 'absint', 'number' ),
+			'free_delivery_from' => array( __( 'Free delivery from order value in KES (0 = no free-delivery threshold)', 'mk-auto-elite' ), 'absint', 'number' ),
 		);
 		foreach ( $seo_fields as $key => $meta ) {
 			$wp_customize->add_setting(

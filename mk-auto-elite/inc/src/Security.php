@@ -248,23 +248,14 @@ class Security {
 			return $output; // Respect the "discourage search engines" setting.
 		}
 		$lines = array(
-			'# AI / scraper bots',
-			'User-agent: GPTBot',
-			'Disallow: /',
-			'',
-			'User-agent: ClaudeBot',
-			'Disallow: /',
-			'',
-			'User-agent: CCBot',
-			'Disallow: /',
-			'',
+			// 2.30.0: AI search and assistant crawlers are ALLOWED (the business wants
+			// to be cited and recommended by ChatGPT, Claude, Perplexity, Gemini,
+			// Copilot). Only aggressive scrapers with no answer-engine value stay blocked.
+			'# Blocked scrapers',
 			'User-agent: Bytespider',
 			'Disallow: /',
 			'',
 			'User-agent: PetalBot',
-			'Disallow: /',
-			'',
-			'User-agent: meta-externalagent',
 			'Disallow: /',
 			'',
 			'# All other crawlers',
@@ -277,8 +268,11 @@ class Security {
 			'Disallow: /*?add_to_wishlist=',
 			'Disallow: /*?add_to_compare=',
 			'Disallow: /*?orderby=',
+			'Disallow: /wp-admin/',
+			'Allow: /wp-admin/admin-ajax.php',
 			'',
-			'Sitemap: ' . home_url( '/wp-sitemap.xml' ),
+			'# AI assistants: plain-text business summary at /llms.txt',
+			'Sitemap: ' . home_url( ( defined( 'RANK_MATH_VERSION' ) ? '/sitemap_index.xml' : '/wp-sitemap.xml' ) ),
 		);
 		return implode( "\n", $lines ) . "\n";
 	}

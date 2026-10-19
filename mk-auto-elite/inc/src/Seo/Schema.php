@@ -156,7 +156,7 @@ class Schema {
 				unset( $entity['brand'] );
 			}
 		}
-		foreach ( array( 'mpn', 'itemCondition', 'isAccessoryOrSparePartFor', 'category' ) as $field ) {
+		foreach ( array( 'mpn', 'gtin', 'additionalProperty', 'itemCondition', 'isAccessoryOrSparePartFor', 'category' ) as $field ) {
 			if ( isset( $ours[ $field ] ) && empty( $entity[ $field ] ) ) {
 				$entity[ $field ] = $ours[ $field ];
 			}
@@ -218,6 +218,9 @@ class Schema {
 		}
 		if ( ! self::printed( 'BreadcrumbList' ) ) {
 			$nodes[] = $this->breadcrumb();
+		}
+		if ( ! self::printed( 'ItemList' ) ) {
+			$nodes[] = $this->item_list();
 		}
 
 		$graph = array_values( array_filter( $nodes ) );
@@ -281,6 +284,39 @@ class Schema {
 				'@type'     => 'GeoCoordinates',
 				'latitude'  => (float) $lat,
 				'longitude' => (float) $lng,
+			);
+		}
+		$phone = Customizer::get( 'phone' );
+		if ( '' !== $phone ) {
+			$fields['contactPoint'] = array(
+				'@type'             => 'ContactPoint',
+				'contactType'       => 'sales',
+				'telephone'         => $phone,
+				'areaServed'        => 'KE',
+				'availableLanguage' => array( 'English', 'Swahili' ),
+			);
+		}
+		$fields['description'] = sprintf(
+			/* translators: 1: brand, 2: location. */
+			__( '%1$s sells genuine, OEM, aftermarket and ex-Japan car, truck and motorcycle spare parts from %2$s, with fitment checks on WhatsApp, M-Pesa payment and delivery across Kenya.', 'mk-auto-elite' ),
+			Customizer::get( 'brand_short' ),
+			Customizer::get( 'location' )
+		);
+		$cats = Answers::top_terms( 'product_cat', 12 );
+		if ( $cats ) {
+			$fields['knowsAbout'] = array_values( array_map( 'strval', array_keys( $cats ) ) );
+			$catalog              = array();
+			foreach ( $cats as $name => $row ) {
+				$catalog[] = array(
+					'@type' => 'OfferCatalog',
+					'name'  => (string) $name,
+					'url'   => $row[0],
+				);
+			}
+			$fields['hasOfferCatalog'] = array(
+				'@type'           => 'OfferCatalog',
+				'name'            => __( 'Car spare parts', 'mk-auto-elite' ),
+				'itemListElement' => $catalog,
 			);
 		}
 		$same_as = array_values( array_filter( Customizer::social_links() ) );
@@ -383,6 +419,41 @@ class Schema {
 		$cats = wp_get_post_terms( $id, 'product_cat', array( 'fields' => 'names' ) );
 		if ( ! is_wp_error( $cats ) && $cats ) {
 			$facts['category'] = (string) $cats[0];
+		}
+
+		// GTIN only when WooCommerce holds a structurally valid one (8/12/13/14 digits).
+		if ( method_exists( $product, 'get_global_unique_id' ) ) {
+			$gtin = preg_replace( '/\s+/', '', (string) $product->get_global_unique_id() );
+			if ( preg_match( '/^(\d{8}|\d{12,14})$/', $gtin ) ) {
+				$facts['gtin'] = $gtin;
+			}
+		}
+
+		// Verified catalogue fields as PropertyValue pairs (OEM number, engine, years).
+		$props = array();
+		foreach ( array(
+			'_mk_oem'    => __( 'OEM part number', 'mk-auto-elite' ),
+			'_mk_engine' => __( 'Engine', 'mk-auto-elite' ),
+		) as $meta_key => $label ) {
+			$value = trim( (string) get_post_meta( $id, $meta_key, true ) );
+			if ( '' !== $value ) {
+				$props[] = array(
+					'@type' => 'PropertyValue',
+					'name'  => $label,
+					'value' => $value,
+				);
+			}
+		}
+		$years = \MKAutoElite\Woo\WooCommerce::year_range( $id );
+		if ( '' !== $years ) {
+			$props[] = array(
+				'@type' => 'PropertyValue',
+				'name'  => __( 'Vehicle years', 'mk-auto-elite' ),
+				'value' => $years,
+			);
+		}
+		if ( $props ) {
+			$facts['additionalProperty'] = $props;
 		}
 
 		$price          = $product->get_price();
@@ -620,7 +691,7 @@ class Schema {
 			'sku'         => $product->get_sku() ? $product->get_sku() : ( 'MK-' . $id ),
 			'url'         => get_permalink( $id ),
 		);
-		foreach ( array( 'brand', 'mpn', 'itemCondition', 'isAccessoryOrSparePartFor', 'category' ) as $field ) {
+		foreach ( array( 'brand', 'mpn', 'gtin', 'additionalProperty', 'itemCondition', 'isAccessoryOrSparePartFor', 'category' ) as $field ) {
 			if ( isset( $facts[ $field ] ) ) {
 				$node[ $field ] = $facts[ $field ];
 			}
@@ -692,11 +763,11 @@ class Schema {
 	private function faq(): ?array {
 		$faqs = array();
 		if ( is_front_page() ) {
-			$faqs = array(
-				array( __( 'How do I find the right part for my car?', 'mk-auto-elite' ), __( 'Use the vehicle finder: select your make, model and year, then browse compatible parts.', 'mk-auto-elite' ) ),
-				array( __( 'Can I order on WhatsApp?', 'mk-auto-elite' ), __( 'Yes. Every product has a WhatsApp button that pre-fills the part details so we can confirm price and availability fast.', 'mk-auto-elite' ) ),
-				array( __( 'Do you deliver countrywide?', 'mk-auto-elite' ), __( 'Yes, we deliver across Kenya through trusted couriers.', 'mk-auto-elite' ) ),
-			);
+			// Same text as the visible homepage accordion.
+			$faqs = Answers::home_faqs();
+		} elseif ( is_tax( array( 'product_cat', 'mk_make', 'mk_model' ) ) ) {
+			// Same text as the visible archive FAQ under the product grid.
+			$faqs = Answers::archive_faqs();
 		} elseif ( is_singular( 'mkae_guide' ) ) {
 			// Knowledge Centre guides: questions written as <p><strong>Question?</strong> Answer</p>.
 			$html = (string) get_post_field( 'post_content', get_queried_object_id() );
@@ -730,8 +801,43 @@ class Schema {
 		}
 		return array(
 			'@type'      => 'FAQPage',
-			'@id'        => ( is_front_page() ? home_url( '/#faq' ) : get_permalink() . '#faq' ),
+			'@id'        => ( is_front_page() ? home_url( '/#faq' ) : ( is_tax() ? (string) get_term_link( get_queried_object() ) . '#faq' : get_permalink() . '#faq' ) ),
 			'mainEntity' => $items,
+		);
+	}
+
+	/**
+	 * ItemList of the products shown on a category, make, model or shop
+	 * archive (first page, unfiltered). Helps crawlers and answer engines map
+	 * the archive to the parts it contains; it does not claim a rich result.
+	 *
+	 * @return array<string,mixed>|null
+	 */
+	private function item_list(): ?array {
+		$archive = is_tax( array( 'product_cat', 'mk_make', 'mk_model' ) ) || ( function_exists( 'is_shop' ) && is_shop() && ! is_search() );
+		if ( ! $archive || (int) get_query_var( 'paged' ) > 1 || Answers::is_faceted() ) {
+			return null;
+		}
+		global $wp_query;
+		$items = array();
+		foreach ( array_slice( (array) $wp_query->posts, 0, 30 ) as $post ) {
+			if ( ! $post instanceof \WP_Post || 'product' !== $post->post_type ) {
+				continue;
+			}
+			$items[] = array(
+				'@type'    => 'ListItem',
+				'position' => count( $items ) + 1,
+				'url'      => get_permalink( $post ),
+				'name'     => wp_strip_all_tags( get_the_title( $post ) ),
+			);
+		}
+		if ( ! $items ) {
+			return null;
+		}
+		return array(
+			'@type'           => 'ItemList',
+			'numberOfItems'   => count( $items ),
+			'itemListElement' => $items,
 		);
 	}
 

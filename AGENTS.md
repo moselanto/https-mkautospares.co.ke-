@@ -3,6 +3,8 @@
 Instructions for AI coding agents and new contributors working in this
 repository. Read this before writing any code here.
 
+SEO work: read [`docs/HANDOVER-2026-10.md`](docs/HANDOVER-2026-10.md) and [`docs/SEO-STRATEGY-2026-10.md`](docs/SEO-STRATEGY-2026-10.md) first. AI crawlers are allowed on purpose (owner decision, 19 Oct 2026); do not re-block them.
+
 Start with [`ARCHITECTURE-ESSENTIALS.md`](ARCHITECTURE-ESSENTIALS.md) to find the
 right file, [`ARCHITECTURE.md`](ARCHITECTURE.md) before changing how something
 works, and [`SECURITY-AUDIT.md`](SECURITY-AUDIT.md) before touching forms,
@@ -93,6 +95,7 @@ WordPress core, WooCommerce, third-party plugins, uploads and the database are
 | Service bookings | `inc/src/Booking/Module.php`, `assets/js/booking.js` |
 | AI chat | `inc/src/Chat/Module.php` (UI), `Ajax/Handlers.php` (model call) |
 | Structured data | `inc/src/Seo/Schema.php` - enrich Rank Math's entities via `rank_math/json_ld`; never print a second Organization, WebSite, Product or BreadcrumbList |
+| FAQs (home + archives), product meta fallbacks, facet noindex, /llms.txt | `inc/src/Seo/Answers.php` - answers must come from Customizer / catalogue / policy pages, never invented |
 | Title / description / robots fallbacks | `inc/src/Seo/Meta.php` - respect any Rank Math override set on the page or term |
 | GA4 / Meta Pixel | `inc/src/Analytics.php` |
 | Front-end hardening, robots.txt | `inc/src/Security.php` |

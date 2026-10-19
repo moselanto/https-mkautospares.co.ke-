@@ -38,6 +38,15 @@ ships with:
 
 == Changelog ==
 
+= 2.30.0 =
+* SEO/AEO: homepage FAQ expanded to 10 answers (where to buy in Nairobi, makes stocked, chassis-number orders, genuine vs OEM vs aftermarket vs ex-Japan, delivery, payment, unlisted parts, returns), built from Customizer and policy facts; FAQPage schema mirrors it.
+* SEO/AEO: data-driven FAQ under the grid on category, make and model archives (live part count, real price range, top categories/makes, fitment); FAQPage schema mirrors it.
+* SEO: product title fallback "<name> Price in Kenya | MK Auto Spares" when it fits 60 characters, and description from price, stock, OEM number and delivery - only when Rank Math has no per-product value.
+* SEO: filtered/sorted shop URLs and search results are noindex,follow.
+* GEO: /llms.txt business and catalogue summary; robots.txt now allows AI search and assistant crawlers (GPTBot, ClaudeBot, CCBot etc.), keeps Bytespider/PetalBot blocked, and points at Rank Math's sitemap_index.xml.
+* Schema: contactPoint, description, knowsAbout and OfferCatalog on the business; GTIN (valid only) and OEM/engine/years PropertyValues on products; ItemList on archives.
+* Customizer: delivery fee and free-delivery threshold settings.
+
 = 2.29.0 =
 * Knowledge Centre: 16 new guides targeting high-demand Kenyan searches (hybrid battery prices, spare parts prices, Kirinyaga Road, ordering online with M-Pesa, Fielder/Axio, Demio, Honda Fit, Probox, check engine light, overheating, CVT, AC, NTSA inspection, ex-Japan engines, spark plugs, fuel consumption). 31 guides in total.
 * Knowledge Centre: new topics "Model Guides" and "Prices & Costs".

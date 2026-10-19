@@ -217,11 +217,8 @@ if ( taxonomy_exists( 'product_cat' ) ) {
 		<h2 class="mkae-section__title"><?php esc_html_e( 'Frequently Asked Questions', 'mk-auto-elite' ); ?></h2>
 		<div class="mkae-accordion">
 			<?php
-			$faqs = array(
-				array( __( 'How do I find the right part for my car?', 'mk-auto-elite' ), __( 'Use the vehicle finder above: select your make, model and year, then browse compatible parts.', 'mk-auto-elite' ) ),
-				array( __( 'Can I order on WhatsApp?', 'mk-auto-elite' ), __( 'Yes. Every product has a WhatsApp button that pre-fills the part details so we can confirm price and availability fast.', 'mk-auto-elite' ) ),
-				array( __( 'Do you deliver countrywide?', 'mk-auto-elite' ), __( 'Yes, we deliver across Kenya through trusted couriers.', 'mk-auto-elite' ) ),
-			);
+			// Single source shared with the FAQPage schema (Seo\Answers::home_faqs).
+			$faqs = \MKAutoElite\Seo\Answers::home_faqs();
 			foreach ( $faqs as $i => $faq ) {
 				printf(
 					'<details class="mkae-accordion__item"%s><summary class="mkae-accordion__q">%s</summary><div class="mkae-accordion__a">%s</div></details>',

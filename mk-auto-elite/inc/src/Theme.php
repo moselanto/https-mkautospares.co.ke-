@@ -58,6 +58,7 @@ final class Theme {
 		$this->modules['schema']     = new Seo\Schema();
 		$this->modules['meta']       = new Seo\Meta();
 		$this->modules['brands']     = new Seo\Brands();
+		$this->modules['answers']    = new Seo\Answers();
 		$this->modules['security']   = new Security();
 		$this->modules['content']    = new Content();
 		$this->modules['landing']    = new Landing();

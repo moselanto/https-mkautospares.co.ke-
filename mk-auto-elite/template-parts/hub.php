@@ -66,6 +66,8 @@ $mkae_heading  = $mkae_is_model
 			?>
 		</section>
 
+		<?php do_action( 'mkae_hub_after_products' ); ?>
+
 		<section class="mkae-hub__links">
 			<?php
 			if ( $mkae_is_model ) {
