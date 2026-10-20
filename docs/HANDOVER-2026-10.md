@@ -2,14 +2,36 @@
 
 Read `AGENTS.md`, then `docs/SEO-STRATEGY-2026-10.md`, before continuing.
 
-## Current state (19 Oct 2026, 23:15 EAT)
+## Current state (20 Oct 2026, 12:45 EAT) - programme phase 1 closed
 
-- 2.31.0 is LIVE (verified 19 Oct 2026 23:20 EAT: /llms.txt, make-hub and category FAQs render). **2.31.1 committed, not uploaded** (category label fix).
-- Still stale on live: homepage shows the old 3-question FAQ (page cache) and /robots.txt shows the OLD rules blocking GPTBot/ClaudeBot (Cloudflare cache or a physical robots.txt in the web root).
-- New module `inc/src/Seo/Answers.php`; edits to `Seo/Schema.php`,
-  `Security.php` (robots.txt), `Customizer.php`, `Theme.php`,
-  `front-page.php`, `template-parts/hub.php`.
-- All changed PHP passed `php -l` (PHP 8.3) and the `\!` grep.
+**Live and verified on 20 Oct 2026** (web fetch of /brands/toyota/, /models/x-trail/, a product page, /, /robots.txt, /llms.txt):
+- Theme **MK Auto Elite 2.33.0 + live-edit fixes** (commits 7c22201, f951941) uploaded by the owner. Dated price tables + 3 answers on make/model/category hubs, product "Quick answers" (price, fitment, OEM no., delivery), 10-question homepage FAQ, llms.txt with "How to cite us" and "Popular part searches", robots.txt allowing AI crawlers. No PHP errors seen.
+- Live-edited in wp-admin theme editor and mirrored in repo (f951941): footer back-to-top `#`, `id="primary"` skip target in front-page.php, alt on WaOrder placeholder, Chat/Module.php.
+- Homepage meta description (Rank Math) 154 chars; alt text added to 14 homepage images.
+- 7 "price on request" products (IDs 30819, 30974, 31028, 31622, 31646, 30810, 30834): regular/sale price cleared. Search Console "Validate fix" started 20 Oct; 584 archive-schema items also under validation.
+- **Caching:** server is **Apache + PHP-FPM 8.2** (cPanel/CloudLinux shared host, path /home/pcnlblkq/public_html, Imunify). LiteSpeed Cache 7.9.1 was active but useless on Apache -> **deactivated (not deleted)**. **WP Super Cache 3.1.4** installed: Simple mode, no cache for logged-in users or GET params, compression, 304, cache rebuild, clear on publish, 3600 s timeout, rejected URIs /cart/ /checkout/ /my-account/ /wp-json/ /wc-api/ ?add-to-cart=, rejected cookies woocommerce_items_in_cart, wp_woocommerce_session. Built-in cache test passed. External TTFB not yet re-measured (was ~1.5-2.0 s). OPcache disabled; DISABLE_WP_CRON on (check cPanel cron runs wp-cron.php); directory listing enabled on server.
+- MKauto Desk **1.7.1** (pop-up seen-cookie fix, commit 19cffb5): owner upload not confirmed.
+
+**Google / Bing (account mkautospareske@gmail.com):**
+- Search Console: sitemap_index.xml Success, 4,404 discovered.
+- Bing Webmaster: site imported, sitemap resubmitted. Rank Math Instant Indexing active (theme IndexNow pings auto-skip).
+- **Bing Places:** GBP imported + verified 20 Oct, pending publish 7-12 days, weekly GBP sync on. Manage: https://www.bing.com/forbusiness/singleEntity?bizid=2d8ae32d-55a8-44c7-89ce-24227074493c
+- GA4 G-HZ2W9TN2TH (property 547083524); key events phone_click, whatsapp_click, purchase. GTM-KP7NJH4K.
+- GBP "MK Autospares Kenya": description (pending review) and in-store collection service mention "Kirinyaga Road, Nairobi (Glogon, behind Shell petrol station)". Structured address stays "Kirinyaga Road, Nairobi" (Google rejects landmark line without moving the pin - do not move it). One Update post submitted (pending). **Products not created** (Google requires a photo; browser upload of chat attachments fails). **Storefront photo not uploaded** for the same reason - owner adding from phone.
+- **Confirmed address (owner, 20 Oct): Kirinyaga Road (Glogon, behind Shell).** Ignore the "Lower Kirinyaga Road, MK Building" wording on the sign.
+
+**Client report:** "MK Auto Spares - Website and Search Work Report SEO, GEO & AEO.docx" (doc no. PMF-MKAS-RPT-2026-01, Pimofy Digital format) saved in the owner's Town library; sections 05 (starting figures) and 06 (next steps) are the baseline for the next review.
+
+### Next agent: start here
+1. Re-measure TTFB/PageSpeed on /, a hub and a product (cache should now hit). Re-run Rank Math SEO Analyzer (baseline 83/100).
+2. After owner enables OPcache in cPanel, re-check Site Health.
+3. Check Search Console validation of the 7 price errors and 584 archive items; Bing Places publish (~27 Oct-1 Nov).
+4. GBP: create Products (Suspension, Engine, Brakes, Electrical, Toyota, Nissan -> category/brand URLs) once the owner provides photos; confirm storefront photo.
+5. Citations with identical NAP: Yellow Pages Kenya, KenyaBizList, Apple Business Connect. Listicle outreach (victormatara.com, nyongesasande.com).
+6. Late Nov 2026: compare the 50 rewritten pilot products vs the rest in Search Console; if positive, rewrite next 200 best sellers (needs WooCommerce export CSV). Re-run the visibility tests in SEO-STRATEGY section "AI answer tests" (MK not shown for Prado shock / Forester suspension queries).
+7. Owner items: Customizer > SEO & Local Business GBP link (sameAs), Jetpack reconnect, host to disable directory listing and hide error log, Mashujaa Day hours.
+
+Note: no PHP lint available in the agent sandbox on 20 Oct; 2.33.0 PHP was eye-checked only, then verified live with no errors.
 
 ## Deploy
 
@@ -33,6 +55,8 @@ which are harmless and expire in 12 h.
 - Competitors named in the brief checked 20 Oct 2026 (see strategy section 2). Directory citations and listicle outreach are the next off-site actions.
 
 ## Log
+
+- 20 Oct 2026 (midday) - 2.33.0 verified live. WP Super Cache replaced inactive-on-Apache LiteSpeed Cache. Bing Places imported. GBP description/service/post updated with confirmed address. Rank Math fixes (meta description, 14 alt texts, back-to-top/skip link). 7 price-on-request products cleared and GSC validation started. Client report PMF-MKAS-RPT-2026-01 produced.
 
 - 20 Oct 2026 - 2.33.0 (committed, not uploaded): live price lists on hubs and categories, product Quick answers, IndexNow, entity sameAs / hasMap / paymentAccepted, richer llms.txt. New files `inc/src/Seo/PriceList.php`, `Seo/QuickAnswers.php`, `Seo/IndexNow.php`; edits to `Seo/Answers.php` (llms.txt), `Seo/Schema.php`, `Customizer.php`, `Theme.php`, `assets/css/main.css` + `main.min.css`, version files. `php -l` could NOT run (no PHP in the sandbox and no package access); files were checked by a bracket/quote balance script, the `\\!` grep and by eye. **Run `php -l` on the server before or right after upload.** Deploy: zip `mk-auto-elite/`, upload, purge Cloudflare; then check `/brands/toyota/` and `/product-category/suspension/` show the dated price table above the FAQ, a product shows Quick answers under the tabs, `/llms.txt` has the two new sections, and in Customizer > SEO & Local Business fill Google Business Profile URL (and LinkedIn under Footer & Social if one exists). IndexNow: if Rank Math > Instant Indexing is on, the theme stays silent (intended); otherwise open `/<key>.txt` (key in option `mkae_indexnow_key`) and confirm Bing Webmaster > IndexNow shows submissions after editing a product. Rollback: re-upload 2.32.1. DB items added: options `mkae_indexnow_key`, `mkae_indexnow_queue`, `mkae_indexnow_sent`, `mkae_indexnow_last`, transients `mkae_pl_*`, cron event `mkae_indexnow_flush` - all harmless if left.
 
