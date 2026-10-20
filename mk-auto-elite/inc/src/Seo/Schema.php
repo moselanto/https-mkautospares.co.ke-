@@ -120,6 +120,9 @@ class Schema {
 		foreach ( $this->business_fields() as $field => $value ) {
 			if ( empty( $entity[ $field ] ) ) {
 				$entity[ $field ] = $value;
+			} elseif ( 'sameAs' === $field && is_array( $value ) ) {
+				// 2.33.0: union with Rank Math's social profiles, no duplicates.
+				$entity['sameAs'] = array_values( array_unique( array_merge( (array) $entity['sameAs'], $value ) ) );
 			}
 		}
 		// Rank Math often only has a locality; replace a thin address.
@@ -271,9 +274,14 @@ class Schema {
 			),
 			'openingHours'       => Customizer::get( 'opening_hours' ),
 			'currenciesAccepted' => 'KES',
-			'paymentAccepted'    => 'M-Pesa, Cash',
+			// 2.33.0: matches inc/content/payment-methods.html (M-Pesa Paybill,
+			// cash, bank transfer). Card is NOT listed there, so it is not claimed.
+			'paymentAccepted'    => 'M-Pesa, Cash, Bank Transfer',
 		);
-		$map = Customizer::get( 'map_link' );
+		$map = Customizer::get( 'has_map' );
+		if ( '' === $map ) {
+			$map = Customizer::get( 'map_link' );
+		}
 		if ( $map ) {
 			$fields['hasMap'] = $map;
 		}
@@ -319,7 +327,8 @@ class Schema {
 				'itemListElement' => $catalog,
 			);
 		}
-		$same_as = array_values( array_filter( Customizer::social_links() ) );
+		// 2.33.0: Google Business Profile, socials and LinkedIn (non-empty only).
+		$same_as = Customizer::same_as_links();
 		if ( $same_as ) {
 			$fields['sameAs'] = $same_as;
 		}

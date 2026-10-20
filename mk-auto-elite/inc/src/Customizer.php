@@ -44,6 +44,7 @@ class Customizer {
 		'x_twitter'     => '',
 		'tiktok'        => '',
 		'youtube'       => '',
+		'linkedin'      => '',
 		// SEO / structured data (Customizer > MK Auto Elite > SEO & Local Business).
 		'brand_short'    => 'MK Auto Spares',
 		'street_address' => 'Kirinyaga Road',
@@ -56,6 +57,10 @@ class Customizer {
 		'og_image'       => '',
 		'delivery_fee'       => '500',
 		'free_delivery_from' => '10000',
+		// 2.33.0: entity / GEO and IndexNow.
+		'gbp_url'            => '',
+		'has_map'            => '',
+		'indexnow'           => '1',
 	);
 
 	/**
@@ -346,6 +351,8 @@ class Customizer {
 			'og_image'       => array( __( 'Default social share image URL (1200x630). Blank uses the homepage hero.', 'mk-auto-elite' ), 'esc_url_raw', 'url' ),
 			'delivery_fee'       => array( __( 'Delivery fee in KES (must match the Shipping & Delivery page; 0 hides it in FAQs)', 'mk-auto-elite' ), 'absint', 'number' ),
 			'free_delivery_from' => array( __( 'Free delivery from order value in KES (0 = no free-delivery threshold)', 'mk-auto-elite' ), 'absint', 'number' ),
+			'gbp_url'            => array( __( 'Google Business Profile / Google Maps listing URL (schema sameAs). Leave blank if unsure.', 'mk-auto-elite' ), 'esc_url_raw', 'url' ),
+			'has_map'            => array( __( 'Map URL for schema hasMap. Blank uses the Get directions link.', 'mk-auto-elite' ), 'esc_url_raw', 'url' ),
 		);
 		foreach ( $seo_fields as $key => $meta ) {
 			$wp_customize->add_setting(
@@ -365,6 +372,26 @@ class Customizer {
 				)
 			);
 		}
+
+		// 2.33.0: IndexNow (Bing / Yandex). Skipped automatically when Rank
+		// Math's Instant Indexing module is active, so URLs are never pinged twice.
+		$wp_customize->add_setting(
+			'mkae_indexnow',
+			array(
+				'default'           => self::$defaults['indexnow'],
+				'sanitize_callback' => array( __CLASS__, 'sanitize_checkbox' ),
+				'transport'         => 'refresh',
+			)
+		);
+		$wp_customize->add_control(
+			'mkae_indexnow',
+			array(
+				'label'       => __( 'Enable IndexNow', 'mk-auto-elite' ),
+				'description' => __( 'Tells Bing (which feeds ChatGPT search and Copilot) and other IndexNow engines when a product, page or guide is published or updated. Turns itself off when Rank Math Instant Indexing is active.', 'mk-auto-elite' ),
+				'section'     => 'mkae_seo',
+				'type'        => 'checkbox',
+			)
+		);
 
 		// Footer & Social.
 		$wp_customize->add_section(
@@ -398,6 +425,7 @@ class Customizer {
 			'x_twitter' => __( 'X / Twitter URL', 'mk-auto-elite' ),
 			'tiktok'    => __( 'TikTok URL', 'mk-auto-elite' ),
 			'youtube'   => __( 'YouTube URL', 'mk-auto-elite' ),
+			'linkedin'  => __( 'LinkedIn URL (schema sameAs only)', 'mk-auto-elite' ),
 		);
 		foreach ( $socials as $key => $label ) {
 			$wp_customize->add_setting(
@@ -433,6 +461,38 @@ class Customizer {
 			}
 		}
 		return $out;
+	}
+
+	/**
+	 * Profiles that identify the business entity (schema sameAs): Google
+	 * Business Profile, the footer social links and LinkedIn. Only non-empty,
+	 * valid http(s) URLs, de-duplicated.
+	 *
+	 * @return string[]
+	 */
+	public static function same_as_links(): array {
+		$urls = array_merge(
+			array( self::get( 'gbp_url', '' ) ),
+			array_values( self::social_links() ),
+			array( self::get( 'linkedin', '' ) )
+		);
+		$out = array();
+		foreach ( $urls as $url ) {
+			$url = esc_url_raw( trim( (string) $url ), array( 'http', 'https' ) );
+			if ( '' !== $url && ! in_array( $url, $out, true ) ) {
+				$out[] = $url;
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Sanitize a Customizer checkbox to '1' or ''.
+	 *
+	 * @param mixed $value Value.
+	 */
+	public static function sanitize_checkbox( $value ): string {
+		return ( true === $value || '1' === (string) $value || 'yes' === $value || 'on' === $value ) ? '1' : '';
 	}
 
 	/**

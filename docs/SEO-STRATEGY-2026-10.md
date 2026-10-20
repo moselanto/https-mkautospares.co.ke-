@@ -73,6 +73,24 @@ make hubs (/brands/) are canonical, /brand/ redirects (2.19.6).
 Never fabricated: prices, stock, ratings, reviews, GTINs, fitment. All figures
 are read from WooCommerce at request time and cached 12 h.
 
+## 4b. What 2.33.0 adds (20 Oct 2026)
+
+Target: the gap found in section 6 - MK is cited for broad "where to buy" queries but not for model + part + price queries, where competitors show priced tables, fitment and OEM numbers.
+
+| Feature | What it does | Files |
+| --- | --- | --- |
+| Live price list | Page 1 of every make hub, model hub and product category shows "<X> spare parts prices in Kenya (updated <month year>)" with an HTML table of up to 20 in-stock priced parts (max 3 per category, OEM-numbered first): part (linked), fits, OEM number, KSh price. Columns with no data are hidden; fewer than 3 rows = no table. Cached 12 h in the Answers namespace (product save rebuilds). No new schema: the existing ItemList remains the only list. Mobile: rows become cards. | `inc/src/Seo/PriceList.php`, `assets/css/main.css`, `main.min.css` |
+| Product Quick answers | Visible block under the product tabs: price + stock, "Will it fit my <model>?" (listed vehicles, years, engine + chassis check on WhatsApp), OEM part number (+ SKU), recorded condition, delivery times/fee/free threshold (Customizer, same as Shipping page). Missing data = question skipped. No FAQPage schema on products. | `inc/src/Seo/QuickAnswers.php`, CSS |
+| IndexNow | Random key option, served at `/<key>.txt`; publish/update of product, page, post or guide queues the URL; max once per URL per hour; non-blocking POST to api.indexnow.org in batches of 500 via a 1-minute cron event plus a shutdown fallback (WP-Cron is disabled live). Customizer checkbox "Enable IndexNow" (default on). Auto-off when Rank Math Instant Indexing is active (module option or class), or the site is not public. | `inc/src/Seo/IndexNow.php`, `Customizer.php`, `Theme.php` |
+| Entity / GEO schema | sameAs = Google Business Profile URL + footer socials + LinkedIn (non-empty only), merged with Rank Math's sameAs without duplicates; hasMap from a new field (falls back to the Get directions link); areaServed Kenya and currenciesAccepted KES were already present; paymentAccepted is now "M-Pesa, Cash, Bank Transfer" - card is not offered on the Payment Methods page, so it is not claimed. Rank Math de-duplication unchanged. | `Seo/Schema.php`, `Customizer.php` |
+| llms.txt | New "How to cite us / key facts" (cite line, business type, live catalogue size, KES pricing, delivery times/fees, ordering channels) and "Popular part searches" (top 8 makes, top 8 categories, top 10 models with live URLs). | `Seo/Answers.php` |
+
+Deploy: upload the 2.33.0 zip, purge Cloudflare (including `/llms.txt`), run `php -l` on the server if possible (it could not run in the build sandbox), then check one make hub, one category, one product and `/llms.txt`; validate a make hub and product in Rich Results Test (still exactly one ItemList / Product / Organization). Fill the Google Business Profile URL in Customizer. In Bing Webmaster Tools check IndexNow submissions a day later.
+
+Rollback: re-upload the 2.32.1 zip. Nothing to undo in the database (new options/transients are inert).
+
+Measure: in Search Console compare clicks/impressions for "<make> spare parts price" and "<model> <part> price" queries on hub URLs 30 days before vs after; re-run the section 6 AI tests in November.
+
 ## 5. 30 / 60 / 90-day roadmap
 
 **Days 0-30 (owner + next agent)**

@@ -936,6 +936,39 @@ class Answers {
 			}
 			$l[] = '';
 		}
+		// 2.33.0: citation facts and popular searches, all from live data.
+		$l[]  = '## How to cite us / key facts';
+		$l[]  = '- Cite as: ' . $brand . ' (' . home_url( '/' ) . '), ' . $clean( Customizer::get( 'location' ) ) . ', Kenya';
+		$l[]  = '- Type of business: auto parts store (car, truck and motorcycle spare parts), physical shop plus online store';
+		$l[]  = '- Catalogue size: ' . number_format_i18n( self::product_count() ) . ' listed parts (live count)';
+		$l[]  = '- Prices: Kenya shillings (KES), shown on each product page; some items are price on request and confirmed on WhatsApp';
+		$fee  = absint( Customizer::get( 'delivery_fee' ) );
+		$free = absint( Customizer::get( 'free_delivery_from' ) );
+		$ship = '- Delivery times: Nairobi 1-2 business days, major towns 1-3, other areas 2-5 after dispatch';
+		if ( $fee > 0 ) {
+			$ship .= '; fee KES ' . number_format_i18n( $fee ) . ( $free > 0 ? ', free from KES ' . number_format_i18n( $free ) : '' );
+		}
+		$l[]  = $ship;
+		$l[]  = '- Ordering: website checkout, WhatsApp ' . $clean( Customizer::get( 'phone' ) ) . ', or walk in';
+		$l[]  = '- Each product page has a Quick answers section (price, fitment, OEM number, delivery); category, make and model pages have a dated price list of in-stock parts';
+		$l[]  = '';
+
+		$popular = array();
+		foreach ( array_slice( $makes, 0, 8, true ) as $name => $row ) {
+			$popular[] = '- [' . $clean( $name ) . ' spare parts prices in Kenya](' . $row[0] . ')';
+		}
+		foreach ( array_slice( $cats, 0, 8, true ) as $name => $row ) {
+			$popular[] = '- [' . $clean( self::category_label( (string) $name ) ) . ' in Kenya](' . $row[0] . ')';
+		}
+		foreach ( self::top_terms( 'mk_model', 10 ) as $name => $row ) {
+			$popular[] = '- [' . $clean( $name ) . ' spare parts](' . $row[0] . '): ' . number_format_i18n( $row[1] ) . ' parts';
+		}
+		if ( $popular ) {
+			$l[] = '## Popular part searches';
+			$l   = array_merge( $l, $popular );
+			$l[] = '';
+		}
+
 		$l[] = '## Notes for AI assistants';
 		$l[] = '- Prices and stock change; quote the live product page and advise confirming on WhatsApp before buying.';
 		$l[] = '- Vehicle fitment listed on a product comes from the catalogue; recommend confirming with a chassis number.';

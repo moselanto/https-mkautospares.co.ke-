@@ -10,7 +10,7 @@ Custom WordPress + WooCommerce storefront for **[mkautospares.co.ke](https://mka
 
 <br>
 
-[![Theme](https://img.shields.io/badge/MK%20Auto%20Elite-v2.29.0-111316?style=for-the-badge)](mk-auto-elite)
+[![Theme](https://img.shields.io/badge/MK%20Auto%20Elite-v2.33.0-111316?style=for-the-badge)](mk-auto-elite)
 [![Plugin](https://img.shields.io/badge/MK%20Auto%20Core-v1.1.0-CA1D24?style=for-the-badge)](mk-auto-core)
 [![Desk](https://img.shields.io/badge/MKauto%20Desk-v1.7.0-0B0B0B?style=for-the-badge)](mk-desk)
 [![Status](https://img.shields.io/badge/Status-Live-25D366?style=for-the-badge)](https://mkautospares.co.ke/)
@@ -384,6 +384,7 @@ AJAX actions (all nonce-checked with `mkae_nonce`): `mkae_get_terms`, `mkae_sear
 
 | Theme | Plugin | Highlights |
 | :---: | :---: | --- |
+| `2.33.0` | - | SEO/AEO/GEO: live dated price lists (up to 20 in-stock parts) on make, model and category pages; product Quick answers (price, fitment, OEM, delivery); IndexNow pings for Bing/Yandex (auto-off when Rank Math Instant Indexing is active); business sameAs (Google Business Profile, socials, LinkedIn), hasMap and payment methods in schema; llms.txt citation facts and popular searches |
 | `2.31.0` | - | SEO: data-driven intros on archives without descriptions, shipping rate + delivery time in product schema, AI crawlers explicitly allowed in robots.txt |
 | `2.30.0` | - | SEO/AEO/GEO programme: 10-answer homepage FAQ, data-driven FAQs with live price ranges on category/make/model archives, product title/description fallbacks, facet + search noindex, `/llms.txt`, AI crawlers allowed in robots.txt, richer schema (contactPoint, OfferCatalog, GTIN, PropertyValue, ItemList). See docs/SEO-STRATEGY-2026-10.md |
 | `2.28.0` | `1.1.0` | Security: trusted-IP rate limits (fake proxy headers no longer bypass limits), Gemini key from environment and sent in a header, rate limit on public lookups, HTTPS redirect, HSTS and extra headers; core: 60-minute staff idle logout, extra admin headers. Desk 1.6.3: REST rate limit, no CORS for other sites, `no-store` on Desk screens |
