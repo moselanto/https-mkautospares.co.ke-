@@ -235,7 +235,7 @@ class Module {
 				<header class="mkw__head">
 					<span class="mkw__avatar">
 						<?php if ( $logo ) : ?>
-							<img src="<?php echo esc_url( $logo ); ?>" alt="" width="44" height="44">
+							<img src="<?php echo esc_url( $logo ); ?>" alt="<?php esc_attr_e( 'MK Auto Spares logo', 'mk-auto-elite' ); ?>" width="44" height="44">
 						<?php else : ?>
 							<span>MK</span>
 						<?php endif; ?>

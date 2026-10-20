@@ -52,7 +52,7 @@ if ( '' === $mkae_hero_image ) {
 $mkae_hero_static = ( 'yes' === $mkae_hero_motion ) ? '' : ' mkae-hero--static';
 ?>
 
-<section class="mkae-hero<?php echo esc_attr( $mkae_hero_static ); ?>" style="--mkae-hero-img:url('<?php echo esc_url( $mkae_hero_still ); ?>');">
+<section id="primary" class="mkae-hero<?php echo esc_attr( $mkae_hero_static ); ?>" style="--mkae-hero-img:url('<?php echo esc_url( $mkae_hero_still ); ?>');">
 	<div class="mkae-hero__media" aria-hidden="true">
 		<?php if ( '' !== $mkae_hero_video ) : ?>
 			<video class="mkae-hero__video" autoplay muted loop playsinline preload="metadata" poster="<?php echo esc_url( $mkae_hero_still ); ?>">

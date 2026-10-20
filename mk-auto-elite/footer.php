@@ -198,7 +198,7 @@ $mkae_labels  = array(
 				<span class="mkae-pay">M-Pesa</span>
 				<span class="mkae-pay"><?php esc_html_e( 'Cash on Delivery', 'mk-auto-elite' ); ?></span>
 			</div>
-			<a href="#top" class="mkae-footer__top"><?php esc_html_e( 'Back to top', 'mk-auto-elite' ); ?> &#8593;</a>
+			<a href="#" class="mkae-footer__top"><?php esc_html_e( 'Back to top', 'mk-auto-elite' ); ?> &#8593;</a>
 		</div>
 	</div>
 </footer>

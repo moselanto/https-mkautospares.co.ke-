@@ -163,7 +163,7 @@ class WaOrder {
 				<form class="mkwo__form" data-mkwo-form novalidate>
 					<div class="mkwo__scroll">
 						<div class="mkwo__item">
-							<img class="mkwo__img" data-mkwo-img alt="" width="72" height="72" hidden>
+							<img class="mkwo__img" data-mkwo-img alt="<?php esc_attr_e( 'Selected spare part for WhatsApp order', 'mk-auto-elite' ); ?>" width="72" height="72" hidden>
 							<div class="mkwo__item-text">
 								<p class="mkwo__name" data-mkwo-name></p>
 								<p class="mkwo__meta" data-mkwo-meta></p>
